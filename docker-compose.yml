@@ -3,9 +3,11 @@
 # Configure via environment variables (PUS_*) - no config.yaml needed:
 #   PUS_PORTAINER_URL      e.g. http://portainer:9000 (or https://:9443)
 #   PUS_PORTAINER_API_KEY  your Portainer API key
-# Or mount ./config/config.yaml instead (then remove the two env vars).
+# Or leave both empty and finish setup in the web UI (Settings tab).
 #
-# The container needs the host docker socket for prune/backup/self-update.
+# The docker socket is OPTIONAL: only the "update Portainer itself" feature
+# needs it (docker compose pull/up in Portainer's compose dir). Checks,
+# backups, pruning and stack redeploys all go through the Portainer API.
 
 services:
   update-service:
@@ -15,21 +17,23 @@ services:
     ports:
       - "8090:8090"        # inside the container the app binds 0.0.0.0
     environment:
-      PUS_PORTAINER_URL: "http://portainer:9000"      # adjust to your setup
-      PUS_PORTAINER_API_KEY: "ptr_xxxxxxxxxxxxxxxxxxxx"
       PUS_LISTEN_HOST: "0.0.0.0"                      # REQUIRED in a container
       PUS_LISTEN_PORT: "8090"
-      PUS_UPDATE_INTERVAL_HOURS: "168"                # weekly
+      # Credentials: either set them here, or leave them out and finish
+      # setup in the web UI (Settings tab) - env vars win over the UI.
+      # PUS_PORTAINER_URL: "http://portainer:9000"
+      # PUS_PORTAINER_API_KEY: "ptr_xxxxxxxxxxxxxxxxxxxx"
+      PUS_UPDATE_INTERVAL_HOURS: "168"                # weekly (interval mode)
       # PUS_AUTH_TOKEN: "change-me"                   # recommended!
       # PUS_NOTIFY_WEBHOOK: "https://ntfy.sh/your-topic"
       TZ: "Europe/Berlin"
     volumes:
       - update-service-data:/app/data                  # status/history/logs/backups
-      - /var/run/docker.sock:/var/run/docker.sock      # prune/backup/self-update
-    # If you prefer file-based config instead of env vars:
-    # - ./config:/app/config
+      - update-service-config:/app/config              # settings (survive redeploys)
+      - /var/run/docker.sock:/var/run/docker.sock      # optional: Portainer self-update
     # The service detects the stack that runs it and defers its own redeploy
     # to the very end of an update run (self-update safe).
 
 volumes:
   update-service-data:
+  update-service-config:
