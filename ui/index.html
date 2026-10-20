@@ -4,100 +4,205 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0f141a">
+<meta name="description" content="Keep your Portainer stacks up to date — automatically, on your schedule.">
 <title>Portainer Update Service</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%230f141a'/%3E%3Ccircle cx='8' cy='8' r='4' fill='%233aa0ff'/%3E%3C/svg%3E">
 <style>
 :root{
   --bg:#0f141a;--panel:#161d26;--panel2:#1c242f;--line:#2a3441;--line-strong:#3a4656;
-  --txt:#d7e0ea;--mut:#8a97a8;--acc:#3aa0ff;--acc-btn:#2f7fd6;
-  --ok:#38c172;--warn:#e8a33d;--err:#e35d5d;--err-btn:#d94b4b;
+  --txt:#d7e0ea;--mut:#8a97a8;--acc:#3aa0ff;--acc-btn:#2b76c9;--acc-hover:#2870bd;
+  --ok:#38c172;--warn:#e8a33d;--err:#e35d5d;--err-btn:#cf4444;--err-hover:#c93c3c;
   --ok-bg:rgba(56,193,114,.15);--warn-bg:rgba(232,163,61,.15);
   --err-bg:rgba(227,93,93,.15);--mut-bg:rgba(138,151,168,.15);--acc-bg:rgba(58,160,255,.15);
-  --radius:10px;
+  --radius:10px;--radius-lg:16px;
+  --ease-out:cubic-bezier(.22,1,.36,1);
+  --shadow-lift:0 1px 2px rgba(0,0,0,.3);
+  --shadow-float:0 18px 48px rgba(0,0,0,.5);
+  /* motion values, written by the spring engine in JS */
+  --bg-op:0;--bg-blur:0px;
+  --m-op:0;--m-ty:18px;--m-sc:.97;
+  --t-op:1;--t-ty:0px;
   color-scheme:dark;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--txt);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-a{color:var(--acc);text-decoration:none}
-::-webkit-scrollbar{width:10px;height:10px}
-::-webkit-scrollbar-thumb{background:var(--line);border-radius:5px}
+html{scrollbar-gutter:stable}
+body{
+  background:var(--bg) radial-gradient(75rem 30rem at 50% -12%,rgba(58,160,255,.07),transparent 62%) no-repeat;
+  color:var(--txt);font:100%/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  font-optical-sizing:auto;-webkit-font-smoothing:antialiased;
+}
+a{color:var(--acc);text-decoration:none;text-underline-offset:.125em}
+a:hover{text-decoration:underline}
+::selection{background:rgba(58,160,255,.3)}
+::-webkit-scrollbar{width:.625rem;height:.625rem}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:999px}
+::-webkit-scrollbar-thumb:hover{background:var(--line-strong)}
 ::-webkit-scrollbar-track{background:transparent}
-button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radius:4px}
-header{display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;padding:14px 22px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5}
-header h1{font-size:17px;font-weight:600;display:flex;align-items:center;gap:10px}
-.dot{width:9px;height:9px;border-radius:50%;background:var(--mut);display:inline-block;flex:none}
-.dot.ok{background:var(--ok)}.dot.err{background:var(--err)}.dot.run{background:var(--acc);animation:pulse 1s infinite alternate}
-@keyframes pulse{from{opacity:.4}to{opacity:1}}
-@media (prefers-reduced-motion:reduce){.dot.run{animation:none}}
-nav{display:flex;flex-wrap:wrap;gap:4px;margin-left:12px}
-nav button{background:none;border:0;color:var(--mut);padding:7px 14px;border-radius:8px;cursor:pointer;font-size:14px;transition:background .15s ease,color .15s ease}
-nav button:hover{color:var(--txt);background:rgba(42,52,65,.5)}
-nav button.active{background:var(--panel2);color:var(--txt)}
-main{max-width:1180px;margin:0 auto;padding:22px}
-.grid{display:grid;gap:14px}
-.cards{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
-.card .lbl{color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.4px}
-.card .val{font-size:24px;font-weight:600;margin-top:4px;font-variant-numeric:tabular-nums}
-.card .sub{color:var(--mut);font-size:12px;margin-top:2px}
-section{margin-top:18px}
-h2{font-size:15px;font-weight:600;margin-bottom:10px;color:var(--txt)}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px;overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:13.5px}
-th{color:var(--mut);text-align:left;font-weight:500;font-size:12px;text-transform:uppercase;padding:8px 10px;border-bottom:1px solid var(--line)}
-td{padding:9px 10px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.is-clickable:focus-visible,tr[data-st]:focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radius:6px}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:.75rem 1rem;padding:.75rem 1.375rem;min-height:3.5rem;
+  border-bottom:1px solid transparent;background:rgba(18,24,32,.76);
+  -webkit-backdrop-filter:blur(1.25rem) saturate(180%);backdrop-filter:blur(1.25rem) saturate(180%);
+  position:sticky;top:0;z-index:5;
+  transition:border-color .24s var(--ease-out),box-shadow .24s var(--ease-out)}
+header.scrolled{border-bottom-color:var(--line);box-shadow:0 .5rem 1.5rem rgba(0,0,0,.35)}
+header h1{font-size:1.0625rem;font-weight:600;letter-spacing:-.012em;display:flex;align-items:center;gap:.625rem}
+.dot{width:.5625rem;height:.5625rem;border-radius:50%;background:var(--mut);display:inline-block;flex:none;transition:background-color .3s var(--ease-out)}
+.dot.ok{background:var(--ok)}.dot.err{background:var(--err)}
+.dot.run{background:var(--acc);animation:pulse 1.3s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.45}50%{opacity:1}}
+nav{position:relative;display:flex;flex-wrap:wrap;gap:.25rem;margin-left:.75rem}
+.nav-pill{position:absolute;left:0;top:0;width:var(--pw,0);height:var(--ph,0);border-radius:.5rem;background:var(--panel2);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 1px 2px rgba(0,0,0,.35);
+  transform:translate3d(var(--px,0),var(--py,0),0);pointer-events:none;opacity:0;
+  will-change:transform,width,height}
+nav.ready .nav-pill{opacity:1}
+nav button{position:relative;z-index:1;background:none;border:0;color:var(--mut);padding:.4375rem .875rem;border-radius:.5rem;
+  cursor:pointer;font:inherit;font-size:.875rem;font-weight:500;letter-spacing:-.006em;
+  transition:color .18s var(--ease-out),transform 120ms var(--ease-out)}
+nav button:hover{color:var(--txt)}
+nav button:active{transform:scale(.97)}
+nav button.active{color:var(--txt)}
+main{max-width:73.75rem;margin:0 auto;padding:1.375rem}
+.tab{opacity:var(--t-op,1);transform:translate3d(0,var(--t-ty,0),0)}
+.grid{display:grid;gap:.875rem}
+.cards{grid-template-columns:repeat(auto-fit,minmax(13rem,1fr))}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:1rem;
+  transition:border-color .22s var(--ease-out),background-color .22s var(--ease-out),transform 120ms var(--ease-out)}
+.card .lbl{color:var(--mut);font-size:.6875rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.card .val{font-size:1.5rem;font-weight:600;line-height:1.15;letter-spacing:-.022em;margin-top:.25rem;font-variant-numeric:tabular-nums}
+.card .val.val-sm{font-size:1.125rem;letter-spacing:-.01em}
+.card .sub{color:var(--mut);font-size:.75rem;line-height:1.45;margin-top:.125rem}
+section{margin-top:1.25rem}
+h2{font-size:.9375rem;font-weight:600;letter-spacing:-.006em;margin-bottom:.625rem;color:var(--txt)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:1rem;overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.84375rem}
+th{color:var(--mut);text-align:left;font-weight:600;font-size:.75rem;letter-spacing:.05em;text-transform:uppercase;padding:.5rem .625rem;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:.5625rem .625rem;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;transition:background-color .14s var(--ease-out)}
 tr:last-child td{border-bottom:0}
-tbody tr:hover td{background:var(--panel2)}
+tbody tr[data-st]{cursor:pointer}
+@media (hover:hover){tbody tr:hover td{background:var(--panel2)}}
 th.num,td.num{text-align:right}
-td.mono{font:12px ui-monospace,Consolas,monospace;color:var(--mut);max-width:320px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:12px;font-weight:600}
-.b-ok{background:var(--ok-bg);color:var(--ok)}
-.b-warn{background:var(--warn-bg);color:var(--warn)}
-.b-err{background:var(--err-bg);color:var(--err)}
+td.mono{font:.75rem ui-monospace,Consolas,monospace;color:var(--mut);max-width:20rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.badge{display:inline-block;padding:.125rem .5625rem;border-radius:999px;font-size:.75rem;font-weight:600;letter-spacing:.01em;font-variant-numeric:tabular-nums;white-space:nowrap}
+.b-ok{background:var(--ok-bg);color:var(--ok);box-shadow:inset 0 0 0 1px rgba(56,193,114,.16)}
+.b-warn{background:var(--warn-bg);color:var(--warn);box-shadow:inset 0 0 0 1px rgba(232,163,61,.16)}
+.b-err{background:var(--err-bg);color:var(--err);box-shadow:inset 0 0 0 1px rgba(227,93,93,.16)}
 .b-mut{background:var(--mut-bg);color:var(--mut)}
 .b-info{background:var(--acc-bg);color:var(--acc)}
-.btn{background:var(--acc-btn);color:#fff;border:0;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13.5px;font-weight:500;transition:background .15s ease,opacity .15s ease}
-.btn:hover{filter:brightness(1.1)}
-.btn:disabled{opacity:.5;cursor:not-allowed}
-.btn.sec{background:var(--panel2);color:var(--txt);border:1px solid var(--line)}
-.btn.sm{padding:4px 10px;font-size:12.5px}
+.btn{background:var(--acc-btn);color:#fff;border:0;padding:.5rem 1rem;border-radius:.5625rem;cursor:pointer;
+  font:inherit;font-size:.84375rem;font-weight:550;letter-spacing:-.004em;box-shadow:var(--shadow-lift);
+  transition:background-color .18s var(--ease-out),box-shadow .18s var(--ease-out),transform 120ms var(--ease-out)}
+.btn:hover{background:var(--acc-hover)}
+.btn:active{transform:scale(.97);box-shadow:none}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+.btn.sec{background:var(--panel2);color:var(--txt);border:1px solid var(--line);box-shadow:none}
+.btn.sec:hover{background:#232d3a;border-color:var(--line-strong)}
+.btn.sm{padding:.25rem .625rem;font-size:.78125rem;border-radius:.4375rem}
 .btn.danger{background:var(--err-btn)}
-.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.spread{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-pre.log{background:#0b0f14;border:1px solid var(--line);border-radius:var(--radius);padding:14px;font:12px/1.55 ui-monospace,Consolas,monospace;color:#b9c6d4;overflow:auto;max-height:420px;white-space:pre-wrap}
-.banner{display:none;align-items:flex-start;gap:12px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:var(--radius);padding:12px 16px;margin-bottom:16px}
-.banner.open{display:flex}
+.btn.danger:hover{background:var(--err-hover)}
+/* busy state sets on press, before the request resolves */
+.btn[data-busy]{pointer-events:none;color:transparent!important;position:relative}
+.btn[data-busy]::after{content:"";position:absolute;left:50%;top:50%;width:.875rem;height:.875rem;margin:-.4375rem 0 0 -.4375rem;
+  border-radius:50%;border:2px solid var(--line-strong);border-top-color:var(--txt);animation:spin .7s linear infinite}
+.btn:not(.sec)[data-busy]::after{border-color:rgba(255,255,255,.35);border-top-color:#fff}
+@keyframes spin{to{transform:rotate(360deg)}}
+.row{display:flex;gap:.625rem;align-items:center;flex-wrap:wrap}
+.spread{display:flex;justify-content:space-between;align-items:center;gap:.625rem;flex-wrap:wrap}
+pre.log{background:#0b0f14;border:1px solid var(--line);border-radius:var(--radius);padding:.875rem;
+  font:.75rem/1.6 ui-monospace,Consolas,monospace;color:#b9c6d4;overflow:auto;max-height:26.25rem;white-space:pre-wrap;
+  overscroll-behavior:contain;tab-size:2}
+.banner{display:none;flex-wrap:wrap;align-items:flex-start;gap:.75rem;background:var(--panel);border:1px solid var(--line);
+  border-left:3px solid var(--acc);border-radius:var(--radius);padding:.75rem 1rem;margin-bottom:1rem}
+.banner.open{display:flex;animation:banner-in .26s var(--ease-out) both}
 .banner.warn{border-left-color:var(--warn)}
 .banner.err{border-left-color:var(--err)}
-.banner .b-txt{flex:1;font-size:13.5px}
-.banner .b-sub{color:var(--mut);font-size:12.5px;margin-top:2px;font-variant-numeric:tabular-nums}
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:10}
-.modal-bg.open{display:flex}
-.modal{background:var(--panel);border:1px solid var(--line);border-radius:12px;width:min(860px,94vw);max-height:90vh;overflow:auto;padding:20px;box-shadow:0 24px 60px rgba(0,0,0,.55)}
-.modal-bg.open .modal{animation:pop .16s ease}
-@keyframes pop{from{opacity:0;transform:translateY(8px) scale(.98)}}
-.modal .spread{position:sticky;top:0;background:var(--panel);z-index:1;padding-bottom:8px}
-.modal h3{font-size:16px;margin-bottom:12px}
-select,input[type=text],input[type=password],input[type=number],input[type=url]{background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:7px 10px;border-radius:7px;font-size:13.5px}
-label.f{display:block;color:var(--mut);font-size:12px;margin:12px 0 4px}
-input[type=text],input[type=password],input[type=number],input[type=url]{width:100%}
-.mono{font:12px ui-monospace,Consolas,monospace;color:var(--mut)}
-.toast{position:fixed;bottom:20px;right:20px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--acc);padding:12px 16px;border-radius:8px;display:none;z-index:20;max-width:380px;animation:tin .18s ease}
+@keyframes banner-in{from{opacity:0;transform:translate3d(0,-.375rem,0)}}
+.banner .b-txt{flex:1;font-size:.84375rem}
+.banner .b-sub{color:var(--mut);font-size:.78125rem;line-height:1.45;margin-top:.125rem;font-variant-numeric:tabular-nums}
+/* ---------------------------------------------------------------- modal */
+.modal-bg{position:fixed;inset:0;z-index:10;display:grid;place-items:center;padding:1.5rem;
+  background:rgba(4,8,12,.62);opacity:var(--bg-op,0);
+  -webkit-backdrop-filter:blur(var(--bg-blur,0px)) saturate(140%);
+  backdrop-filter:blur(var(--bg-blur,0px)) saturate(140%);
+  visibility:hidden;pointer-events:none}
+.modal-bg.open{visibility:visible;pointer-events:auto}
+.modal{position:relative;display:flex;flex-direction:column;width:min(53.75rem,94vw);max-height:min(90vh,56.25rem);
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-lg);box-shadow:var(--shadow-float);
+  overflow:hidden;opacity:var(--m-op,0);
+  transform:translate3d(0,var(--m-ty,18px),0) scale(var(--m-sc,.97));transform-origin:50% 100%;
+  will-change:transform,opacity}
+.m-head{flex:none;position:relative;z-index:2;padding:.5rem 1.25rem .75rem;background:var(--panel);
+  border-bottom:1px solid transparent;transition:border-color .2s var(--ease-out);
+  touch-action:none;cursor:grab;user-select:none}
+.m-head.dragging{cursor:grabbing;border-bottom-color:var(--line)}
+.m-head .spread{position:static;background:none;padding:0}
+.grabber{width:2.25rem;height:.3125rem;border-radius:999px;background:var(--line-strong);margin:0 auto .75rem}
+.m-head.dragging .grabber{background:var(--acc)}
+.m-body{padding:0 1.25rem 1.25rem;overflow:auto;overscroll-behavior:contain}
+.modal h3{font-size:1rem;font-weight:600;letter-spacing:-.012em;margin-bottom:.75rem}
+.modal:focus{outline:none}
+select,input[type=text],input[type=password],input[type=number],input[type=url],input[type=time]{
+  background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:.4375rem .625rem;border-radius:.4375rem;
+  font:inherit;font-size:.84375rem;
+  transition:border-color .16s var(--ease-out),box-shadow .16s var(--ease-out)}
+select:hover,input[type=text]:hover,input[type=password]:hover,input[type=number]:hover,input[type=url]:hover,input[type=time]:hover{border-color:var(--line-strong)}
+select:focus,input[type=text]:focus,input[type=password]:focus,input[type=number]:focus,input[type=url]:focus,input[type=time]:focus{
+  border-color:var(--acc);outline:none;box-shadow:0 0 0 3px rgba(58,160,255,.18)}
+input[type=checkbox]{accent-color:var(--acc);width:1rem;height:1rem;vertical-align:-.125rem}
+label.f{display:block;color:var(--mut);font-size:.75rem;margin:.75rem 0 .25rem}
+input[type=text],input[type=password],input[type=number],input[type=url],input[type=time]{width:100%}
+.mono{font:.75rem ui-monospace,Consolas,monospace;color:var(--mut)}
+.toast{position:fixed;bottom:1.25rem;right:1.25rem;z-index:20;max-width:23.75rem;display:none;padding:.75rem 1rem;
+  border-radius:.75rem;background:rgba(28,36,47,.9);border:1px solid var(--line);border-left:3px solid var(--acc);
+  box-shadow:var(--shadow-float);font-size:.84375rem;
+  -webkit-backdrop-filter:blur(1rem) saturate(180%);backdrop-filter:blur(1rem) saturate(180%);
+  opacity:var(--toast-op,0);transform:translate3d(0,var(--toast-ty,14px),0);will-change:transform,opacity}
 .toast.ok{border-left-color:var(--ok)}.toast.err{border-left-color:var(--err)}
-@keyframes tin{from{opacity:0;transform:translateY(8px)}}
-.kv{display:grid;grid-template-columns:150px 1fr;gap:6px;font-size:13.5px}
+.kv{display:grid;grid-template-columns:9.375rem 1fr;gap:.375rem;font-size:.84375rem}
 .kv .k{color:var(--mut)}
-.empty{color:var(--mut);text-align:center;padding:26px}
-.tag-sel{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-.tag-sel button{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:6px;padding:3px 9px;font-size:12px;cursor:pointer;transition:border-color .15s ease}
+.empty{color:var(--mut);text-align:center;padding:1.625rem}
+.tag-sel{display:flex;gap:.375rem;flex-wrap:wrap;margin-top:.5rem}
+.tag-sel button{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:.375rem;
+  padding:.1875rem .5625rem;font:inherit;font-size:.75rem;cursor:pointer;
+  transition:border-color .15s var(--ease-out),background-color .15s var(--ease-out),transform 120ms var(--ease-out)}
 .tag-sel button:hover{border-color:var(--acc)}
+.tag-sel button:active{transform:scale(.96)}
 .tag-sel button.cur{border-color:var(--acc);color:var(--acc);background:var(--acc-bg);font-weight:600}
-.divider{border-top:1px solid var(--line);margin:20px 0}
+.divider{border-top:1px solid var(--line);margin:1.25rem 0}
+/* clickable surfaces get the same press feedback as buttons */
+.is-clickable{cursor:pointer;user-select:none}
+@media (hover:hover){.is-clickable:hover{border-color:var(--line-strong);background-color:var(--panel2)}}
+.is-clickable:active{transform:scale(.99)}
+/* ------------------------------------------------------------ fallbacks */
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  header{background:var(--panel)}
+  .toast{background:var(--panel2)}
+}
+@media (prefers-reduced-transparency:reduce){
+  header,header.scrolled{background:var(--panel);-webkit-backdrop-filter:none;backdrop-filter:none}
+  .toast{background:var(--panel2);-webkit-backdrop-filter:none;backdrop-filter:none}
+  .modal-bg{background:rgba(4,8,12,.74);-webkit-backdrop-filter:none;backdrop-filter:none}
+}
+@media (prefers-contrast:more){
+  :root{--line:var(--line-strong);--mut:#a3b1c2;--txt:#eaf1f8}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
+  .dot.run{animation:none;opacity:1}
+  .modal{transform:none!important}
+  /* movement is replaced by a short cross-fade, never a slide or spring */
+  .modal-bg,.toast{transition:opacity .18s ease!important}
+  .nav-pill{display:none}
+  nav button.active{background:var(--panel2)}
+}
 @media(max-width:640px){
-  main{padding:14px}
-  header{padding:12px 14px}
-  header h1{font-size:16px}
+  main{padding:.875rem}
+  header{padding:.625rem .875rem}
+  header h1{font-size:1rem}
   nav{margin-left:0}
+  .modal-bg{padding:.75rem}
+  .modal{width:100%;max-height:92vh}
+  .cards{grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr))}
 }
 </style>
 </head>
@@ -105,7 +210,8 @@ input[type=text],input[type=password],input[type=number],input[type=url]{width:1
 <header>
   <h1><span class="dot" id="hdrDot" title="service status"></span> Portainer Update Service</h1>
   <nav>
-    <button data-tab="dash" class="active">Dashboard</button>
+    <span class="nav-pill" aria-hidden="true"></span>
+    <button data-tab="dash" class="active" aria-current="page">Dashboard</button>
     <button data-tab="stacks">Stacks</button>
     <button data-tab="history">History</button>
     <button data-tab="settings">Settings</button>
@@ -133,13 +239,13 @@ input[type=text],input[type=password],input[type=number],input[type=url]{width:1
 </div>
 
 <!-- ============================================================ DASHBOARD -->
-<div id="tab-dash">
+<div id="tab-dash" class="tab">
   <div class="grid cards">
     <div class="card"><div class="lbl">Updates available</div><div class="val" id="cUpd">–</div><div class="sub" id="cUpdSub"></div></div>
-    <div class="card" id="cLastCard" style="cursor:pointer" title="open failed run log"><div class="lbl">Last run</div><div class="val" id="cLast">–</div><div class="sub" id="cLastSub"></div></div>
+    <div class="card is-clickable" id="cLastCard" role="button" tabindex="0" title="open failed run log"><div class="lbl">Last run</div><div class="val" id="cLast">–</div><div class="sub" id="cLastSub"></div></div>
     <div class="card"><div class="lbl">Next scheduled update</div><div class="val" id="cNext">–</div><div class="sub" id="cNextSub"></div></div>
-    <div class="card"><div class="lbl">Server time</div><div class="val" id="cServerTime" style="font-size:18px">–</div><div class="sub" id="cServerTzSub"></div></div>
-    <div class="card" id="cInvCard" style="cursor:pointer" title="unused images + networks">
+    <div class="card"><div class="lbl">Server time</div><div class="val val-sm" id="cServerTime">–</div><div class="sub" id="cServerTzSub"></div></div>
+    <div class="card is-clickable" id="cInvCard" role="button" tabindex="0" title="unused images + networks">
       <div class="lbl">Reclaimable</div><div class="val" id="cInv">–</div><div class="sub" id="cInvSub"></div></div>
     <div class="card"><div class="lbl">Reclaimed (30d)</div><div class="val" id="cReclaim">–</div><div class="sub" id="cReclaimSub"></div></div>
     <div class="card"><div class="lbl">Total runs</div><div class="val" id="cRuns">–</div><div class="sub" id="cRunsSub"></div></div>
@@ -152,7 +258,7 @@ input[type=text],input[type=password],input[type=number],input[type=url]{width:1
 </div>
 
 <!-- =============================================================== STACKS -->
-<div id="tab-stacks" style="display:none">
+<div id="tab-stacks" style="display:none" class="tab">
   <div class="spread"><h2>Stacks &amp; images</h2>
     <div class="row">
       <span class="mono" id="stackCheckInfo"></span>
@@ -165,7 +271,7 @@ input[type=text],input[type=password],input[type=number],input[type=url]{width:1
 </div>
 
 <!-- ============================================================== HISTORY -->
-<div id="tab-history" style="display:none">
+<div id="tab-history" style="display:none" class="tab">
   <div class="grid cards">
     <div class="card"><div class="lbl">Success rate</div><div class="val" id="hRate">–</div><div class="sub">last 200 runs</div></div>
     <div class="card"><div class="lbl">Avg duration</div><div class="val" id="hDur">–</div><div class="sub">full updates</div></div>
@@ -179,7 +285,7 @@ input[type=text],input[type=password],input[type=number],input[type=url]{width:1
 </div>
 
 <!-- ============================================================ SETTINGS -->
-<div id="tab-settings" style="display:none">
+<div id="tab-settings" style="display:none" class="tab">
   <div class="panel" style="max-width:640px;margin:0 auto">
 
     <h2>Connection</h2>
@@ -274,21 +380,26 @@ input[type=text],input[type=password],input[type=number],input[type=url]{width:1
 </main>
 
 <!-- stack detail modal -->
-<div class="modal-bg" id="modalBg" role="dialog" aria-modal="true">
-  <div class="modal">
-    <div class="spread"><h3 id="mTitle">Stack</h3>
-      <div class="row">
-        <button class="btn sm" id="mRedeploy">Update stack now</button>
-        <button class="btn sec sm" onclick="closeModal()">Close</button>
-      </div></div>
-    <div id="mRollback"></div>
-    <div id="mBody"></div>
-    <h3 style="margin-top:18px">Compose file</h3>
-    <pre class="log" id="mCompose" style="max-height:260px"></pre>
+<div class="modal-bg" id="modalBg" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+  <div class="modal" id="modal" tabindex="-1">
+    <div class="m-head" id="mHead" title="drag down to close">
+      <div class="grabber" aria-hidden="true"></div>
+      <div class="spread"><h3 id="mTitle" style="margin-bottom:0">Stack</h3>
+        <div class="row">
+          <button class="btn sm" id="mRedeploy">Update stack now</button>
+          <button class="btn sec sm" id="mClose">Close</button>
+        </div></div>
+    </div>
+    <div class="m-body">
+      <div id="mRollback"></div>
+      <div id="mBody"></div>
+      <h3 style="margin-top:18px">Compose file</h3>
+      <pre class="log" id="mCompose" style="max-height:260px"></pre>
+    </div>
   </div>
 </div>
 
-<div class="toast" id="toast" aria-live="polite"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
 const $=id=>document.getElementById(id);
@@ -298,6 +409,87 @@ const ago=s=>{if(!s)return'–';const d=Math.floor(Date.now()/1000-s);
  if(d<86400)return Math.floor(d/3600)+'h ago';return Math.floor(d/86400)+'d ago'};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let lastFailedRun=null;
+
+/* -------------------------------------------------------- motion engine */
+/* Apple-style springs: damping ratio (overshoot) + response (speed in s).
+   Nothing here has a fixed duration, and every animation starts from the
+   value currently on screen, so it can be grabbed and re-targeted mid-flight. */
+const REDUCED=typeof matchMedia==='function'?matchMedia('(prefers-reduced-motion: reduce)'):{matches:false};
+const UNIT={'--bg-op':'','--bg-blur':'px','--m-op':'','--m-ty':'px','--m-sc':'',
+  '--t-op':'','--t-ty':'px','--px':'px','--py':'px','--pw':'px','--ph':'px',
+  '--toast-op':'','--toast-ty':'px'};
+const springs=new WeakMap(),running=new Set();
+let rafId=0,lastFrame=0;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const clamp=(v,a,b)=>Math.min(Math.max(v,a),b);
+
+function varValue(el,name){
+  const raw=el.style.getPropertyValue(name)||getComputedStyle(el).getPropertyValue(name);
+  const n=parseFloat(raw);
+  return Number.isFinite(n)?n:0;
+}
+/* direct write that also seeds the spring state, so a follow-up animation
+   picks up exactly where the finger left off */
+function setVar(el,name,value,velocity){
+  const st=springs.get(el);
+  if(st){st.vals[name]=value;st.vels[name]=velocity||0;delete st.goal[name];running.delete(el)}
+  el.style.setProperty(name,value+(UNIT[name]||''));
+}
+function springTo(el,targets,opts={}){
+  const response=opts.response??0.4,damping=opts.damping??1;
+  if(REDUCED.matches){
+    for(const[name,v] of Object.entries(targets))el.style.setProperty(name,v+(UNIT[name]||''));
+    return Promise.resolve();
+  }
+  let st=springs.get(el);
+  if(!st){st={vals:{},vels:{},goal:{},wait:[]};springs.set(el,st)}
+  st.k=Math.pow(2*Math.PI/response,2);
+  st.c=4*Math.PI*damping/response;
+  for(const[name,v] of Object.entries(targets)){
+    if(st.vals[name]==null)st.vals[name]=varValue(el,name);
+    st.goal[name]=v;
+    if(opts.velocity&&opts.velocity[name]!=null)st.vels[name]=opts.velocity[name];
+    if(st.vels[name]==null)st.vels[name]=0;
+  }
+  running.add(el);
+  const done=new Promise(res=>st.wait.push(res));
+  if(!rafId){lastFrame=performance.now();rafId=requestAnimationFrame(frame)}
+  return done;
+}
+function frame(now){
+  const dt=Math.min((now-lastFrame)/1000,1/30);
+  lastFrame=now;
+  for(const el of [...running]){
+    const st=springs.get(el);
+    let settled=true;
+    for(const name in st.goal){
+      const to=st.goal[name];
+      let x=st.vals[name]??0,v=st.vels[name]||0,left=dt;
+      while(left>0){                                  /* fixed sub-steps: stable for any refresh rate */
+        const h=Math.min(1/240,left);left-=h;
+        v+=(-st.k*(x-to)-st.c*v)*h;
+        x+=v*h;
+      }
+      st.vals[name]=x;st.vels[name]=v;
+      if(Math.abs(x-to)>0.001||Math.abs(v)>0.01)settled=false;
+      el.style.setProperty(name,x+(UNIT[name]||''));
+    }
+    if(settled){
+      for(const name in st.goal){
+        st.vals[name]=st.goal[name];st.vels[name]=0;
+        el.style.setProperty(name,st.goal[name]+(UNIT[name]||''));
+      }
+      st.goal={};running.delete(el);
+      st.wait.splice(0).forEach(fn=>fn());
+    }
+  }
+  rafId=running.size?requestAnimationFrame(frame):0;
+}
+/* where a flick is heading (Apple's exponential-decay projection) */
+const project=(v,decel=0.998)=>(v/1000)*decel/(1-decel);
+/* soft boundary: the further past the edge, the less the surface follows */
+const rubberband=(over,dim,c=0.55)=>(over*dim*c)/(dim+c*Math.abs(over));
+
 
 /* ---------------------------------------------------------------- auth */
 let AUTH_TOKEN = localStorage.getItem('pus_token') || '';
@@ -310,8 +502,20 @@ function authHeaders(extra){
 }
 
 /* ---------------------------------------------------------------- toast */
-function toast(msg,cls='',sticky=false){const t=$('toast');t.textContent=msg;t.className='toast '+cls;t.style.display='block';
- clearTimeout(t._h);t._h=setTimeout(()=>t.style.display='none',sticky?12000:4000)}
+let toastTimer=null,toastToken=0;
+function toast(msg,cls='',sticky=false){
+ const t=$('toast');
+ t.textContent=msg;t.className='toast '+cls;t.style.display='block';
+ springTo(t,{'--toast-op':1,'--toast-ty':0},{damping:.9,response:.32,velocity:{'--toast-ty':-220}});
+ clearTimeout(toastTimer);
+ const token=++toastToken;
+ toastTimer=setTimeout(async()=>{
+  if(token!==toastToken)return;
+  springTo(t,{'--toast-op':0,'--toast-ty':12},{damping:1,response:.24});
+  await sleep(REDUCED.matches?200:260);
+  if(token===toastToken)t.style.display='none';
+ },sticky?12000:4000);
+}
 async function api(path,opts={}){
  opts.headers=authHeaders(opts.headers);
  if(opts.body&&!opts.headers['Content-Type'])opts.headers['Content-Type']='application/json';
@@ -324,13 +528,71 @@ async function api(path,opts={}){
  const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||r.statusText);return j}
 
 /* ---------------------------------------------------------------- tabs */
+let currentTabName='dash';
 function showTab(name){
- document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
+ const changed=currentTabName!==name;
+ currentTabName=name;
+ document.querySelectorAll('nav button').forEach(b=>{
+  const on=b.dataset.tab===name;
+  b.classList.toggle('active',on);
+  if(on)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');
+ });
  ['dash','stacks','history','settings'].forEach(t=>$('tab-'+t).style.display=t===name?'':'none');
+ movePill();
+ if(changed){
+  const el=$('tab-'+name);
+  if(el&&!REDUCED.matches){
+   /* starts from the live value, so fast tab switching never jumps */
+   setVar(el,'--t-ty',6);setVar(el,'--t-op',0);
+   springTo(el,{'--t-ty':0,'--t-op':1},{damping:1,response:.3});
+  }
+ }
  if(name==='stacks')loadStacks();if(name==='history')loadHistory();if(name==='settings')loadSettings();
 }
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+/* arrow keys move through the tabs like a native segmented control */
+document.querySelectorAll('nav button').forEach((b,i,all)=>b.addEventListener('keydown',e=>{
+ if(e.key!=='ArrowRight'&&e.key!=='ArrowLeft')return;
+ e.preventDefault();
+ const next=all[(i+(e.key==='ArrowRight'?1:all.length-1))%all.length];
+ next.focus();showTab(next.dataset.tab);
+}));
+document.addEventListener('keydown',e=>{
+ if(e.key==='Escape'){closeModal();return}
+ if(!modalOpen||e.key!=='Tab')return;
+ const f=[...$('modal').querySelectorAll('button,input,select,textarea,a[href],[tabindex]:not([tabindex="-1"])')]
+  .filter(el=>!el.disabled&&el.offsetParent!==null);
+ if(!f.length)return;
+ const first=f[0],last=f[f.length-1];
+ if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}
+ else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}
+});
+
+/* nav indicator: springs between tabs, measured from the live DOM so it
+   keeps working when the nav wraps on narrow screens */
+function movePill(animate=true){
+ const nav=document.querySelector('nav');
+ const active=nav&&nav.querySelector('button.active');
+ const pill=nav&&nav.querySelector('.nav-pill');
+ if(!active||!pill)return;
+ const nb=nav.getBoundingClientRect(),ab=active.getBoundingClientRect();
+ nav.classList.add('ready');
+ const box={'--px':ab.left-nb.left,'--py':ab.top-nb.top,'--pw':ab.width,'--ph':ab.height};
+ if(animate&&!REDUCED.matches)springTo(pill,box,{damping:1,response:.32});
+ else for(const k in box)setVar(pill,k,box[k]);
+}
+addEventListener('resize',()=>movePill(false),{passive:true});
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>movePill(false));
+
+/* translucent header only grows an edge once content scrolls underneath it */
+const headerEl=document.querySelector('header');
+let scrollQueued=false;
+function onScroll(){
+ if(scrollQueued)return;
+ scrollQueued=true;
+ requestAnimationFrame(()=>{headerEl.classList.toggle('scrolled',scrollY>2);scrollQueued=false});
+}
+addEventListener('scroll',onScroll,{passive:true});
 
 /* ------------------------------------------------------------ status poll */
 let lastDashHtml=null,lastStacksHtml=null;
@@ -473,7 +735,7 @@ function stopLiveLog(){if(liveLogTimer){clearInterval(liveLogTimer);liveLogTimer
 async function showRunLog(id,live=false){
  if(currentTab()!=='history')showTab('history');
  const p=$('runLog');p.style.display='block';p.textContent='loading…';
- p.scrollIntoView({behavior:'smooth',block:'nearest'});
+ p.scrollIntoView({behavior:REDUCED.matches?'auto':'smooth',block:'nearest'});
  stopLiveLog();
  try{p.textContent=await (await fetch('/api/runs/'+encodeURIComponent(id)+'/log')).text()}
  catch(e){p.textContent=e.message}
@@ -512,7 +774,11 @@ function renderDashStacks(stacks){
  if(html===lastDashHtml)return; // unchanged - zero DOM churn, no flicker
  lastDashHtml=html;
  tb.innerHTML=html;
- tb.querySelectorAll('tr[data-st]').forEach(tr=>{tr.onclick=()=>openStack(tr.dataset.st)});
+ tb.querySelectorAll('tr[data-st]').forEach(tr=>{
+  tr.tabIndex=0;tr.setAttribute('role','button');
+  tr.onclick=()=>openStack(tr.dataset.st);
+  tr.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openStack(tr.dataset.st)}};
+ });
 }
 
 /* ----------------------------------------------------------------- stacks */
@@ -573,7 +839,7 @@ async function redeployStack(id,name){
 /* ------------------------------------------------------------ stack modal */
 let modalStackId=null;
 async function openStack(name,focusSvc,focusSvcName){
- $('modalBg').classList.add('open');$('mTitle').textContent=name||'Stack';
+ openModal();$('mTitle').textContent=name||'Stack';
  $('mBody').innerHTML='<div class="empty">loading…</div>';$('mCompose').textContent='';
  try{
   let id;
@@ -661,7 +927,7 @@ async function loadRollbackStrip(stackId, stackName){
  if(!r.has_snapshot){return}
  const when=r.snapshot_ts?new Date(r.snapshot_ts*1000).toLocaleString():'?';
  if(!r.changes.length){
-  box.innerHTML=`<div class="banner" style="margin-bottom:10px"><div class="b-txt">
+  box.innerHTML=`<div class="banner open" style="margin-bottom:10px"><div class="b-txt">
    <b>Snapshot available</b><div class="b-sub">Pre-update images from ${esc(when)} - all services already match. Nothing to restore.</div></div></div>`;
   return
  }
@@ -670,7 +936,7 @@ async function loadRollbackStrip(stackId, stackName){
    <td class="mono" style="color:var(--err)">${esc(c.current)}</td>
    <td class="mono" style="color:var(--ok)">${esc(c.restore)}</td></tr>`).join('');
  const strip=document.createElement('div');
- strip.className='banner warn';
+ strip.className='banner warn open';
  strip.style.marginBottom='10px';
  strip.innerHTML=`<div class="b-txt"><b>Broken after an update?</b>
   <div class="b-sub">Snapshot from ${esc(when)} (pre-update state) can restore ${r.changes.length} service(s):</div>
@@ -697,7 +963,111 @@ async function loadRollbackStrip(stackId, stackName){
  box.appendChild(strip);
 }
 
-function closeModal(){$('modalBg').classList.remove('open')}
+/* modal open/close: materialize (blur + scale) rather than plain fade.
+   Closing follows the same path back out, and both directions are interruptible. */
+let modalOpen=false,lastFocus=null;
+function resetModalVars(){
+ const bg=$('modalBg'),m=$('modal');
+ setVar(bg,'--bg-op',0);setVar(bg,'--bg-blur',0);
+ setVar(m,'--m-op',0);setVar(m,'--m-ty',18);setVar(m,'--m-sc',.97);
+}
+function openModal(){
+ if(modalOpen)return;
+ const bg=$('modalBg'),m=$('modal');
+ modalOpen=true;
+ lastFocus=document.activeElement;
+ bg.classList.add('open');
+ document.body.style.overflow='hidden';
+ if(REDUCED.matches){
+  setVar(bg,'--bg-op',1);setVar(bg,'--bg-blur',0);
+  setVar(m,'--m-op',1);setVar(m,'--m-ty',0);setVar(m,'--m-sc',1);
+ }else{
+  springTo(bg,{'--bg-op':1,'--bg-blur':14},{damping:1,response:.3});
+  springTo(m,{'--m-op':1,'--m-ty':0,'--m-sc':1},{damping:.9,response:.34});
+ }
+ try{m.focus({preventScroll:true})}catch(_){}
+}
+async function closeModal(){
+ if(!modalOpen)return;
+ modalOpen=false;
+ const bg=$('modalBg'),m=$('modal');
+ if(lastFocus&&lastFocus.focus){try{lastFocus.focus({preventScroll:true})}catch(_){}}
+ lastFocus=null;
+ if(REDUCED.matches){
+  setVar(bg,'--bg-op',0);
+  setVar(m,'--m-op',0);
+  await sleep(200);
+ }else{
+  await Promise.all([
+   springTo(bg,{'--bg-op':0,'--bg-blur':0},{damping:1,response:.26}),
+   springTo(m,{'--m-op':0,'--m-ty':18,'--m-sc':.97},{damping:1,response:.26})
+  ]);
+ }
+ if(modalOpen)return;                 /* reopened mid-flight - keep it */
+ bg.classList.remove('open');
+ document.body.style.overflow='';
+ resetModalVars();
+}
+
+/* sheet grabber: 1:1 tracking, rubber-band upward, momentum projection,
+   then hand the release velocity to the spring */
+const modalEl=$('modal'),headEl=$('mHead');
+let drag=null;
+headEl.addEventListener('pointerdown',e=>{
+ if(e.button!==0||!modalOpen)return;
+ if(e.target.closest('button,input,select,textarea,a'))return;
+ drag={id:e.pointerId,y0:e.clientY,dy:0,samples:[{y:e.clientY,t:performance.now()}]};
+ try{headEl.setPointerCapture(e.pointerId)}catch(_){}
+ headEl.classList.add('dragging');
+});
+headEl.addEventListener('pointermove',e=>{
+ if(!drag||!modalOpen||e.pointerId!==drag.id)return;
+ let dy=e.clientY-drag.y0;
+ if(dy<0)dy=rubberband(dy,modalEl.offsetHeight||480);
+ drag.dy=dy;
+ const last=drag.samples[drag.samples.length-1];
+ if(e.clientY!==last.y){
+  drag.samples.push({y:e.clientY,t:performance.now()});
+  if(drag.samples.length>8)drag.samples.shift();
+ }
+ setVar(modalEl,'--m-ty',dy);                       /* glued to the pointer */
+ const p=clamp(dy/((modalEl.offsetHeight||480)*.8),0,1);
+ setVar($('modalBg'),'--bg-op',1-p*.9);
+});
+function endDrag(e){
+ if(!drag||e.pointerId!==drag.id)return;
+ const samples=drag.samples;
+ const dy=drag.dy;
+ headEl.classList.remove('dragging');
+ drag=null;
+ if(!modalOpen)return;
+ const dt=(samples[samples.length-1].t-samples[0].t)/1000;
+ const v=dt>.008?(samples[samples.length-1].y-samples[0].y)/dt:0;
+ const h=modalEl.offsetHeight||480;
+ const landing=dy+project(v);                       /* where the flick is going */
+ if(v>500||landing>h*.35){
+  const bg=$('modalBg');
+  modalOpen=false;
+  if(lastFocus&&lastFocus.focus){try{lastFocus.focus({preventScroll:true})}catch(_){}}
+  lastFocus=null;
+  Promise.all([
+   springTo(bg,{'--bg-op':0,'--bg-blur':0},{damping:1,response:.24}),
+   springTo(modalEl,{'--m-ty':h*.9,'--m-op':0},{damping:1,response:.3,velocity:{'--m-ty':v}})
+  ]).then(()=>{
+   if(modalOpen)return;
+   bg.classList.remove('open');
+   document.body.style.overflow='';
+   resetModalVars();
+  });
+ }else{
+  springTo($('modalBg'),{'--bg-op':1,'--bg-blur':14},{damping:1,response:.3});
+  springTo(modalEl,{'--m-ty':0,'--m-sc':1},{damping:.9,response:.36,velocity:{'--m-ty':v}});
+ }
+}
+headEl.addEventListener('pointerup',endDrag);
+headEl.addEventListener('pointercancel',endDrag);
+
+$('mClose').onclick=closeModal;
 $('modalBg').onclick=e=>{if(e.target.id==='modalBg')closeModal()};
 
 /* ---------------------------------------------------------------- history */
@@ -732,6 +1102,8 @@ async function loadHistory(){
 }
 $('cInvCard').onclick=()=>showTab('stacks');
 $('cLastCard').onclick=()=>{if(lastFailedRun)showRunLog(lastFailedRun);else showTab('history')};
+cardKey($('cInvCard'),()=>showTab('stacks'));
+cardKey($('cLastCard'),()=>{if(lastFailedRun)showRunLog(lastFailedRun);else showTab('history')});
 
 /* --------------------------------------------------------------- settings */
 async function loadSettings(){
@@ -825,10 +1197,12 @@ $('btnMountCheck').onclick=async()=>{
 };
 $('btnSelfUpdate').onclick=async()=>{
  if(!confirm('Update this app (PUS) now?\n\nRedeploys its own stack - the container will restart and the UI reconnects in a few seconds.'))return;
+ const b=$('btnSelfUpdate');b.dataset.busy='1';
  try{const r=await api('/api/self_update',{method:'POST'});
   toast('PUS self-update started - run '+r.run_id,'ok',true);
   gateBusyFlag=true;setBusyUI(true);ensureBannerTimer();await refreshRunBanner()}
  catch(e){toast(e.message,'err')}
+ finally{delete b.dataset.busy}
 };
 $('btnTest').onclick=async()=>{
  $('testResult').textContent='testing…';
@@ -843,10 +1217,12 @@ $('btnTest').onclick=async()=>{
 };
 $('btnPrune').onclick=async()=>{
  if(!confirm('Docker prune deletes ALL unused images and build cache.\n\nRollback to previous image versions becomes impossible and re-pulling will take time.\n\nContinue?'))return;
+ const b=$('btnPrune');b.dataset.busy='1';
  try{const r=await api('/api/prune',{method:'POST'});
   toast('Prune started - run '+r.run_id,'ok');gateBusyFlag=true;
   setBusyUI(true);ensureBannerTimer();await refreshRunBanner()}
  catch(e){toast(e.message,'err')}
+ finally{delete b.dataset.busy}
 };
 
 /* ---------------------------------------------------------------- actions */
@@ -855,23 +1231,34 @@ function setBusyUI(busy){
  $('btnRecheck').disabled=busy;
 }
 $('btnCheck').onclick=async()=>{
+ const b=$('btnCheck');b.dataset.busy='1';
  try{await api('/api/check',{method:'POST',body:JSON.stringify({force:true})});
   toast('Update check started','ok');ensureBannerTimer();setBusyUI(true);
   gateBusyFlag=true;await refreshRunBanner()}
  catch(e){toast(e.message,'err')}
+ finally{delete b.dataset.busy}
 };
 $('btnRecheck').onclick=()=>$('btnCheck').onclick();
 $('btnUpdate').onclick=async()=>{
  if(!confirm('Run full update now?\n\n- backs up Portainer data\n- prunes unused images + build cache\n- redeploys ALL stacks (waits for each to become healthy)\n- updates Portainer itself\n\nThis takes several minutes (deploys run up to '+($('sWait')?.value||300)+'s per stack, max '+($('sPar')?.value||3)+' parallel).'))return;
+ const b=$('btnUpdate');b.dataset.busy='1';
  try{const r=await api('/api/update',{method:'POST'});
   toast('Full update started - run '+r.run_id,'ok',true);
   gateBusyFlag=true;setBusyUI(true);ensureBannerTimer();await refreshRunBanner();
   showTab('dash')}
  catch(e){toast(e.message,'err')}
+ finally{delete b.dataset.busy}
 };
+
+/* keyboard parity for the clickable summary cards */
+function cardKey(el,fn){
+ el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fn()}});
+}
 
 /* ------------------------------------------------------------------- boot */
 refresh();setInterval(refresh,15000);
+movePill(false);onScroll();
+
 </script>
 </body>
 </html>
