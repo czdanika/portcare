@@ -433,7 +433,7 @@ input:disabled,select:disabled{opacity:.6;cursor:not-allowed}
         <div class="title-row"><h1 id="pageTitle"></h1><button class="icon-btn flat" id="btnReload" aria-label="refresh"><svg class="i"><use href="#i-refresh"/></svg></button></div>
       </div>
       <div class="grow"></div>
-      <span class="status-pill"><span class="dot" id="hdrDot"></span><span id="hdrText">…</span></span>
+      <button class="status-pill" id="hdrPill" type="button" style="cursor:pointer"><span class="dot" id="hdrDot"></span><span id="hdrText">…</span></button>
       <button class="user desk" data-logout title="logout"><span class="icon-btn"><svg class="i"><use href="#i-user"/></svg></span><span>admin</span><svg class="i"><use href="#i-logout"/></svg></button>
     </div>
 
@@ -736,7 +736,7 @@ hu:{
  'auth.remember':'Maradjak bejelentkezve','auth.login_btn':'Belépés','auth.logout':'Kijelentkezés',
  'auth.setup_title':'Admin jelszó létrehozása','auth.setup_sub':'Első indítás: állíts be egy jelszót. Ezzel lehet majd belépni a felületre.','auth.setup_btn':'Jelszó mentése',
  'auth.mismatch':'A két jelszó nem egyezik.','auth.too_short':'Legalább {n} karakter legyen.','auth.wrong':'Hibás jelszó.','auth.locked':'Túl sok sikertelen próbálkozás. Próbáld újra {s} mp múlva.',
- 'status.idle':'Készenlét','status.running':'Fut','status.ok':'Rendben','status.failed':'Hiba','status.not_configured':'Nincs beállítva',
+ 'status.idle':'Készenlét','pill.failed':'Az utolsó futás ({k}, {w}) hibával zárult. Kattints a naplóért.','pill.failed_toast':'Az utolsó futás naplója – a hiba oka a végén látszik.','pill.ok':'Az utolsó futás sikeres volt. Kattints az előzményekért.','pill.idle':'Nincs futó feladat. Kattints az előzményekért.','pill.running':'Éppen fut egy feladat. Kattints az élő naplóért.','pill.not_configured':'Nincs Portainer kapcsolat beállítva. Kattints a beállításokhoz.','status.running':'Fut','status.ok':'Rendben','status.failed':'Hiba – napló','status.not_configured':'Nincs beállítva',
  'banner.setup_title':'Nincs kapcsolat a Portainerrel','banner.setup_sub':'Add meg a Portainer címét és az API kulcsot a beállításoknál.','banner.open_setup':'Beállítás',
  'banner.decrypt_title':'A titkosított API kulcsot nem sikerült visszafejteni','banner.decrypt_sub':'A kulcsfájl megváltozott (pl. törölt adatkötet). Add meg újra az API kulcsot.','banner.open_settings':'Beállítások',
  'banner.live_log':'Élő napló','banner.running':'{x} folyamatban…','banner.steps':'{a}/{b} lépés kész','banner.elapsed':'{m} perce fut',
@@ -835,7 +835,7 @@ en:{
  'auth.remember':'Keep me signed in','auth.login_btn':'Sign in','auth.logout':'Sign out',
  'auth.setup_title':'Create admin password','auth.setup_sub':'First start: set a password to protect this dashboard.','auth.setup_btn':'Save password',
  'auth.mismatch':'Passwords do not match.','auth.too_short':'Use at least {n} characters.','auth.wrong':'Wrong password.','auth.locked':'Too many failed attempts. Try again in {s}s.',
- 'status.idle':'Idle','status.running':'Running','status.ok':'OK','status.failed':'Failed','status.not_configured':'Not configured',
+ 'status.idle':'Idle','pill.failed':'The last run ({k}, {w}) failed. Click for the log.','pill.failed_toast':'Log of the last run – the reason is at the end.','pill.ok':'The last run succeeded. Click for history.','pill.idle':'Nothing running. Click for history.','pill.running':'A job is running. Click for the live log.','pill.not_configured':'No Portainer connection yet. Click for settings.','status.running':'Running','status.ok':'OK','status.failed':'Failed – log','status.not_configured':'Not configured',
  'banner.setup_title':'Not connected to Portainer','banner.setup_sub':'Enter your Portainer URL and API key in Settings.','banner.open_setup':'Set up',
  'banner.decrypt_title':'The encrypted API key could not be decrypted','banner.decrypt_sub':'The key file changed (e.g. data volume replaced). Re-enter the API key.','banner.open_settings':'Settings',
  'banner.live_log':'Live log','banner.running':'{x} running…','banner.steps':'{a}/{b} steps done','banner.elapsed':'{m} min elapsed',
@@ -1044,6 +1044,9 @@ async function refresh(){
  const busy=s.scheduler&&s.scheduler.busy;
  $('hdrDot').className='dot '+(busy?'run':!s.configured?'':s.state==='success'?'ok':s.state==='failed'?'err':'');
  $('hdrText').textContent=busy?t('status.running'):!s.configured?t('status.not_configured'):s.state==='success'?t('status.ok'):s.state==='failed'?t('status.failed'):t('status.idle');
+ const lr0=s.last_run;
+ $('hdrPill').title=busy?t('pill.running'):!s.configured?t('pill.not_configured'):s.state==='failed'
+   ?t('pill.failed',{k:lr0?kindTxt(lr0.kind):'?',w:lr0?ago(lr0.finished):'?'}):s.state==='success'?t('pill.ok'):t('pill.idle');
  $('setupBanner').classList.toggle('hidden',!!s.configured);
  $('decryptBanner').classList.toggle('hidden',!s.decrypt_error);
  if(busy)await refreshRunBanner();else{$('runBanner').classList.add('hidden');stopLiveLog()}
@@ -1139,6 +1142,11 @@ function renderDashStacks(stacks){
 }
 function cardAction(el,fn){el.onclick=fn;el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fn()}}}
 cardAction($('cInvCard'),()=>showTab('stacks'));
+$('hdrPill').onclick=()=>{const s=lastStatus;if(!s)return;
+ if(s.scheduler&&s.scheduler.busy){const c=s.current_run;showTab('history');refreshRunBanner();return}
+ if(!s.configured){showTab('settings');return}
+ if(s.state==='failed'&&lastFailedRun){toast(t('pill.failed_toast'),'err');showRunLog(lastFailedRun);return}
+ showTab('history')};
 cardAction($('cUpdCard'),()=>{stackFilter='upd';$('stackFilter').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.f==='upd'));showTab('stacks')});
 cardAction($('cSecCard'),()=>showTab('settings'));
 cardAction($('cLastCard'),()=>{if(lastFailedRun)showRunLog(lastFailedRun);else showTab('history')});
