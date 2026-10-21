@@ -596,7 +596,13 @@ input:disabled,select:disabled{opacity:.6;cursor:not-allowed}
           <div class="fs" id="fsApp">
             <h2><svg class="i"><use href="#i-phone"/></svg><span data-i18n="app2.title"></span></h2>
             <div class="desc" data-i18n="app2.desc"></div>
-            <div class="kv"><div class="k" data-i18n="app2.install_state"></div><div class="v" id="appInstallState">–</div></div>
+            <div class="field"><label data-i18n="app2.public_url"></label>
+              <div class="row"><input type="url" id="sPublicUrl" placeholder="https://portcare.example.com" style="flex:1;min-width:14rem"><button class="btn sec sm" id="btnUseOrigin" data-i18n="app2.use_origin"></button></div>
+              <div class="hint" data-i18n="app2.public_url_hint"></div></div>
+            <div class="field"><label data-i18n="app2.contact"></label>
+              <input type="text" id="sContact" placeholder="te@example.hu" autocomplete="off">
+              <div class="hint" id="contactHint"></div></div>
+            <div class="kv" style="margin-top:.9rem"><div class="k" data-i18n="app2.install_state"></div><div class="v" id="appInstallState">–</div></div>
             <div class="row" style="margin-top:.6rem"><button class="btn sec sm" id="btnInstall"><svg class="i"><use href="#i-download"/></svg><span data-i18n="app2.install_btn"></span></button></div>
             <div class="field"><label data-i18n="app2.push_this"></label>
               <div class="row"><span id="pushStatus" class="small">–</span></div>
@@ -702,7 +708,10 @@ const I18N={
 hu:{
  'app.tagline':'Stackek frissítése','app.credit':'PortCare – az eredeti <a href="https://github.com/joshmadison/Portainer-Update-Service" target="_blank" rel="noopener">Portainer Update Service</a> (Josh Madison, MIT) magyarított, biztonságosabb változata.',
  'nav.dash':'Áttekintés','app2.title':'Telefonos app és push értesítés','app2.desc':'Telepítsd a PortCare-t a telefonodra appként (App Store nélkül), és kapj értesítést új frissítésekről, illetve a frissítés végén.',
- 'app2.install_state':'Ezen az eszközön','app2.installed':'telepített appként fut ✓','app2.in_browser':'böngészőben fut','app2.install_btn':'Telepítés appként','app2.install_short':'Telepítés',
+ 'app2.install_state':'Ezen az eszközön','app2.public_url':'Nyilvános cím (HTTPS) – honnan érhető el és honnan jön a push','app2.use_origin':'Jelenlegi cím',
+ 'app2.public_url_hint':'Pl. a Cloudflare domain. Az értesítésre koppintva ez nyílik meg, és ennek a domainnek a nevében mennek a push üzenetek. A telefonon is erről a címről telepítsd az appot.',
+ 'app2.contact':'Kapcsolattartó a push szolgáltatóknak (e-mail vagy https://domain)','app2.contact_hint':'Az Apple / Google push szolgáltatás ezt látja feladóként. Most érvényes: {c}',
+ 'app2.n_open_public':'Push-hoz nyisd meg a nyilvános címen: {u}','app2.installed':'telepített appként fut ✓','app2.in_browser':'böngészőben fut','app2.install_btn':'Telepítés appként','app2.install_short':'Telepítés',
  'app2.push_this':'Push értesítés ezen az eszközön','app2.enable':'Engedélyezés','app2.disable':'Kikapcsolás','app2.test':'Próbaértesítés (5 mp)','app2.events':'Mikor küldjön értesítést (minden eszközre)',
  'app2.ev_updates':'Új frissítés érhető el','app2.ev_updates_d':'Ütemezett ellenőrzéskor, ha új verzió jelent meg (ugyanarról csak egyszer).','app2.ev_done':'Frissítés kész','app2.ev_done_d':'Automatikus vagy „Összes frissítése” futás után, a frissített stackekkel.',
  'app2.ev_failed':'Frissítés sikertelen','app2.ev_failed_d':'Ha egy futás hibával zárul.',
@@ -798,7 +807,10 @@ hu:{
 en:{
  'app.tagline':'Keep stacks up to date','app.credit':'PortCare – a localized, hardened fork of <a href="https://github.com/joshmadison/Portainer-Update-Service" target="_blank" rel="noopener">Portainer Update Service</a> by Josh Madison (MIT).',
  'nav.dash':'Overview','app2.title':'Phone app & push notifications','app2.desc':'Install PortCare on your phone as an app (no app store) and get notified about new updates and when an update run finishes.',
- 'app2.install_state':'On this device','app2.installed':'running as installed app ✓','app2.in_browser':'running in the browser','app2.install_btn':'Install as app','app2.install_short':'Install',
+ 'app2.install_state':'On this device','app2.public_url':'Public address (HTTPS) – where the app lives and where push comes from','app2.use_origin':'Current address',
+ 'app2.public_url_hint':'e.g. your Cloudflare domain. Tapping a notification opens this address and pushes are sent on behalf of this domain. Install the phone app from this address too.',
+ 'app2.contact':'Contact for the push services (e-mail or https://domain)','app2.contact_hint':'Apple / Google push services see this as the sender. Currently effective: {c}',
+ 'app2.n_open_public':'For push, open the public address: {u}','app2.installed':'running as installed app ✓','app2.in_browser':'running in the browser','app2.install_btn':'Install as app','app2.install_short':'Install',
  'app2.push_this':'Push notifications on this device','app2.enable':'Enable','app2.disable':'Disable','app2.test':'Test notification (5 s)','app2.events':'When to notify (all devices)',
  'app2.ev_updates':'New update available','app2.ev_updates_d':'On a scheduled check when a new version appears (each set only once).','app2.ev_done':'Update finished','app2.ev_done_d':'After an automatic or “Update all” run, listing the updated stacks.',
  'app2.ev_failed':'Update failed','app2.ev_failed_d':'When a run ends with an error.',
@@ -1338,7 +1350,7 @@ async function loadSettings(){
   $('sDay').value=s.update_schedule_day??0;$('sCheckInt').value=s.check_interval_hours??12;$('sCache').value=s.check_cache_minutes??30;
   $('sPar').value=s.max_parallel_deploys??3;$('sWait').value=s.deploy_wait_time??300;$('sKeep').value=s.keep_backups??5;
   $('sIncludePortainer').checked=!!s.include_portainer;$('sRep').checked=!!s.repairs_enabled;
-  $('sHook').value=s.notify_webhook||'';$('sNotifyUpd').checked=!!s.notify_on_updates;$('sSessionDays').value=s.session_days??30;
+  $('sHook').value=s.notify_webhook||'';$('sPublicUrl').value=s.public_url||'';$('sContact').value=(s.notify_contact||'').replace(/^mailto:/,'');$('sNotifyUpd').checked=!!s.notify_on_updates;$('sSessionDays').value=s.session_days??30;
   const fp=s.tls_fingerprint||'';$('sFp').value=fp?fp.match(/.{2}/g).join(':').toUpperCase():'';
   $('sTlsMode').value=fp?'pinned':s.tls_verify?'system':'off';
   const locked=new Set(s.env_locked||[]);
@@ -1393,7 +1405,7 @@ $('btnSave').onclick=()=>withBusy($('btnSave'),async()=>{
  const body={portainer_url:$('sUrl').value.trim(),max_parallel_deploys:+$('sPar').value||3,deploy_wait_time:+$('sWait').value||300,
   keep_backups:+$('sKeep').value||5,check_cache_minutes:+$('sCache').value||30,check_interval_hours:+$('sCheckInt').value||12,
   notify_webhook:$('sHook').value.trim(),notify_on_updates:$('sNotifyUpd').checked,include_portainer:$('sIncludePortainer').checked,
-  repairs_enabled:$('sRep').checked,session_days:+$('sSessionDays').value||30,update_schedule_mode:$('sMode').value,...tlsBody()};
+  repairs_enabled:$('sRep').checked,session_days:+$('sSessionDays').value||30,public_url:$('sPublicUrl').value.trim(),notify_contact:$('sContact').value.trim(),update_schedule_mode:$('sMode').value,...tlsBody()};
  if(body.update_schedule_mode==='interval')body.update_interval_hours=+$('sInt').value||168;
  if(body.update_schedule_mode==='daily'||body.update_schedule_mode==='weekly')body.update_schedule_time=$('sTime').value||'03:30';
  if(body.update_schedule_mode==='weekly')body.update_schedule_day=+$('sDay').value||0;
@@ -1457,6 +1469,7 @@ async function startInstall(){
 $('guideClose').onclick=$('guideOk').onclick=()=>$('guideBg').classList.remove('open');
 $('guideBg').onclick=e=>{if(e.target.id==='guideBg')$('guideBg').classList.remove('open')};
 $('btnInstall').onclick=()=>startInstall();
+$('btnUseOrigin').onclick=()=>{$('sPublicUrl').value=location.origin};
 
 const pushSupported=()=>window.isSecureContext&&'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;
 const b64urlToU8=b=>{const raw=atob((b+'='.repeat((4-b.length%4)%4)).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from(raw,c=>c.charCodeAt(0))};
@@ -1474,7 +1487,8 @@ async function refreshPush(){
  document.querySelectorAll('[data-push-ev]').forEach(c=>c.checked=!!pushCfg.events[c.dataset.pushEv]);
  $('pushDevices').textContent=pushCfg.devices?t('app2.devices',{n:pushCfg.devices}):t('app2.no_devices');
  on.classList.add('hidden');off.classList.add('hidden');note.textContent='';
- if(!window.isSecureContext){st.textContent=t('app2.st_na');note.textContent=t('app2.n_https')}
+ $('contactHint').textContent=t('app2.contact_hint',{c:pushCfg.contact||'–'});
+ if(!window.isSecureContext){st.textContent=t('app2.st_na');note.innerHTML=esc(t('app2.n_https'))+(pushCfg.public_url&&pushCfg.public_url.startsWith('https://')?'<br>'+t('app2.n_open_public',{u:`<a href="${esc(pushCfg.public_url)}">${esc(pushCfg.public_url)}</a>`}):'')}
  else if(isIOS()&&!isStandalone()){st.textContent=t('app2.st_ios');note.textContent=t('app2.n_ios')}
  else if(!pushSupported()){st.textContent=t('app2.st_unsupported')}
  else if(Notification.permission==='denied'){st.textContent=t('app2.st_denied');note.textContent=t(isIOS()?'app2.n_denied_ios':'app2.n_denied')}

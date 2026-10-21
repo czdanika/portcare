@@ -321,7 +321,7 @@ class Scheduler:
         names = sorted({f["stack"] for f in found})
         push.send_async("updates_available", f"PortCare: {len(found)} új frissítés",
                         ", ".join(names[:6]) + (" …" if len(names) > 6 else ""),
-                        url="./#stacks", tag="updates")
+                        url=push.app_url("#stacks"), tag="updates")
         url = get("notify_webhook", "")
         if url and get("notify_on_updates", False):
             import requests
@@ -340,12 +340,12 @@ class Scheduler:
                 return  # nothing was selected - no noise
             push.send_async("update_done", "PortCare: frissítés kész",
                             f"{len(stacks)} stack frissítve: " + ", ".join(stacks[:6])
-                            + (" …" if len(stacks) > 6 else ""), url="./#history", tag="run")
+                            + (" …" if len(stacks) > 6 else ""), url=push.app_url("#history"), tag="run")
         else:
             failed = [st["name"] for st in runlog.steps if not st.get("ok")]
             push.send_async("update_failed", "PortCare: a frissítés HIBÁVAL zárult",
                             "Hibás lépés: " + (", ".join(failed) or "ismeretlen")
-                            + " – nézd meg a naplót.", url="./#history", tag="run")
+                            + " – nézd meg a naplót.", url=push.app_url("#history"), tag="run")
 
     def _run_update(self, trigger: str):
         if not gate.try_acquire("update"):

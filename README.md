@@ -115,7 +115,12 @@ A *Próbaértesítés* 5 másodperc múlva érkezik, közben be lehet zárni az 
 >
 > iPhone-on az értesítés csak a főképernyőre telepített appban működik (iOS 16.4 vagy újabb).
 
-A VAPID kulcs első használatkor jön létre a `pus-data` kötetben (`keys/vapid_private.pem`). A feliratkozások a `push.json` fájlban vannak. A `PUS_NOTIFY_CONTACT` változóval saját kapcsolattartó (`mailto:`) adható meg a push szolgáltatóknak.
+**Honnan jön a push:** a *Beállítások → Telefonos app és push értesítés* részben két mező van:
+
+- **Nyilvános cím**, például `https://portcare.example.com`: az értesítésre koppintva ez nyílik meg, és ennek a domainnek a nevében mennek az üzenetek. Az appot a telefonon is erről a címről telepítsd.
+- **Kapcsolattartó**: e-mail vagy `https://domain`. Az Apple és a Google push szolgáltatása ezt látja feladóként. Ha üres, a nyilvános cím domainje lesz, ha az is üres, egy semleges noreply cím.
+
+A VAPID kulcs első használatkor jön létre a `pus-data` kötetben (`keys/vapid_private.pem`), a feliratkozások a `push.json` fájlban vannak.
 
 ---
 
@@ -157,6 +162,8 @@ Alapból az első induláskor jön létre a `/app/data/keys/secret.key` fájlban
 | `PUS_NOTIFY_ON_UPDATES` | `false` | Új frissítésnél is küldjön értesítést. |
 | `PUS_MAX_PARALLEL_DEPLOYS` | `3` | Egyszerre hány stack települjön újra. |
 | `PUS_KEEP_BACKUPS` | `5` | Ennyi Portainer-mentést tart meg. |
+| `PUS_PUBLIC_URL` | – | Nyilvános HTTPS cím: az értesítések linkje és a push feladója (a felületen állítható). |
+| `PUS_NOTIFY_CONTACT` | – | Kapcsolattartó a push szolgáltatóknak (e-mail vagy `https://domain`, a felületen állítható). |
 | `PUS_SESSION_DAYS` | `30` | A bejelentkezés érvényessége napokban. |
 | `PUS_COOKIE_SECURE` | `false` | `true`, ha a felület csak HTTPS-en érhető el (reverse proxy mögött). |
 | `TZ` | `UTC` | Időzóna az ütemezéshez. |

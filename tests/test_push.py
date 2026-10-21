@@ -137,3 +137,19 @@ def test_static_pwa_files(api_client):
     r = api_client.get("/manifest.webmanifest")
     assert r.status_code == 200 and json.loads(r.data)["name"] == "PortCare"
     assert api_client.get("/icons/apple-touch-icon.png").status_code == 200
+
+
+def test_public_url_and_contact(api_client):
+    from app import config as cfg, push
+    assert push._contact() == "mailto:portcare@users.noreply.github.com"
+    assert push.app_url("#stacks") == "./#stacks"
+    r = api_client.post("/api/settings", json={"public_url": "https://portcare.example.hu/"})
+    assert r.status_code == 200
+    assert push._contact() == "https://portcare.example.hu"
+    assert push.app_url("#stacks") == "https://portcare.example.hu/#stacks"
+    r = api_client.post("/api/settings", json={"notify_contact": "daniel@example.hu"})
+    assert r.status_code == 200 and push._contact() == "mailto:daniel@example.hu"
+    assert api_client.post("/api/settings", json={"notify_contact": "https://x.hu/path"}).status_code == 400
+    assert api_client.post("/api/settings", json={"public_url": "javascript:alert(1)"}).status_code == 400
+    cfgj = api_client.get("/api/notify/config").get_json()
+    assert cfgj["public_url"] == "https://portcare.example.hu" and cfgj["contact"] == "mailto:daniel@example.hu"

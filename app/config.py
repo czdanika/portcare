@@ -58,6 +58,9 @@ DEFAULTS = {
     "session_days": 30,              # login session lifetime
     "notify_webhook": "",            # optional POST target for notifications
     "notify_on_updates": False,      # also notify when new updates are found
+    "public_url": "",                # public HTTPS address (e.g. Cloudflare domain):
+                                      # push click links + VAPID contact fallback
+    "notify_contact": "",            # VAPID "sub": e-mail or https://domain
     "stack_policies": {},            # per-stack update mode (see policies.py),
                                       # set in the web UI only
     "include_portainer": False,      # true = also update Portainer itself
@@ -120,6 +123,18 @@ def validate(key: str, value):
         if not isinstance(value, bool):
             raise ConfigError(f"{key} must be true/false")
         return value
+    if key == "public_url":
+        v = str(value or "").strip().rstrip("/")
+        if v and not re.match(r"^https?://[A-Za-z0-9.-]+(:\d+)?(/[\w./-]*)?$", v):
+            raise ConfigError("public_url must look like https://portcare.example.com")
+        return v
+    if key == "notify_contact":
+        v = str(value or "").strip().rstrip("/")
+        if v and "@" in v and not v.startswith("mailto:"):
+            v = "mailto:" + v
+        if v and not re.match(r"^(mailto:[^@\s]+@[\w-]+(\.[\w-]+)+|https://[\w-]+(\.[\w-]+)+)$", v):
+            raise ConfigError("notify_contact must be an e-mail address or https://domain (no path)")
+        return v
     if key == "stack_policies":
         from .policies import PolicyError, normalize_all
         try:

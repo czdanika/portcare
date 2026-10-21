@@ -322,7 +322,7 @@ def api_test():
     fp = body["tls_fingerprint"] if "tls_fingerprint" in body else get("tls_fingerprint", "")
     try:
         fp = config_mod.validate("tls_fingerprint", fp)
-    except ConfigError as e:
+    except config_mod.ConfigError as e:
         return _err(str(e))
     client = Portainer(url, key, tls_verify=bool(body.get("tls_verify", get("tls_verify", False))),
                        tls_ca_file=(get("tls_ca_file", "") or None), tls_fingerprint=fp)
@@ -501,7 +501,8 @@ def _push_public(data: dict, endpoint: str = "") -> dict:
 @app.route("/api/notify/config")
 def api_notify_config():
     return jsonify({**_push_public(push.load(), request.args.get("endpoint", "")),
-                    "vapid_public_key": push.vapid_public_key()})
+                    "vapid_public_key": push.vapid_public_key(),
+                    "public_url": get("public_url", ""), "contact": push._contact()})
 
 
 @app.route("/api/notify/events", methods=["PUT", "POST"])
@@ -540,11 +541,11 @@ def api_notify_test():
 
     def _later():
         time.sleep(delay)
-        push._safe_send("test", title, text, url="./#settings", force=True)
+        push._safe_send("test", title, text, url=push.app_url("#settings"), force=True)
     if delay:
         threading.Thread(target=_later, daemon=True).start()
         return jsonify({"scheduled": True, "delay": delay, "devices": devices})
-    return jsonify({"sent": push.send("test", title, text, url="./#settings", force=True),
+    return jsonify({"sent": push.send("test", title, text, url=push.app_url("#settings"), force=True),
                     "devices": devices})
 
 
@@ -568,7 +569,7 @@ def api_stack_policy():
         current[name] = pol
     try:
         cfg_set("stack_policies", current)
-    except ConfigError as e:
+    except config_mod.ConfigError as e:
         return _err(str(e))
     cfg_save()
     scheduler._sync_stack_schedules()
@@ -924,7 +925,7 @@ def api_settings_post():
                "check_cache_minutes", "listen_port",
                "notify_webhook", "include_portainer",
                "repairs_enabled", "check_interval_hours", "tls_fingerprint",
-               "notify_on_updates", "session_days"}
+               "notify_on_updates", "session_days", "public_url", "notify_contact"}
     # two-pass: validate EVERYTHING first, then apply - a bad key must never
     # leave earlier keys mutated in memory (memory/disk divergence)
     from .config import validate
@@ -941,7 +942,7 @@ def api_settings_post():
                         "- change it in the stack")
         try:
             validated[k] = validate(k, v)  # raises ConfigError on garbage
-        except ConfigError as e:
+        except config_mod.ConfigError as e:
             return _err(str(e))
     for k, v in validated.items():
         cfg_set(k, v)

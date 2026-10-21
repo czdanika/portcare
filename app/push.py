@@ -49,12 +49,25 @@ def _paths():
 
 
 def _contact() -> str:
-    c = (os.environ.get("PUS_NOTIFY_CONTACT") or "").strip()
-    if c and "@" in c and not c.startswith("mailto:"):
-        c = "mailto:" + c
+    """VAPID 'sub' - who the push services (Apple/Google/Mozilla) can contact.
+    Order: notify_contact (UI) -> origin of public_url (https) -> neutral noreply."""
+    from .config import get
+    c = (get("notify_contact", "") or "").strip()
     if c.startswith("mailto:") or c.startswith("https://"):
         return c.rstrip("/")
+    pub = (get("public_url", "") or "").strip()
+    if pub.startswith("https://"):
+        u = urlparse(pub)
+        return f"https://{u.netloc}"
     return "mailto:portcare@users.noreply.github.com"
+
+
+def app_url(fragment: str = "") -> str:
+    """Link opened when the notification is tapped: the public address if
+    set (e.g. the Cloudflare domain), otherwise relative to the app."""
+    from .config import get
+    base = (get("public_url", "") or "").rstrip("/")
+    return (base + "/" if base else "./") + fragment
 
 
 # ------------------------------------------------------------------- VAPID
