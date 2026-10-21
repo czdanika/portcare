@@ -124,3 +124,13 @@ class TestRunLogger:
         path = run_log_path(rl.run_id)
         assert path is not None and path.exists()
         assert "line one" in path.read_text(encoding="utf-8")
+
+def test_acknowledge_failure(api_client):
+    from app import history
+    r = history.RunLogger("full", "manual")
+    r.finish(False)
+    assert history.current_status()["state"] == "failed"
+    assert api_client.post("/api/status/ack").get_json()["changed"] is True
+    st = history.current_status()
+    assert st["state"] == "idle" and st["last_run"]["success"] is False
+    assert api_client.post("/api/status/ack").get_json()["changed"] is False

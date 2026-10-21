@@ -317,6 +317,12 @@ def api_tls_inspect():
         return _err(f"could not read the certificate: {e}", 502)
 
 
+@app.route("/api/status/ack", methods=["POST"])
+def api_status_ack():
+    """'Acknowledge' button: clears the red failed indicator."""
+    return jsonify({"ok": True, "changed": history.acknowledge_failure()})
+
+
 @app.route("/healthz")
 def healthz():
     """Liveness + scheduler heartbeat. 503 if the scheduler tick is stale."""

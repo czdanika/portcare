@@ -444,6 +444,9 @@ input:disabled,select:disabled{opacity:.6;cursor:not-allowed}
       <div class="banner hidden" id="setupBanner"><div class="ic"><svg class="i"><use href="#i-plug"/></svg></div>
         <div class="bt"><b data-i18n="banner.setup_title"></b><div class="bs" data-i18n="banner.setup_sub"></div></div>
         <div class="acts"><button class="btn sm" data-goto="settings" data-i18n="banner.open_setup"></button></div></div>
+      <div class="banner err hidden" id="failBanner"><div class="ic"><svg class="i"><use href="#i-alert"/></svg></div>
+        <div class="bt"><b id="fbTitle"></b><div class="bs" data-i18n="fail.sub"></div></div>
+        <div class="acts"><button class="btn sec sm" id="fbLog" data-i18n="fail.log"></button><button class="btn sm" id="fbAck" data-i18n="fail.ack"></button></div></div>
       <div class="banner run hidden" id="runBanner"><div class="ic"><svg class="i"><use href="#i-refresh"/></svg></div>
         <div class="bt"><b id="rbTitle"></b><div class="bs" id="rbSub"></div><div class="bs" id="rbActivity" style="color:var(--link)"></div>
           <pre class="log tail" id="rbTail"></pre></div>
@@ -736,7 +739,7 @@ hu:{
  'auth.remember':'Maradjak bejelentkezve','auth.login_btn':'Belépés','auth.logout':'Kijelentkezés',
  'auth.setup_title':'Admin jelszó létrehozása','auth.setup_sub':'Első indítás: állíts be egy jelszót. Ezzel lehet majd belépni a felületre.','auth.setup_btn':'Jelszó mentése',
  'auth.mismatch':'A két jelszó nem egyezik.','auth.too_short':'Legalább {n} karakter legyen.','auth.wrong':'Hibás jelszó.','auth.locked':'Túl sok sikertelen próbálkozás. Próbáld újra {s} mp múlva.',
- 'status.idle':'Készenlét','pill.failed':'Az utolsó futás ({k}, {w}) hibával zárult. Kattints a naplóért.','pill.failed_toast':'Az utolsó futás naplója – a hiba oka a végén látszik.','pill.ok':'Az utolsó futás sikeres volt. Kattints az előzményekért.','pill.idle':'Nincs futó feladat. Kattints az előzményekért.','pill.running':'Éppen fut egy feladat. Kattints az élő naplóért.','pill.not_configured':'Nincs Portainer kapcsolat beállítva. Kattints a beállításokhoz.','status.running':'Fut','status.ok':'Rendben','status.failed':'Hiba – napló','status.not_configured':'Nincs beállítva',
+ 'status.idle':'Készenlét','fail.title':'Az utolsó futás hibával zárult ({k}, {w})','fail.sub':'Nézd meg a naplót. Ha a hibát már kezelted (pl. a stacket „Kihagyva” szabályra állítottad), nyugtázd – a piros jelzés eltűnik, a futás az előzményekben megmarad.','fail.log':'Napló','fail.ack':'Nyugtázás','pill.failed':'Az utolsó futás ({k}, {w}) hibával zárult. Kattints a naplóért.','pill.failed_toast':'Az utolsó futás naplója – a hiba oka a végén látszik.','pill.ok':'Az utolsó futás sikeres volt. Kattints az előzményekért.','pill.idle':'Nincs futó feladat. Kattints az előzményekért.','pill.running':'Éppen fut egy feladat. Kattints az élő naplóért.','pill.not_configured':'Nincs Portainer kapcsolat beállítva. Kattints a beállításokhoz.','status.running':'Fut','status.ok':'Rendben','status.failed':'Hiba – napló','status.not_configured':'Nincs beállítva',
  'banner.setup_title':'Nincs kapcsolat a Portainerrel','banner.setup_sub':'Add meg a Portainer címét és az API kulcsot a beállításoknál.','banner.open_setup':'Beállítás',
  'banner.decrypt_title':'A titkosított API kulcsot nem sikerült visszafejteni','banner.decrypt_sub':'A kulcsfájl megváltozott (pl. törölt adatkötet). Add meg újra az API kulcsot.','banner.open_settings':'Beállítások',
  'banner.live_log':'Élő napló','banner.running':'{x} folyamatban…','banner.steps':'{a}/{b} lépés kész','banner.elapsed':'{m} perce fut',
@@ -835,7 +838,7 @@ en:{
  'auth.remember':'Keep me signed in','auth.login_btn':'Sign in','auth.logout':'Sign out',
  'auth.setup_title':'Create admin password','auth.setup_sub':'First start: set a password to protect this dashboard.','auth.setup_btn':'Save password',
  'auth.mismatch':'Passwords do not match.','auth.too_short':'Use at least {n} characters.','auth.wrong':'Wrong password.','auth.locked':'Too many failed attempts. Try again in {s}s.',
- 'status.idle':'Idle','pill.failed':'The last run ({k}, {w}) failed. Click for the log.','pill.failed_toast':'Log of the last run – the reason is at the end.','pill.ok':'The last run succeeded. Click for history.','pill.idle':'Nothing running. Click for history.','pill.running':'A job is running. Click for the live log.','pill.not_configured':'No Portainer connection yet. Click for settings.','status.running':'Running','status.ok':'OK','status.failed':'Failed – log','status.not_configured':'Not configured',
+ 'status.idle':'Idle','fail.title':'The last run failed ({k}, {w})','fail.sub':'Check the log. If you have dealt with it (e.g. set the stack to “Ignored”), acknowledge it – the red indicator goes away, the run stays in the history.','fail.log':'Log','fail.ack':'Acknowledge','pill.failed':'The last run ({k}, {w}) failed. Click for the log.','pill.failed_toast':'Log of the last run – the reason is at the end.','pill.ok':'The last run succeeded. Click for history.','pill.idle':'Nothing running. Click for history.','pill.running':'A job is running. Click for the live log.','pill.not_configured':'No Portainer connection yet. Click for settings.','status.running':'Running','status.ok':'OK','status.failed':'Failed – log','status.not_configured':'Not configured',
  'banner.setup_title':'Not connected to Portainer','banner.setup_sub':'Enter your Portainer URL and API key in Settings.','banner.open_setup':'Set up',
  'banner.decrypt_title':'The encrypted API key could not be decrypted','banner.decrypt_sub':'The key file changed (e.g. data volume replaced). Re-enter the API key.','banner.open_settings':'Settings',
  'banner.live_log':'Live log','banner.running':'{x} running…','banner.steps':'{a}/{b} steps done','banner.elapsed':'{m} min elapsed',
@@ -1048,6 +1051,9 @@ async function refresh(){
  $('hdrPill').title=busy?t('pill.running'):!s.configured?t('pill.not_configured'):s.state==='failed'
    ?t('pill.failed',{k:lr0?kindTxt(lr0.kind):'?',w:lr0?ago(lr0.finished):'?'}):s.state==='success'?t('pill.ok'):t('pill.idle');
  $('setupBanner').classList.toggle('hidden',!!s.configured);
+ const failed=!busy&&s.configured&&s.state==='failed'&&s.last_run&&s.last_run.run_id;
+ $('failBanner').classList.toggle('hidden',!failed);
+ if(failed)$('fbTitle').textContent=t('fail.title',{k:kindTxt(s.last_run.kind),w:ago(s.last_run.finished)});
  $('decryptBanner').classList.toggle('hidden',!s.decrypt_error);
  if(busy)await refreshRunBanner();else{$('runBanner').classList.add('hidden');stopLiveLog()}
  // updates
@@ -1142,6 +1148,8 @@ function renderDashStacks(stacks){
 }
 function cardAction(el,fn){el.onclick=fn;el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fn()}}}
 cardAction($('cInvCard'),()=>showTab('stacks'));
+$('fbLog').onclick=()=>{if(lastFailedRun)showRunLog(lastFailedRun)};
+$('fbAck').onclick=()=>withBusy($('fbAck'),async()=>{try{await api('/api/status/ack',{method:'POST'});$('failBanner').classList.add('hidden');refresh()}catch(e){if(!(e instanceof AuthError))toast(e.message,'err')}});
 $('hdrPill').onclick=()=>{const s=lastStatus;if(!s)return;
  if(s.scheduler&&s.scheduler.busy){const c=s.current_run;showTab('history');refreshRunBanner();return}
  if(!s.configured){showTab('settings');return}

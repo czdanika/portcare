@@ -116,6 +116,20 @@ def mark_interrupted() -> None:
         _write_status(st)
 
 
+def acknowledge_failure() -> bool:
+    """User has seen the failed run: clear the red state (the run itself
+    stays in the history as failed). Returns True if something changed."""
+    with _lock:
+        st = current_status()
+        if st.get("state") not in ("failed", "interrupted"):
+            return False
+        st["state"] = "idle"
+        lr = st.get("last_run") or {}
+        st["acknowledged_run"] = lr.get("run_id")
+        _write_status(st)
+    return True
+
+
 def history() -> list:
     if not HISTORY_FILE.exists():
         return []
