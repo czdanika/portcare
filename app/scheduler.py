@@ -337,7 +337,8 @@ class Scheduler:
         Also refreshes the update check so the UI stops showing what was
         just updated."""
         try:
-            checker.recheck_after_update(None)
+            checker.recheck_after_update(
+                None, names=(getattr(runlog, "stacks", None) or []) if ok else None)
         except Exception:  # noqa: BLE001
             pass
         stacks = getattr(runlog, "stacks", None) or []

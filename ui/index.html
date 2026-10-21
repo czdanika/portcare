@@ -1052,7 +1052,13 @@ document.addEventListener('click',e=>{const g=e.target.closest('[data-goto]');if
 addEventListener('scroll',()=>$('topbar').classList.toggle('scrolled',scrollY>2),{passive:true});
 
 /* ============================================================ status poll */
-let lastDashHtml=null,lastFailedRun=null,lastStatus=null,gateBusy=false;
+let lastDashHtml=null,lastFailedRun=null,lastStatus=null,gateBusy=false,lastCheckAt=null,watchUntil=0,watchTimer=null;
+/* after an update the server re-checks the registries in the background:
+   poll faster for a while so the lists refresh on their own when it is done */
+function watchRecheck(sec=90){watchUntil=Date.now()+sec*1000;clearTimeout(watchTimer);
+ const tick=async()=>{if(!watchUntil||Date.now()>watchUntil){watchUntil=0;return}
+  await refresh();if(watchUntil)watchTimer=setTimeout(tick,4000)};
+ watchTimer=setTimeout(tick,3000)}
 async function refresh(){
  let s,inv,hh;
  try{[s,inv,hh]=await Promise.all([api('/api/status'),api('/api/inventory').catch(()=>null),api('/api/history').catch(()=>null)])}
@@ -1111,8 +1117,12 @@ async function refresh(){
  $('cSecSub').textContent=t('dash.sec_sub',{m:t('tls.'+tm)});
  $('hTotal').textContent=s.runs_total??'–';
  if(currentTab==='dash')renderDashStacks(s.stacks||{});
- if(currentTab==='stacks'&&stacksData)renderStacks();
- if(currentTab==='containers'&&ctData)renderContainers();
+ // a (background) re-check finished since the lists were loaded -> reload them
+ const ca=s.check&&s.check.checked_at;
+ if(ca&&lastCheckAt&&ca!==lastCheckAt){if(currentTab==='stacks')loadStacks();if(currentTab==='containers')loadContainers();
+  if(watchUntil){watchUntil=0;clearTimeout(watchTimer)}}
+ else{if(currentTab==='stacks'&&stacksData)renderStacks();if(currentTab==='containers'&&ctData)renderContainers()}
+ if(ca)lastCheckAt=ca;
  gateBusy=!!busy;setBusyUI(gateBusy);if(busy)ensureBannerTimer();
 }
 
@@ -1143,7 +1153,7 @@ async function refreshRunBanner(){
 function ensureBannerTimer(){if(bannerTimer)return;
  bannerTimer=setInterval(async()=>{try{const c=await api('/api/runs/current');
   if(c.active)await refreshRunBanner();
-  else{$('runBanner').classList.add('hidden');clearInterval(bannerTimer);bannerTimer=null;setBusyUI(false);refresh();if(currentTab==='stacks')loadStacks()}}catch(e){}},2000)}
+  else{$('runBanner').classList.add('hidden');clearInterval(bannerTimer);bannerTimer=null;setBusyUI(false);refresh();if(currentTab==='stacks')loadStacks();if(currentTab==='containers')loadContainers();watchRecheck()}}catch(e){}},2000)}
 function setBusyUI(b){['btnCheck','btnUpdate','btnRecheck2','btnPrune','btnRecheck','btnSelfUpdate'].forEach(id=>{if($(id))$(id).disabled=b})}
 
 /* ============================================================== dashboard */
@@ -1213,7 +1223,7 @@ function renderContainers(){
 async function updateContainer(name,btn){
  if(!confirm(t('ct.confirm',{n:name})))return;
  const run=async()=>{const r=await api('/api/containers/update',{method:'POST',body:JSON.stringify({name})});
-  toast(r.ok?t('ct.updated',{n:name}):t('ct.failed',{n:name}),r.ok?'ok':'err',!r.ok);refresh();loadContainers()};
+  toast(r.ok?t('ct.updated',{n:name}):t('ct.failed',{n:name}),r.ok?'ok':'err',!r.ok);await loadContainers();refresh();if(r.ok)watchRecheck()};
  try{btn?await withBusy(btn,run):await run()}catch(e){if(!(e instanceof AuthError))toast(e.message,'err')}}
 async function openContainer(name,focusPolicy){
  if(!ctData)await loadContainers();
@@ -1292,7 +1302,7 @@ document.addEventListener('click',e=>{const el=e.target.closest('[data-act]');if
 async function redeployStack(id,name,btn){
  if(!confirm(t('confirm.redeploy',{n:name})))return;
  const run=async()=>{const r=await api(`/api/stacks/${id}/redeploy`,{method:'POST'});
-  toast(r.ok?t('toast.redeployed',{n:name}):t('toast.redeploy_failed'),r.ok?'ok':'err');refresh();loadStacks()};
+  toast(r.ok?t('toast.redeployed',{n:name}):t('toast.redeploy_failed'),r.ok?'ok':'err');await loadStacks();refresh();if(r.ok)watchRecheck()};
  try{btn?await withBusy(btn,run):await run()}catch(e){if(!(e instanceof AuthError))toast(e.message,'err')}}
 
 /* ================================================================== modal */
@@ -1345,7 +1355,7 @@ async function openStack(name,id,focusSvc,focusPolicy){
     try{const v=await api('/api/versions?image='+encodeURIComponent(img));const all=[...(v.semver_tags||[]),...(v.other_tags||[])];
      const typed=val.replace(/^[^:]+:/,'');if(all.length&&typed&&!all.includes(typed)&&!val.includes('@sha256')&&!confirm(t('confirm.tag',{t:typed})))return}catch(_){}
     await withBusy(ap,async()=>{try{await api(`/api/stacks/${id}/image`,{method:'POST',body:JSON.stringify({service:svc,image:val})});
-     toast(t('toast.deployed',{s:svc,i:val}),'ok');loadStacks();refresh()}catch(e){if(!(e instanceof AuthError))toast(e.message,'err')}})};
+     toast(t('toast.deployed',{s:svc,i:val}),'ok');loadStacks();refresh();watchRecheck()}catch(e){if(!(e instanceof AuthError))toast(e.message,'err')}})};
    tg.onclick=()=>withBusy(tg,async()=>{try{const v=await api('/api/versions?image='+encodeURIComponent(img));info.innerHTML='';
      const cur=(v.current_tag||'').trim();
      const mk=x=>{const b=document.createElement('button');b.textContent=x;if(x===cur||img.endsWith(':'+x))b.classList.add('cur');

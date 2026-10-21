@@ -231,11 +231,43 @@ def get_cached(force_refresh=None) -> dict:
     return res
 
 
-def recheck_after_update(images=None) -> None:
+def mark_updated(names) -> None:
+    """Optimistically clear 'new build' flags of just-updated stacks /
+    containers ("@name") so the UI drops them from the list at once,
+    before the background re-check finishes. Version upgrades (semver:
+    a newer TAG) stay - a redeploy never changes the tag."""
+    global _last_result
+    names = {str(n) for n in (names or []) if n}
+    if not names or not _last_result:
+        return
+    res = dict(_last_result)
+    stacks = dict(res.get("stacks") or {})
+    changed = False
+    for n in names:
+        svcs = stacks.get(n)
+        if not svcs:
+            continue
+        new = {}
+        for svc, v in svcs.items():
+            if v.get("update_available") and v.get("mode") != "semver":
+                v = dict(v, update_available=False, lag_days=None)
+                changed = True
+            new[svc] = v
+        stacks[n] = new
+    if changed:
+        res["stacks"] = stacks
+        _last_result = res
+
+
+def recheck_after_update(images=None, names=None) -> None:
     """After an update the cached 'update available' answers for the touched
     images are stale (the local digest changed). Drop those cache entries and
     re-run the check in the background - other images stay cached, so this
     costs only a few registry calls."""
+    try:
+        mark_updated(names)
+    except Exception:  # noqa: BLE001
+        pass
     try:
         with dockerhub._cache_lock:
             if images:

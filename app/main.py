@@ -636,7 +636,8 @@ def api_container_update():
         runlog.finish(ok)
         _containers_cache.clear()
         if ok:
-            checker.recheck_after_update([before["image"]] if before else None)
+            checker.recheck_after_update([before["image"]] if before else None,
+                                          names=["@" + name])
         return jsonify({"ok": ok, "run_id": runlog.run_id})
     except PortainerError as e:
         if runlog:
@@ -756,7 +757,7 @@ def api_stack_redeploy(stack_id):
                 imgs = list(compose_mod.services_images(client.stack_file(stack_id, eid)).values())
             except Exception:  # noqa: BLE001
                 imgs = None
-            checker.recheck_after_update(imgs)
+            checker.recheck_after_update(imgs, names=[stack.get("Name")])
         return jsonify({"ok": ok, "run_id": runlog.run_id})
     except (PortainerError, KeyError) as e:
         if runlog:
