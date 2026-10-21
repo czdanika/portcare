@@ -577,7 +577,7 @@ input:disabled,select:disabled{opacity:.6;cursor:not-allowed}
               <div class="field" id="modeTime"><label data-i18n="set.time"></label><input type="time" id="sTime"></div>
             </div>
             <div class="two">
-              <div class="field"><label data-i18n="set.check_interval"></label><input type="number" id="sCheckInt" min="1" max="168"></div>
+              <div class="field"><label data-i18n="set.check_interval"></label><input type="number" id="sCheckInt" min="1" max="168"><div class="hint" id="checkHint"></div></div>
               <div class="field"><label data-i18n="set.cache"></label><input type="number" id="sCache" min="5" max="720"></div>
             </div>
             <div class="hint small muted" style="margin-top:.6rem"><span data-i18n="set.server_time"></span>: <b id="sServerTime">–</b> <span id="sServerTz"></span></div>
@@ -788,7 +788,7 @@ hu:{
  'set.cert_use':'Ezt rögzítem','set.cert_compare':'Hasonlítsd össze a Portainer felületén / böngészőben látható ujjlenyomattal.',
  'set.schedule':'Alapértelmezett ütemezés','set.mode':'Automatikus frissítés (alapértelmezés)','set.mode_off':'Kikapcsolva – csak jelez','set.mode_weekly':'Hetente','set.mode_daily':'Naponta','set.mode_interval':'Óránként (N óránként)',
  'set.mode_hint_off':'Az alapértelmezett stackek nem frissülnek maguktól: ellenőriz, jelzi az újdonságokat, a frissítést te indítod. Stackenként eltérő szabály a Stackek oldalon állítható.','set.mode_hint_on':'A beállított időpontban az „Alapértelmezett” szabályú stackek frissülnek. Stackenként eltérő szabály (saját időpont, csak jelez, kihagyva) a Stackek oldalon állítható.',
- 'set.interval':'Frissítés gyakorisága (óra)','set.weekday':'Nap','set.time':'Időpont','set.check_interval':'Ellenőrzés gyakorisága (óra)','set.cache':'Registry cache (perc)','set.server_time':'Szerveridő',
+ 'set.interval':'Frissítés gyakorisága (óra)','set.weekday':'Nap','set.time':'Időpont','set.check_interval':'Új verziók keresése – ennyi óránként','set.check_hint':'A registryben (Docker Hub, GHCR) {h} óránként megnézi, van-e újabb image. Ez csak ellenőrzés, nem frissít. Következő: {t}.','set.cache':'Registry cache (perc)','set.server_time':'Szerveridő',
  'set.deploy':'Telepítés','set.parallel':'Párhuzamos telepítések','set.wait':'Várakozás stackenként (mp)','set.keep':'Megőrzött mentések',
  'set.include_portainer':'A Portainert is frissítse','set.include_portainer_hint':'Ehhez Docker socket és a Portainer compose mappájának felcsatolása kell. Biztonsági okból alapból ki van kapcsolva.',
  'set.mount_check':'Compose mappa ellenőrzése','set.repairs':'Automatikus hálózat-javítás','set.repairs_hint':'Észleli az elavult host-gateway beállítást takarítás után, és újratelepíti az érintett stacket.',
@@ -887,7 +887,7 @@ en:{
  'set.cert_use':'Pin this one','set.cert_compare':'Compare with the fingerprint shown by your browser for the Portainer UI.',
  'set.schedule':'Default schedule','set.mode':'Automatic updates (default)','set.mode_off':'Off – notify only','set.mode_weekly':'Weekly','set.mode_daily':'Daily','set.mode_interval':'Every N hours',
  'set.mode_hint_off':'Stacks on the default rule are never updated on their own: checked and flagged, you start the update. Per-stack rules are set on the Stacks page.','set.mode_hint_on':'At this time all stacks on the “Default” rule are updated. Per-stack rules (own schedule, notify only, ignored) are set on the Stacks page.',
- 'set.interval':'Update interval (hours)','set.weekday':'Day','set.time':'Time','set.check_interval':'Check interval (hours)','set.cache':'Registry cache (minutes)','set.server_time':'Server time',
+ 'set.interval':'Update interval (hours)','set.weekday':'Day','set.time':'Time','set.check_interval':'Look for new versions – every N hours','set.check_hint':'Every {h} hours it checks the registries (Docker Hub, GHCR) for newer images. This only checks, it never updates. Next: {t}.','set.cache':'Registry cache (minutes)','set.server_time':'Server time',
  'set.deploy':'Deployment','set.parallel':'Parallel deploys','set.wait':'Wait per stack (s)','set.keep':'Backups to keep',
  'set.include_portainer':'Also update Portainer','set.include_portainer_hint':'Needs the Docker socket and Portainer’s compose folder mounted. Off by default for security.',
  'set.mount_check':'Check compose mount','set.repairs':'Automatic network repairs','set.repairs_hint':'Detects stale host-gateway mappings after a prune and redeploys the affected stack.',
@@ -1385,13 +1385,16 @@ async function loadSettings(){
   $('secKv').innerHTML=`<div class="k">${esc(t('set.sec_login'))}</div><div class="v">✓ ${esc(t('set.sec_login_v'))}</div>
    <div class="k">${esc(t('set.sec_secrets'))}</div><div class="v">✓ ${esc(t('set.sec_secrets_v'))}</div>
    <div class="k">${esc(t('set.sec_tls'))}</div><div class="v">${esc(t('tls.'+(s.tls_mode||'off')))}</div>`;
-  toggleScheduleMode();updateTlsHint();refreshPush();$('mountCheckResult').textContent='';$('testResult').textContent='';$('certInfo').classList.add('hidden');
+  toggleScheduleMode();updateTlsHint();refreshPush();updateCheckHint();$('mountCheckResult').textContent='';$('testResult').textContent='';$('certInfo').classList.add('hidden');
   if(lastStatus&&lastStatus.scheduler){$('sServerTime').textContent=dayLoc(lastStatus.scheduler.server_time_local)||'–';$('sServerTz').textContent=lastStatus.scheduler.server_tz||''}
  }catch(e){if(!(e instanceof AuthError))toast(e.message,'err')}}
 function toggleScheduleMode(){const m=$('sMode').value;
  $('modeInterval').classList.toggle('hidden',m!=='interval');$('modeTime').classList.toggle('hidden',m!=='daily'&&m!=='weekly');
  $('modeWeekly').classList.toggle('hidden',m!=='weekly');$('modeHint').textContent=t(m==='off'?'set.mode_hint_off':'set.mode_hint_on')}
 $('sMode').onchange=toggleScheduleMode;
+function updateCheckHint(){const h=+$('sCheckInt').value||12;const nc=lastStatus&&lastStatus.scheduler&&lastStatus.scheduler.next_check;
+ $('checkHint').textContent=t('set.check_hint',{h,t:nc?new Date(nc*1000).toLocaleString(loc(),{weekday:'short',hour:'2-digit',minute:'2-digit'}):'–'})}
+$('sCheckInt').oninput=updateCheckHint;
 function updateTlsHint(){const m=$('sTlsMode').value,url=$('sUrl').value.trim();
  $('tlsPinBox').classList.toggle('hidden',m!=='pinned');
  $('tlsHint').textContent=url.startsWith('http://')?t('set.tls_hint_http'):t('set.tls_hint_'+m);
