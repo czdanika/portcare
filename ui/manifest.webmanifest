@@ -1,6 +1,6 @@
 {
-  "name": "Portainer Update Service",
-  "short_name": "PUS",
+  "name": "PortCare",
+  "short_name": "PortCare",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#0e1116",

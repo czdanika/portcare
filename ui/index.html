@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#f2f4f7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#181818" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="light dark">
-<title>Portainer Update Service</title>
+<title>PortCare – Portainer Update Service</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230086c9'/%3E%3Cpath d='M16 7v10m0 0l-4.5-4.5M16 17l4.5-4.5M9 21.5h14' stroke='white' stroke-width='2.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.svg">
@@ -369,7 +369,7 @@ input:disabled,select:disabled{opacity:.6;cursor:not-allowed}
 <!-- =============================================================== AUTH -->
 <div class="auth hidden" id="authScreen">
   <form class="auth-card" id="authForm" autocomplete="on">
-    <div class="auth-brand"><div class="wordmark">PUS.updater</div><div class="wordmark-sub">Portainer Update Service</div></div>
+    <div class="auth-brand"><div class="wordmark">PortCare</div><div class="wordmark-sub">Portainer Update Service</div></div>
     <h1 id="authTitle" data-i18n="auth.login_title"></h1>
     <p id="authSub" data-i18n="auth.login_sub"></p>
     <input type="text" name="username" value="admin" autocomplete="username" class="hidden" aria-hidden="true" tabindex="-1">
@@ -389,7 +389,7 @@ input:disabled,select:disabled{opacity:.6;cursor:not-allowed}
 <!-- ================================================================ APP -->
 <div class="app hidden" id="appScreen">
   <aside class="sidebar">
-    <div class="brand"><div><div class="wordmark">PUS.updater</div><div class="wordmark-sub">Portainer Update Service</div></div></div>
+    <div class="brand"><div><div class="wordmark">PortCare</div><div class="wordmark-sub">Portainer Update Service</div></div></div>
     <div class="env-box">
       <div class="env-head"><span class="env-dot"><svg class="i"><use href="#i-server"/></svg></span><div><span data-i18n="nav.env"></span><small id="envName">Portainer</small></div></div>
       <nav class="nav" id="sideNav">
@@ -639,7 +639,7 @@ input:disabled,select:disabled{opacity:.6;cursor:not-allowed}
 /* ================================================================== i18n */
 const I18N={
 hu:{
- 'app.tagline':'Stackek frissítése','app.credit':'Az eredeti <a href="https://github.com/joshmadison/Portainer-Update-Service" target="_blank" rel="noopener">Portainer Update Service</a> (Josh Madison, MIT) magyarított, biztonságosabb változata.',
+ 'app.tagline':'Stackek frissítése','app.credit':'PortCare – az eredeti <a href="https://github.com/joshmadison/Portainer-Update-Service" target="_blank" rel="noopener">Portainer Update Service</a> (Josh Madison, MIT) magyarított, biztonságosabb változata.',
  'nav.dash':'Áttekintés','nav.env':'Portainer környezet','nav.admin':'Adminisztráció','act.update_all':'Összes frissítése','crumb.dash':'Környezet › Áttekintés','crumb.stacks':'Környezet › Stackek','crumb.history':'Környezet › Előzmények','crumb.settings':'Adminisztráció › Beállítások','col.stack':'Név','col.service':'Service','col.image':'Image','col.mode':'Mód','col.status':'Állapot','col.actions':'Műveletek','col.services':'Service-ek','col.run':'Futás','col.kind':'Típus','col.trigger':'Indító','col.when':'Időpont','col.duration':'Időtartam','col.result':'Eredmény','stacks.n_stacks':'{n} stack · ','nav.stacks':'Stackek','nav.history':'Előzmények','nav.settings':'Beállítások',
  'theme.auto':'Auto','theme.light':'Világos','theme.dark':'Sötét',
  'act.check':'Ellenőrzés','act.update':'Frissítés',
@@ -703,7 +703,7 @@ hu:{
  'set.notify':'Értesítések','set.webhook':'Webhook URL','set.webhook_hint':'Pl. Home Assistant webhook vagy ntfy. JSON-t küld POST-tal. Titkosítva tárolódik.',
  'set.notify_upd':'Értesítés új frissítésekről is','set.notify_upd_hint':'Nem csak hibánál: akkor is küld, ha ellenőrzéskor új frissíthető image-et talál (ugyanazt csak egyszer).',
  'set.save':'Beállítások mentése','set.self_update':'Alkalmazás frissítése','set.self_update_desc':'Ez az alkalmazás kimarad a rendes frissítésekből. Itt lehet szándékosan frissíteni: a konténer újraindul.',
- 'set.self_update_btn':'P.U.S. frissítése','set.cleanup':'Takarítás','set.cleanup_desc':'Törli a használatlan image-eket és a build cache-t. Utána a korábbi verziókra nem lehet visszaállni.',
+ 'set.self_update_btn':'PortCare frissítése','set.cleanup':'Takarítás','set.cleanup_desc':'Törli a használatlan image-eket és a build cache-t. Utána a korábbi verziókra nem lehet visszaállni.',
  'set.cleanup_btn':'Használatlan image-ek törlése','set.appearance':'Megjelenés',
  'days':['Hétfő','Kedd','Szerda','Csütörtök','Péntek','Szombat','Vasárnap'],
  'modal.redeploy':'Frissítés most','modal.compose':'Compose fájl','modal.no_images':'A compose fájlban nincs kifejezett image.',
@@ -716,7 +716,7 @@ hu:{
  'act.working':'dolgozik…'
 },
 en:{
- 'app.tagline':'Keep stacks up to date','app.credit':'A localized, hardened fork of <a href="https://github.com/joshmadison/Portainer-Update-Service" target="_blank" rel="noopener">Portainer Update Service</a> by Josh Madison (MIT).',
+ 'app.tagline':'Keep stacks up to date','app.credit':'PortCare – a localized, hardened fork of <a href="https://github.com/joshmadison/Portainer-Update-Service" target="_blank" rel="noopener">Portainer Update Service</a> by Josh Madison (MIT).',
  'nav.dash':'Overview','nav.env':'Portainer environment','nav.admin':'Administration','act.update_all':'Update all','crumb.dash':'Environment › Overview','crumb.stacks':'Environment › Stacks','crumb.history':'Environment › History','crumb.settings':'Administration › Settings','col.stack':'Name','col.service':'Service','col.image':'Image','col.mode':'Mode','col.status':'Status','col.actions':'Actions','col.services':'Services','col.run':'Run','col.kind':'Type','col.trigger':'Trigger','col.when':'Time','col.duration':'Duration','col.result':'Result','stacks.n_stacks':'{n} stacks · ','nav.stacks':'Stacks','nav.history':'History','nav.settings':'Settings',
  'theme.auto':'Auto','theme.light':'Light','theme.dark':'Dark',
  'act.check':'Check','act.update':'Update',
@@ -780,7 +780,7 @@ en:{
  'set.notify':'Notifications','set.webhook':'Webhook URL','set.webhook_hint':'e.g. a Home Assistant webhook or ntfy. Sends JSON via POST. Stored encrypted.',
  'set.notify_upd':'Also notify about new updates','set.notify_upd_hint':'Not just on failures: also when a check finds new updatable images (each set only once).',
  'set.save':'Save settings','set.self_update':'Update this app','set.self_update_desc':'This app is excluded from regular runs. Update it deliberately here – the container restarts.',
- 'set.self_update_btn':'Update P.U.S.','set.cleanup':'Clean up','set.cleanup_desc':'Deletes unused images and the build cache. Previous versions can’t be rolled back afterwards.',
+ 'set.self_update_btn':'Update PortCare','set.cleanup':'Clean up','set.cleanup_desc':'Deletes unused images and the build cache. Previous versions can’t be rolled back afterwards.',
  'set.cleanup_btn':'Delete unused images','set.appearance':'Appearance',
  'days':['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],
  'modal.redeploy':'Update now','modal.compose':'Compose file','modal.no_images':'No explicit images in the compose file.',

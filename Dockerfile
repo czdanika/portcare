@@ -2,7 +2,7 @@
 # Includes the docker CLI (mounted socket) so prune / Portainer backup /
 # Portainer self-update work inside the container.
 FROM python:3.12-slim
-LABEL org.opencontainers.image.description="Portainer Update Service - magyar, biztonságosabb fork" \
+LABEL org.opencontainers.image.description="PortCare - Portainer Update Service, magyar, biztonságosabb fork" \
       org.opencontainers.image.licenses="MIT"
 WORKDIR /app
 

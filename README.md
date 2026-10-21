@@ -1,4 +1,4 @@
-# Portainer Update Service – magyar, biztonságosabb változat
+# PortCare – Portainer Update Service, magyarul és biztonságosabban
 
 Webes felület a Portainer stackek frissítéséhez. Megmutatja, melyik image-hez jelent meg újabb verzió, és ütemezve vagy kézzel frissít. Minden futás előtt lementi a Portainert, egy service verzióját egy kattintással rögzítheted, egy elromlott frissítés után pedig visszaállhatsz.
 
@@ -33,7 +33,7 @@ Ez a [joshmadison/Portainer-Update-Service](https://github.com/joshmadison/Porta
 ```yaml
 services:
   update-service:
-    image: ghcr.io/czdanika/portainerupdater:latest
+    image: ghcr.io/czdanika/portcare:latest
     container_name: portainer-update-service
     restart: unless-stopped
     ports:
@@ -64,7 +64,7 @@ volumes:
 
 ### Frissítés
 
-Az image a `main` ág minden változásakor újraépül. A P.U.S. a saját stackjét kihagyja a rendes futásokból. Frissíteni a **Beállítások → P.U.S. frissítése** gombbal lehet, vagy a Portainerben: *Stack → Update → Re-pull image*.
+Az image a `main` ág minden változásakor újraépül. A PortCare a saját stackjét kihagyja a rendes futásokból. Frissíteni a **Beállítások → PortCare frissítése** gombbal lehet, vagy a Portainerben: *Stack → Update → Re-pull image*.
 
 Ha egy konkrét verziót szeretnél használni, a `:latest` helyett írd be a kiadás címkéjét, például `:v1.0.0`.
 
