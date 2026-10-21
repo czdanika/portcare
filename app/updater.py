@@ -17,6 +17,7 @@ result consumed by the UI. Docker is reached THROUGH the Portainer API proxy,
 except prune/backups which need local docker CLI (they run via subprocess).
 """
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -288,6 +289,9 @@ def _self_stack_names(client, eid) -> list:
         pass
 
     names = set()
+    forced = (os.environ.get("PUS_SELF_STACK") or "").strip().lower()
+    if forced:
+        names.add(forced)  # explicit override for exotic setups
     try:
         cs = client.all_containers(eid)
     except PortainerError:
@@ -297,13 +301,20 @@ def _self_stack_names(client, eid) -> list:
         if not lbl:
             continue
         cid = c.get("Id")
-        # signal 1: same /app/data bind source
+        # signal 0: Docker's default hostname is the first 12 characters of
+        # the container ID - works for named volumes and any stack name
+        try:
+            host = socket.gethostname().lower()
+            if host and len(host) >= 12 and (cid or "").lower().startswith(host):
+                names.add(lbl)
+        except OSError:
+            pass
+        # signal 1: same /app/data mount source (bind mount or named volume)
         if own_source:
             try:
                 info = client.inspect_container(cid, eid)
                 for m in info.get("Mounts") or []:
-                    if (m.get("Type") == "bind"
-                            and m.get("Destination") == str(DATA_DIR)
+                    if (m.get("Destination") == str(DATA_DIR)
                             and m.get("Source") == own_source):
                         names.add(lbl)
             except PortainerError:
@@ -432,8 +443,8 @@ def redeploy_stacks(client, eid, stacks, log, max_parallel=None) -> tuple:
         return False, [], []
 
     self_names = set(_self_stack_names(client, eid))
-    parallel = [s for s in stacks if (s.get("Name") or "") not in self_names]
-    excluded = [s.get("Name", "") for s in stacks if (s.get("Name") or "") in self_names]
+    parallel = [s for s in stacks if (s.get("Name") or "").lower() not in self_names]
+    excluded = [s.get("Name", "") for s in stacks if (s.get("Name") or "").lower() in self_names]
     if excluded:
         log(f"[INFO] Excluding this app's own stack from the run "
             f"(use 'Update PUS' in Settings): {', '.join(excluded)}")
@@ -495,7 +506,7 @@ def self_update_run(runlog) -> bool:
         runlog.log(f"[ERROR] Could not fetch stacks: {e}")
         runlog.finish(False)
         return False
-    own = next((s for s in stacks if (s.get("Name") or "") in self_names), None)
+    own = next((s for s in stacks if (s.get("Name") or "").lower() in self_names), None)
     if not own:
         runlog.log(f"[ERROR] No stack matching self project(s) "
                    f"{', '.join(sorted(self_names))} found.")

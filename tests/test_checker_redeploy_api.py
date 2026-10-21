@@ -178,3 +178,23 @@ class TestRedeployReadinessTiming:
         logs = []
         assert up.redeploy_single_stack(c, self._stack(), 3, logs.append) is True
         assert any("unchanged" in l for l in logs)
+
+
+class TestSelfStackDetection:
+    def test_hostname_is_container_id_prefix(self, fake_client, tmp_state, monkeypatch):
+        import app.updater as up
+        c = fake_client(containers=[
+            {"Id": "abcdef123456789", "Names": ["/portainer-update-service"],
+             "Labels": {"com.docker.compose.project": "portcare"}},
+            {"Id": "ffff00001111", "Names": ["/immich_server"],
+             "Labels": {"com.docker.compose.project": "immich"}}])
+        c.all_containers = lambda eid=None: c.containers
+        monkeypatch.setattr("socket.gethostname", lambda: "abcdef123456")
+        assert up._self_stack_names(c, 3) == ["portcare"]
+
+    def test_env_override(self, fake_client, tmp_state, monkeypatch):
+        import app.updater as up
+        c = fake_client(containers=[])
+        c.all_containers = lambda eid=None: []
+        monkeypatch.setenv("PUS_SELF_STACK", "PortCare")
+        assert up._self_stack_names(c, 3) == ["portcare"]
