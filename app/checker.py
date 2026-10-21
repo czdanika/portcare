@@ -196,9 +196,23 @@ def run_check(client: Portainer, eid, force=False, log=None) -> dict:
             n = sum(1 for svcs in stacks_result.values() for v in svcs.values()
                     if v["update_available"])
             log(f"[OK] Update check done: {n} update(s) available across {len(stacks_result)} stack(s).")
-        return _last_result
     finally:
         _lock.release()
+    _after_check(_last_result)
+    return _last_result
+
+
+def _after_check(result) -> None:
+    """Every completed check (scheduled, manual, background UI refresh,
+    re-check after an update) may announce new updates."""
+    try:
+        from . import scheduler
+        scheduler.notify_updates(result)
+    except Exception:  # noqa: BLE001 - notifications must never break checks
+        import sys
+        import traceback
+        print("[check] update notification failed:\n" + traceback.format_exc(),
+              file=sys.stderr, flush=True)
 
 
 def get_cached(force_refresh=None) -> dict:

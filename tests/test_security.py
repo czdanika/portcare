@@ -184,13 +184,28 @@ class TestScheduleOff:
         importlib.reload(sch)
         sent = []
         monkeypatch.setattr("requests.post", lambda url, **kw: sent.append(kw["json"]))
-        res = {"stacks": {"web": {"nginx": {"update_available": True, "image": "nginx:1.25",
+        res = {"checked_at": 1, "stacks": {"web": {"nginx": {"update_available": True, "image": "nginx:1.25",
                                             "latest_tag": "1.27"}}}}
         s = sch.Scheduler()
         s._notify_updates(res)
         s._notify_updates(res)  # same set -> no second message
         assert len(sent) == 1 and sent[0]["count"] == 1
         assert sent[0]["updates"][0]["latest"] == "1.27"
+        # a second stack gets an update -> only the NEW one is announced
+        res2 = {"checked_at": 2, "stacks": dict(res["stacks"], immich={"server": {
+            "update_available": True, "image": "immich:release", "remote_digest": "sha256:a"}})}
+        s._notify_updates(res2)
+        assert len(sent) == 2 and sent[1]["count"] == 1 and sent[1]["updates"][0]["stack"] == "immich"
+        # immich updated (gone), later a newer build appears -> announced again
+        s._notify_updates({"checked_at": 3, "stacks": res["stacks"]})
+        assert len(sent) == 2
+        res3 = {"checked_at": 4, "stacks": dict(res["stacks"], immich={"server": {
+            "update_available": True, "image": "immich:release", "remote_digest": "sha256:b"}})}
+        s._notify_updates(res3)
+        assert len(sent) == 3
+        # an in-progress / empty result never notifies
+        s._notify_updates({"running": True, "stacks": {}})
+        assert len(sent) == 3
 
 
 # ---------------------------------------------------------------- TLS

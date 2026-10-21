@@ -898,13 +898,7 @@ def api_check():
 def _check_worker(client, eid, force):
     """Runs OUTSIDE the request context - releases the gate when done."""
     try:
-        result = checker.run_check(client, eid, force=force)
-        try:
-            # manual checks notify too (same de-duplication as scheduled ones)
-            scheduler._notify_updates(result)
-        except Exception as e:  # noqa: BLE001
-            import sys
-            print(f"[check] notification failed: {e}", file=sys.stderr, flush=True)
+        checker.run_check(client, eid, force=force)  # notifies via the checker hook
     except Exception as e:  # noqa: BLE001 - defensive: check must never crash silently
         import sys
         print(f"[check] worker crashed: {e}", file=sys.stderr, flush=True)

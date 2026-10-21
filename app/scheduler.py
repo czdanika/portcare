@@ -89,6 +89,66 @@ def _next_full_from(now_ts: float) -> float:
             cand += timedelta(days=1)
     return time.mktime(cand.timetuple())  # DST-aware local -> epoch
 
+_notify_lock = threading.Lock()
+
+
+def _upd_key(f: dict) -> str:
+    return f"{f.get('stack')}|{f.get('service')}|{f.get('image')}|{f.get('latest')}|{f.get('digest') or ''}"
+
+
+def notify_updates(result):
+    """Push / webhook about NEW available updates after any completed check
+    (scheduled, manual, or the UI's background refresh).
+
+    Each update (stack, service, image, newest tag / digest) is announced once;
+    when it disappears (updated) and later comes back with a newer build, it
+    is announced again. Only the new items are listed in the message."""
+    if not result or result.get("running") or not result.get("checked_at"):
+        return
+    found = []
+    for stack, svcs in sorted((result.get("stacks") or {}).items()):
+        for svc, v in sorted((svcs or {}).items()):
+            if v.get("update_available"):
+                found.append({"stack": stack, "service": svc,
+                              "image": v.get("image"),
+                              "latest": v.get("latest_tag") or "new digest",
+                              "digest": v.get("remote_digest") or ""})
+    state_file = DATA_DIR / "notified_updates.json"
+    with _notify_lock:
+        try:
+            prev = json.loads(state_file.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            prev = []
+        prev_keys = {p if isinstance(p, str) else _upd_key(p) for p in (prev or [])}
+        cur_keys = [_upd_key(f) for f in found]
+        new = [f for f, k in zip(found, cur_keys) if k not in prev_keys]
+        if set(cur_keys) != prev_keys:
+            try:
+                state_file.write_text(json.dumps(sorted(set(cur_keys))), encoding="utf-8")
+            except OSError:
+                pass
+    if not new:
+        return
+    # push (phone / browser) - text in Hungarian, the UI's default language
+    def label(f):
+        n = f["stack"].lstrip("@")
+        return n if f["latest"] == "new digest" else f"{n} → {f['latest']}"
+    names = sorted({label(f) for f in new})
+    push.send_async("updates_available", f"PortCare: {len(new)} új frissítés",
+                    ", ".join(names[:6]) + (" …" if len(names) > 6 else ""),
+                    url=push.app_url("#stacks"), tag="updates")
+    url = get("notify_webhook", "")
+    if url and get("notify_on_updates", False):
+        import requests
+        requests.post(url, timeout=10, json={
+            "title": f"{len(new)} container update(s) available",
+            "event": "updates_available",
+            "count": len(new),
+            "updates": [{k: f[k] for k in ("stack", "service", "image", "latest")} for f in new],
+            "total": len(found),
+        })
+
+
 class Scheduler:
     def __init__(self):
         self._stop = threading.Event()
@@ -285,52 +345,13 @@ class Scheduler:
                 # interval (first-run flow: user may be mid-setup)
                 self.next_check = time.time() + 600
                 return
-            result = checker.run_check(client, client.endpoint_id)
+            checker.run_check(client, client.endpoint_id)
         finally:
             gate.release()
-        try:
-            self._notify_updates(result)
-        except Exception:  # noqa: BLE001 - notification must never break checks
-            print("[scheduler] update notification failed:\n" + traceback.format_exc(),
-                  file=sys.stderr, flush=True)
+        # notification: checker.run_check -> scheduler.notify_updates
 
     def _notify_updates(self, result):
-        """POST to the webhook when the set of available updates CHANGED
-        (opt-in: notify_on_updates). Nothing is sent twice for the same set."""
-        if not result:
-            return
-        found = []
-        for stack, svcs in sorted((result.get("stacks") or {}).items()):
-            for svc, v in sorted((svcs or {}).items()):
-                if v.get("update_available"):
-                    found.append({"stack": stack, "service": svc,
-                                  "image": v.get("image"),
-                                  "latest": v.get("latest_tag") or "new digest"})
-        key = json.dumps(found, sort_keys=True)
-        state_file = DATA_DIR / "notified_updates.json"
-        try:
-            prev = state_file.read_text(encoding="utf-8")
-        except OSError:
-            prev = "[]"
-        if key == prev:
-            return
-        state_file.write_text(key, encoding="utf-8")
-        if not found:
-            return
-        # push (phone / browser) - text in Hungarian, the UI's default language
-        names = sorted({f["stack"] for f in found})
-        push.send_async("updates_available", f"PortCare: {len(found)} új frissítés",
-                        ", ".join(names[:6]) + (" …" if len(names) > 6 else ""),
-                        url=push.app_url("#stacks"), tag="updates")
-        url = get("notify_webhook", "")
-        if url and get("notify_on_updates", False):
-            import requests
-            requests.post(url, timeout=10, json={
-                "title": f"{len(found)} container update(s) available",
-                "event": "updates_available",
-                "count": len(found),
-                "updates": found,
-            })
+        notify_updates(result)
 
     def _notify_run(self, runlog, ok):
         """Push after an update run: success (which stacks) or failure.
