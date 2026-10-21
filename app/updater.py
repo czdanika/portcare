@@ -392,6 +392,15 @@ def redeploy_single_stack(client, stack, eid, log) -> bool:
             client.update_stack(sid, eid, content, env)
     except PortainerError as e:
         log(f"[ERROR] Failed to redeploy {name}: {e}")
+        msg = str(e).lower()
+        if "pull access denied" in msg or "repository does not exist" in msg:
+            log(f"[HINT] {name}: an image in this stack is not in any registry "
+                f"(built locally on the NAS, or private without login). Redeploying "
+                f"cannot pull it - set this stack's rule to 'Notify only' or "
+                f"'Ignored' in PortCare (Stacks page).")
+        elif "toomanyrequests" in msg or "rate limit" in msg:
+            log(f"[HINT] {name}: the registry rate-limited the pull - try again "
+                f"in a few minutes.")
         return False
 
     # Only containers created AFTER this moment count as "the redeploy's"
