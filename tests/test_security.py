@@ -270,3 +270,29 @@ class TestPasswordRecovery:
         assert auth.check_password("new-secret-123")
         assert auth.check_password("  new-secret-123\n")     # pasted whitespace ignored
         assert not auth.check_password("forgotten-one")
+
+
+class TestProxyOrigin:
+    def test_https_origin_behind_tls_proxy(self, anon):
+        # Cloudflare Tunnel: browser on https, app reached over http, Host kept
+        r = anon.post("/api/auth/setup", json={"password": "a-long-password"},
+                      headers={"Origin": "https://portcare.example.com",
+                               "Host": "portcare.example.com"})
+        assert r.status_code == 200
+
+    def test_forwarded_host_accepted(self, anon):
+        r = anon.post("/api/auth/setup", json={"password": "a-long-password"},
+                      headers={"Origin": "https://portcare.example.com",
+                               "X-Forwarded-Host": "portcare.example.com"})
+        assert r.status_code == 200
+
+    def test_public_url_accepted_and_foreign_rejected(self, anon):
+        from app import config as cfg
+        cfg.load(force=True)
+        cfg.set("public_url", "https://portcare.example.com")
+        r = anon.post("/api/auth/setup", json={"password": "a-long-password"},
+                      headers={"Origin": "https://evil.example"})
+        assert r.status_code == 403
+        r = anon.post("/api/auth/setup", json={"password": "a-long-password"},
+                      headers={"Origin": "https://portcare.example.com"})
+        assert r.status_code == 200

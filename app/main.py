@@ -84,10 +84,27 @@ def _bearer_valid() -> bool:
 
 
 def _same_origin() -> bool:
+    """CSRF origin check. Compares HOST names only (not the scheme): behind a
+    TLS-terminating proxy (Cloudflare Tunnel, Tailscale serve, nginx) the
+    browser's Origin is https://… while the app itself is reached over http.
+    Accepted hosts: the Host header, X-Forwarded-Host and the configured
+    public_url."""
     origin = request.headers.get("Origin", "")
-    if not origin:
-        return True  # same-origin fetches without Origin / CLI clients
-    return origin.rstrip("/") == request.host_url.rstrip("/")
+    if not origin or origin == "null":
+        return not origin  # no Origin: same-origin GET/CLI; "null": reject
+    from urllib.parse import urlparse
+    o_host = (urlparse(origin).netloc or "").lower()
+    allowed = {(request.host or "").lower()}
+    for h in (request.headers.get("X-Forwarded-Host", "") or "").split(","):
+        if h.strip():
+            allowed.add(h.strip().lower())
+    pub = get("public_url", "") or ""
+    if pub:
+        allowed.add((urlparse(pub).netloc or "").lower())
+    # default ports: https://x == x:443, http://x == x:80
+    def norm(h):
+        return h[:-4] if h.endswith(":443") else h[:-3] if h.endswith(":80") else h
+    return norm(o_host) in {norm(h) for h in allowed if h}
 
 
 @app.before_request
