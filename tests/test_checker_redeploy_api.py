@@ -86,11 +86,8 @@ def _time_create_after():
 
 class TestApiSmoke:
     @pytest.fixture()
-    def client(self, tmp_state):
-        from app.main import app
-        app.config["TESTING"] = True
-        with app.test_client() as c:
-            yield c
+    def client(self, api_client):
+        yield api_client
 
     def test_healthz(self, client, monkeypatch):
         # scheduler isn't running in tests - fake a fresh heartbeat
@@ -121,22 +118,20 @@ class TestApiSmoke:
         assert r.status_code != 403  # (may be 409 busy or ok - not rejected as cross-site)
 
     def test_auth_gate_with_token(self, client, monkeypatch):
-        from app import config as cfg
-        monkeypatch.setattr("app.config._cfg", None)
-        monkeypatch.setenv("PUS_AUTH_TOKEN", "secret123")
-        cfg.load(force=True)
-        # no token -> 401
-        r = client.post("/api/update")
-        assert r.status_code == 401
-        # wrong token -> 401
-        r = client.post("/api/update", headers={"Authorization": "Bearer wrong"})
-        assert r.status_code == 401
-        # correct token -> past auth (409 busy or success)
-        r = client.post("/api/update", headers={"Authorization": "Bearer secret123"})
-        assert r.status_code != 401
-        # reads are never gated
-        r = client.get("/api/status")
-        assert r.status_code == 200
+        from app.main import app
+        with app.test_client() as anon:
+            # not logged in -> 401 for reads AND writes
+            assert anon.get("/api/status").status_code == 401
+            assert anon.post("/api/update").status_code == 401
+            # wrong bearer -> 401
+            r = anon.post("/api/update", headers={"Authorization": "Bearer wrong"})
+            assert r.status_code == 401
+            # correct bearer -> past auth (409 busy or success)
+            r = anon.post("/api/update",
+                          headers={"Authorization": "Bearer test-password-123"})
+            assert r.status_code != 401
+        # logged-in session can read
+        assert client.get("/api/status").status_code == 200
 
     def test_run_log_path_traversal_blocked(self, client):
         r = client.get("/api/runs/..%2f..%2fetc%2fpasswd/log")

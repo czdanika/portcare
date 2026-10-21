@@ -2,6 +2,8 @@
 # Includes the docker CLI (mounted socket) so prune / Portainer backup /
 # Portainer self-update work inside the container.
 FROM python:3.12-slim
+LABEL org.opencontainers.image.description="Portainer Update Service - magyar, biztonságosabb fork" \
+      org.opencontainers.image.licenses="MIT"
 WORKDIR /app
 
 COPY requirements.txt .
@@ -32,8 +34,11 @@ COPY app/ app/
 COPY ui/ ui/
 COPY run.py .
 
-# persistent state (status, history, run logs, backups)
-VOLUME ["/app/data"]
+ENV PUS_LISTEN_HOST=0.0.0.0 \
+    PYTHONUNBUFFERED=1
+
+# persistent state (status, history, run logs, backups, encryption keys)
+VOLUME ["/app/data", "/app/config"]
 EXPOSE 8090
 HEALTHCHECK --interval=60s --timeout=5s --start-period=30s --retries=3 \
   CMD curl -fsS http://127.0.0.1:8090/healthz || exit 1

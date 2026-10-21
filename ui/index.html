@@ -1,400 +1,594 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="hu">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#0f141a">
-<meta name="description" content="Keep your Portainer stacks up to date — automatically, on your schedule.">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f5f7fb" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0e1116" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
 <title>Portainer Update Service</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%230f141a'/%3E%3Ccircle cx='8' cy='8' r='4' fill='%233aa0ff'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230d9488'/%3E%3Cpath d='M16 7v10m0 0l-4.5-4.5M16 17l4.5-4.5M9 21.5h14' stroke='white' stroke-width='2.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <style>
+/* ================================================================ tokens */
 :root{
-  --bg:#0f141a;--panel:#161d26;--panel2:#1c242f;--line:#2a3441;--line-strong:#3a4656;
-  --txt:#d7e0ea;--mut:#8a97a8;--acc:#3aa0ff;--acc-btn:#2b76c9;--acc-hover:#2870bd;
-  --ok:#38c172;--warn:#e8a33d;--err:#e35d5d;--err-btn:#cf4444;--err-hover:#c93c3c;
-  --ok-bg:rgba(56,193,114,.15);--warn-bg:rgba(232,163,61,.15);
-  --err-bg:rgba(227,93,93,.15);--mut-bg:rgba(138,151,168,.15);--acc-bg:rgba(58,160,255,.15);
-  --radius:10px;--radius-lg:16px;
-  --ease-out:cubic-bezier(.22,1,.36,1);
-  --shadow-lift:0 1px 2px rgba(0,0,0,.3);
-  --shadow-float:0 18px 48px rgba(0,0,0,.5);
-  /* motion values, written by the spring engine in JS */
-  --bg-op:0;--bg-blur:0px;
-  --m-op:0;--m-ty:18px;--m-sc:.97;
-  --t-op:1;--t-ty:0px;
+  --bg:#f5f7fb;--surface:#ffffff;--surface-2:#f0f3f8;--surface-3:#e7ecf3;
+  --line:#e2e7ef;--line-strong:#cdd5e1;
+  --txt:#16202c;--txt-2:#4a5768;--mut:#6b7889;
+  --acc:#0d9488;--acc-strong:#0f766e;--acc-soft:rgba(13,148,136,.12);--on-acc:#ffffff;
+  --ok:#15803d;--ok-soft:rgba(21,128,61,.12);
+  --warn:#b45309;--warn-soft:rgba(217,119,6,.14);
+  --err:#c2410c;--err-strong:#b91c1c;--err-soft:rgba(220,38,38,.11);
+  --info:#2563eb;--info-soft:rgba(37,99,235,.11);
+  --log-bg:#0f172a;--log-txt:#cbd5e1;
+  --shadow-1:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.05);
+  --shadow-2:0 12px 32px rgba(16,24,40,.14);
+  --r:14px;--r-sm:10px;--r-xs:8px;
+  --sidebar:15.5rem;
+  --safe-b:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1116;--surface:#161b22;--surface-2:#1c222b;--surface-3:#242b35;
+    --line:#262d37;--line-strong:#36404c;
+    --txt:#e6ebf2;--txt-2:#b3bdca;--mut:#8592a3;
+    --acc:#2dd4bf;--acc-strong:#5eead4;--acc-soft:rgba(45,212,191,.14);--on-acc:#042f2e;
+    --ok:#4ade80;--ok-soft:rgba(74,222,128,.13);
+    --warn:#fbbf24;--warn-soft:rgba(251,191,36,.13);
+    --err:#f87171;--err-strong:#ef4444;--err-soft:rgba(248,113,113,.13);
+    --info:#60a5fa;--info-soft:rgba(96,165,250,.13);
+    --log-bg:#0a0d12;--log-txt:#c3cedb;
+    --shadow-1:0 1px 2px rgba(0,0,0,.4);
+    --shadow-2:0 16px 40px rgba(0,0,0,.55);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1116;--surface:#161b22;--surface-2:#1c222b;--surface-3:#242b35;
+  --line:#262d37;--line-strong:#36404c;
+  --txt:#e6ebf2;--txt-2:#b3bdca;--mut:#8592a3;
+  --acc:#2dd4bf;--acc-strong:#5eead4;--acc-soft:rgba(45,212,191,.14);--on-acc:#042f2e;
+  --ok:#4ade80;--ok-soft:rgba(74,222,128,.13);
+  --warn:#fbbf24;--warn-soft:rgba(251,191,36,.13);
+  --err:#f87171;--err-strong:#ef4444;--err-soft:rgba(248,113,113,.13);
+  --info:#60a5fa;--info-soft:rgba(96,165,250,.13);
+  --log-bg:#0a0d12;--log-txt:#c3cedb;
+  --shadow-1:0 1px 2px rgba(0,0,0,.4);
+  --shadow-2:0 16px 40px rgba(0,0,0,.55);
   color-scheme:dark;
 }
+
+/* ================================================================== base */
 *{box-sizing:border-box;margin:0;padding:0}
-html{scrollbar-gutter:stable}
-body{
-  background:var(--bg) radial-gradient(75rem 30rem at 50% -12%,rgba(58,160,255,.07),transparent 62%) no-repeat;
-  color:var(--txt);font:100%/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-  font-optical-sizing:auto;-webkit-font-smoothing:antialiased;
-}
-a{color:var(--acc);text-decoration:none;text-underline-offset:.125em}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--txt);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh}
+a{color:var(--acc-strong);text-decoration:none}
 a:hover{text-decoration:underline}
-::selection{background:rgba(58,160,255,.3)}
-::-webkit-scrollbar{width:.625rem;height:.625rem}
-::-webkit-scrollbar-thumb{background:var(--line);border-radius:999px}
-::-webkit-scrollbar-thumb:hover{background:var(--line-strong)}
-::-webkit-scrollbar-track{background:transparent}
-button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.is-clickable:focus-visible,tr[data-st]:focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radius:6px}
-header{display:flex;flex-wrap:wrap;align-items:center;gap:.75rem 1rem;padding:.75rem 1.375rem;min-height:3.5rem;
-  border-bottom:1px solid transparent;background:rgba(18,24,32,.76);
-  -webkit-backdrop-filter:blur(1.25rem) saturate(180%);backdrop-filter:blur(1.25rem) saturate(180%);
-  position:sticky;top:0;z-index:5;
-  transition:border-color .24s var(--ease-out),box-shadow .24s var(--ease-out)}
-header.scrolled{border-bottom-color:var(--line);box-shadow:0 .5rem 1.5rem rgba(0,0,0,.35)}
-header h1{font-size:1.0625rem;font-weight:600;letter-spacing:-.012em;display:flex;align-items:center;gap:.625rem}
-.dot{width:.5625rem;height:.5625rem;border-radius:50%;background:var(--mut);display:inline-block;flex:none;transition:background-color .3s var(--ease-out)}
-.dot.ok{background:var(--ok)}.dot.err{background:var(--err)}
-.dot.run{background:var(--acc);animation:pulse 1.3s ease-in-out infinite}
-@keyframes pulse{0%,100%{opacity:.45}50%{opacity:1}}
-nav{position:relative;display:flex;flex-wrap:wrap;gap:.25rem;margin-left:.75rem}
-.nav-pill{position:absolute;left:0;top:0;width:var(--pw,0);height:var(--ph,0);border-radius:.5rem;background:var(--panel2);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 1px 2px rgba(0,0,0,.35);
-  transform:translate3d(var(--px,0),var(--py,0),0);pointer-events:none;opacity:0;
-  will-change:transform,width,height}
-nav.ready .nav-pill{opacity:1}
-nav button{position:relative;z-index:1;background:none;border:0;color:var(--mut);padding:.4375rem .875rem;border-radius:.5rem;
-  cursor:pointer;font:inherit;font-size:.875rem;font-weight:500;letter-spacing:-.006em;
-  transition:color .18s var(--ease-out),transform 120ms var(--ease-out)}
-nav button:hover{color:var(--txt)}
-nav button:active{transform:scale(.97)}
-nav button.active{color:var(--txt)}
-main{max-width:73.75rem;margin:0 auto;padding:1.375rem}
-.tab{opacity:var(--t-op,1);transform:translate3d(0,var(--t-ty,0),0)}
-.grid{display:grid;gap:.875rem}
-.cards{grid-template-columns:repeat(auto-fit,minmax(13rem,1fr))}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:1rem;
-  transition:border-color .22s var(--ease-out),background-color .22s var(--ease-out),transform 120ms var(--ease-out)}
-.card .lbl{color:var(--mut);font-size:.6875rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
-.card .val{font-size:1.5rem;font-weight:600;line-height:1.15;letter-spacing:-.022em;margin-top:.25rem;font-variant-numeric:tabular-nums}
-.card .val.val-sm{font-size:1.125rem;letter-spacing:-.01em}
-.card .sub{color:var(--mut);font-size:.75rem;line-height:1.45;margin-top:.125rem}
-section{margin-top:1.25rem}
-h2{font-size:.9375rem;font-weight:600;letter-spacing:-.006em;margin-bottom:.625rem;color:var(--txt)}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:1rem;overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:.84375rem}
-th{color:var(--mut);text-align:left;font-weight:600;font-size:.75rem;letter-spacing:.05em;text-transform:uppercase;padding:.5rem .625rem;border-bottom:1px solid var(--line);white-space:nowrap}
-td{padding:.5625rem .625rem;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;transition:background-color .14s var(--ease-out)}
-tr:last-child td{border-bottom:0}
-tbody tr[data-st]{cursor:pointer}
-@media (hover:hover){tbody tr:hover td{background:var(--panel2)}}
-th.num,td.num{text-align:right}
-td.mono{font:.75rem ui-monospace,Consolas,monospace;color:var(--mut);max-width:20rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.badge{display:inline-block;padding:.125rem .5625rem;border-radius:999px;font-size:.75rem;font-weight:600;letter-spacing:.01em;font-variant-numeric:tabular-nums;white-space:nowrap}
-.b-ok{background:var(--ok-bg);color:var(--ok);box-shadow:inset 0 0 0 1px rgba(56,193,114,.16)}
-.b-warn{background:var(--warn-bg);color:var(--warn);box-shadow:inset 0 0 0 1px rgba(232,163,61,.16)}
-.b-err{background:var(--err-bg);color:var(--err);box-shadow:inset 0 0 0 1px rgba(227,93,93,.16)}
-.b-mut{background:var(--mut-bg);color:var(--mut)}
-.b-info{background:var(--acc-bg);color:var(--acc)}
-.btn{background:var(--acc-btn);color:#fff;border:0;padding:.5rem 1rem;border-radius:.5625rem;cursor:pointer;
-  font:inherit;font-size:.84375rem;font-weight:550;letter-spacing:-.004em;box-shadow:var(--shadow-lift);
-  transition:background-color .18s var(--ease-out),box-shadow .18s var(--ease-out),transform 120ms var(--ease-out)}
-.btn:hover{background:var(--acc-hover)}
-.btn:active{transform:scale(.97);box-shadow:none}
-.btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
-.btn.sec{background:var(--panel2);color:var(--txt);border:1px solid var(--line);box-shadow:none}
-.btn.sec:hover{background:#232d3a;border-color:var(--line-strong)}
-.btn.sm{padding:.25rem .625rem;font-size:.78125rem;border-radius:.4375rem}
-.btn.danger{background:var(--err-btn)}
-.btn.danger:hover{background:var(--err-hover)}
-/* busy state sets on press, before the request resolves */
-.btn[data-busy]{pointer-events:none;color:transparent!important;position:relative}
-.btn[data-busy]::after{content:"";position:absolute;left:50%;top:50%;width:.875rem;height:.875rem;margin:-.4375rem 0 0 -.4375rem;
-  border-radius:50%;border:2px solid var(--line-strong);border-top-color:var(--txt);animation:spin .7s linear infinite}
-.btn:not(.sec)[data-busy]::after{border-color:rgba(255,255,255,.35);border-top-color:#fff}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radius:6px}
+.hidden{display:none!important}
+.mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:.8em}
+.muted{color:var(--mut)}
+.small{font-size:.82rem}
+svg.i{width:1.15em;height:1.15em;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* =============================================================== layout */
+.app{display:grid;grid-template-columns:var(--sidebar) 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:.25rem;padding:1.1rem .85rem;
+  background:var(--surface);border-right:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:.65rem;padding:.25rem .5rem 1rem}
+.logo{width:2.1rem;height:2.1rem;border-radius:.6rem;background:var(--acc);display:grid;place-items:center;color:var(--on-acc);flex:none}
+.logo svg{width:1.2rem;height:1.2rem;stroke:currentColor;fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.brand b{display:block;font-size:.95rem;letter-spacing:-.01em;line-height:1.2}
+.brand span{font-size:.72rem;color:var(--mut)}
+.nav{display:flex;flex-direction:column;gap:.15rem}
+.nav button{display:flex;align-items:center;gap:.7rem;width:100%;padding:.6rem .75rem;border:0;border-radius:var(--r-sm);background:none;
+  color:var(--txt-2);font-weight:550;font-size:.92rem;cursor:pointer;text-align:left;transition:background .15s,color .15s}
+.nav button:hover{background:var(--surface-2);color:var(--txt)}
+.nav button.active{background:var(--acc-soft);color:var(--acc-strong)}
+.nav .count{margin-left:auto;background:var(--warn-soft);color:var(--warn);border-radius:999px;font-size:.72rem;padding:.05rem .5rem;font-weight:700}
+.side-foot{margin-top:auto;display:flex;flex-direction:column;gap:.5rem;padding-top:1rem;border-top:1px solid var(--line)}
+.seg{display:flex;background:var(--surface-2);border-radius:var(--r-xs);padding:.2rem;gap:.15rem}
+.seg button{flex:1;border:0;background:none;padding:.32rem .4rem;border-radius:.4rem;font-size:.78rem;font-weight:600;color:var(--mut);cursor:pointer}
+.seg button.on{background:var(--surface);color:var(--txt);box-shadow:var(--shadow-1)}
+.content{min-width:0;display:flex;flex-direction:column}
+.topbar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:.75rem;padding:.85rem 1.5rem;
+  background:color-mix(in srgb,var(--bg) 85%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid transparent}
+.topbar.scrolled{border-bottom-color:var(--line)}
+.topbar h1{font-size:1.2rem;font-weight:700;letter-spacing:-.02em}
+.topbar .grow{flex:1}
+.status-pill{display:inline-flex;align-items:center;gap:.45rem;padding:.3rem .7rem;border-radius:999px;background:var(--surface);border:1px solid var(--line);font-size:.78rem;color:var(--txt-2);white-space:nowrap}
+.dot{width:.55rem;height:.55rem;border-radius:50%;background:var(--mut);flex:none}
+.dot.ok{background:var(--ok)}.dot.err{background:var(--err)}.dot.run{background:var(--acc);animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.35}}
+main{padding:0 1.5rem 2rem;max-width:78rem;width:100%}
+.mobile-only{display:none}
+.tabbar{display:none}
+
+/* ============================================================ components */
+.grid{display:grid;gap:.9rem}
+.cards{grid-template-columns:repeat(auto-fill,minmax(12.5rem,1fr))}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:1rem 1.1rem;box-shadow:var(--shadow-1)}
+.card.click{cursor:pointer;transition:border-color .15s,transform .1s}
+.card.click:hover{border-color:var(--line-strong)}
+.card.click:active{transform:scale(.99)}
+.stat .lbl{display:flex;align-items:center;gap:.45rem;color:var(--mut);font-size:.75rem;font-weight:650;text-transform:uppercase;letter-spacing:.05em}
+.stat .val{font-size:1.65rem;font-weight:700;letter-spacing:-.025em;margin-top:.3rem;line-height:1.15;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.stat .val.sm{font-size:1.15rem}
+.stat .sub{color:var(--mut);font-size:.8rem;margin-top:.2rem}
+.stat.hero{grid-column:span 2;background:linear-gradient(135deg,var(--acc-soft),transparent 70%),var(--surface)}
+.stat.hero .val{font-size:2.2rem}
+.hero-actions{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.8rem}
+section{margin-top:1.6rem}
+.sec-head{display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin-bottom:.7rem;flex-wrap:wrap}
+h2{font-size:1.02rem;font-weight:700;letter-spacing:-.01em}
+h3{font-size:.95rem;font-weight:700}
+.badge{display:inline-flex;align-items:center;gap:.3rem;padding:.12rem .55rem;border-radius:999px;font-size:.74rem;font-weight:650;white-space:nowrap;line-height:1.5}
+.b-ok{background:var(--ok-soft);color:var(--ok)}
+.b-warn{background:var(--warn-soft);color:var(--warn)}
+.b-err{background:var(--err-soft);color:var(--err)}
+.b-mut{background:var(--surface-3);color:var(--txt-2)}
+.b-info{background:var(--info-soft);color:var(--info)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.45rem;border:1px solid transparent;background:var(--acc);color:var(--on-acc);
+  padding:.55rem 1rem;border-radius:var(--r-sm);font-weight:650;font-size:.88rem;cursor:pointer;white-space:nowrap;
+  transition:background .15s,border-color .15s,transform .1s,opacity .15s;min-height:2.4rem}
+.btn:hover{background:var(--acc-strong)}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn.sec{background:var(--surface);color:var(--txt);border-color:var(--line-strong)}
+.btn.sec:hover{background:var(--surface-2)}
+.btn.ghost{background:none;color:var(--txt-2);border-color:transparent}
+.btn.ghost:hover{background:var(--surface-2);color:var(--txt)}
+.btn.danger{background:var(--err-strong);color:#fff}
+.btn.danger:hover{filter:brightness(.92)}
+.btn.sm{padding:.32rem .7rem;font-size:.8rem;min-height:2rem;border-radius:var(--r-xs)}
+.btn.icon{padding:.45rem;min-width:2.4rem}
+.btn[data-busy]{pointer-events:none;position:relative;color:transparent!important}
+.btn[data-busy]::after{content:"";position:absolute;width:1rem;height:1rem;border-radius:50%;border:2px solid currentColor;border-color:var(--line-strong);border-top-color:var(--txt);animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.row{display:flex;gap:.625rem;align-items:center;flex-wrap:wrap}
-.spread{display:flex;justify-content:space-between;align-items:center;gap:.625rem;flex-wrap:wrap}
-pre.log{background:#0b0f14;border:1px solid var(--line);border-radius:var(--radius);padding:.875rem;
-  font:.75rem/1.6 ui-monospace,Consolas,monospace;color:#b9c6d4;overflow:auto;max-height:26.25rem;white-space:pre-wrap;
-  overscroll-behavior:contain;tab-size:2}
-.banner{display:none;flex-wrap:wrap;align-items:flex-start;gap:.75rem;background:var(--panel);border:1px solid var(--line);
-  border-left:3px solid var(--acc);border-radius:var(--radius);padding:.75rem 1rem;margin-bottom:1rem}
-.banner.open{display:flex;animation:banner-in .26s var(--ease-out) both}
-.banner.warn{border-left-color:var(--warn)}
-.banner.err{border-left-color:var(--err)}
-@keyframes banner-in{from{opacity:0;transform:translate3d(0,-.375rem,0)}}
-.banner .b-txt{flex:1;font-size:.84375rem}
-.banner .b-sub{color:var(--mut);font-size:.78125rem;line-height:1.45;margin-top:.125rem;font-variant-numeric:tabular-nums}
-/* ---------------------------------------------------------------- modal */
-.modal-bg{position:fixed;inset:0;z-index:10;display:grid;place-items:center;padding:1.5rem;
-  background:rgba(4,8,12,.62);opacity:var(--bg-op,0);
-  -webkit-backdrop-filter:blur(var(--bg-blur,0px)) saturate(140%);
-  backdrop-filter:blur(var(--bg-blur,0px)) saturate(140%);
-  visibility:hidden;pointer-events:none}
-.modal-bg.open{visibility:visible;pointer-events:auto}
-.modal{position:relative;display:flex;flex-direction:column;width:min(53.75rem,94vw);max-height:min(90vh,56.25rem);
-  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-lg);box-shadow:var(--shadow-float);
-  overflow:hidden;opacity:var(--m-op,0);
-  transform:translate3d(0,var(--m-ty,18px),0) scale(var(--m-sc,.97));transform-origin:50% 100%;
-  will-change:transform,opacity}
-.m-head{flex:none;position:relative;z-index:2;padding:.5rem 1.25rem .75rem;background:var(--panel);
-  border-bottom:1px solid transparent;transition:border-color .2s var(--ease-out);
-  touch-action:none;cursor:grab;user-select:none}
-.m-head.dragging{cursor:grabbing;border-bottom-color:var(--line)}
-.m-head .spread{position:static;background:none;padding:0}
-.grabber{width:2.25rem;height:.3125rem;border-radius:999px;background:var(--line-strong);margin:0 auto .75rem}
-.m-head.dragging .grabber{background:var(--acc)}
-.m-body{padding:0 1.25rem 1.25rem;overflow:auto;overscroll-behavior:contain}
-.modal h3{font-size:1rem;font-weight:600;letter-spacing:-.012em;margin-bottom:.75rem}
-.modal:focus{outline:none}
-select,input[type=text],input[type=password],input[type=number],input[type=url],input[type=time]{
-  background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:.4375rem .625rem;border-radius:.4375rem;
-  font:inherit;font-size:.84375rem;
-  transition:border-color .16s var(--ease-out),box-shadow .16s var(--ease-out)}
-select:hover,input[type=text]:hover,input[type=password]:hover,input[type=number]:hover,input[type=url]:hover,input[type=time]:hover{border-color:var(--line-strong)}
-select:focus,input[type=text]:focus,input[type=password]:focus,input[type=number]:focus,input[type=url]:focus,input[type=time]:focus{
-  border-color:var(--acc);outline:none;box-shadow:0 0 0 3px rgba(58,160,255,.18)}
-input[type=checkbox]{accent-color:var(--acc);width:1rem;height:1rem;vertical-align:-.125rem}
-label.f{display:block;color:var(--mut);font-size:.75rem;margin:.75rem 0 .25rem}
-input[type=text],input[type=password],input[type=number],input[type=url],input[type=time]{width:100%}
-.mono{font:.75rem ui-monospace,Consolas,monospace;color:var(--mut)}
-.toast{position:fixed;bottom:1.25rem;right:1.25rem;z-index:20;max-width:23.75rem;display:none;padding:.75rem 1rem;
-  border-radius:.75rem;background:rgba(28,36,47,.9);border:1px solid var(--line);border-left:3px solid var(--acc);
-  box-shadow:var(--shadow-float);font-size:.84375rem;
-  -webkit-backdrop-filter:blur(1rem) saturate(180%);backdrop-filter:blur(1rem) saturate(180%);
-  opacity:var(--toast-op,0);transform:translate3d(0,var(--toast-ty,14px),0);will-change:transform,opacity}
-.toast.ok{border-left-color:var(--ok)}.toast.err{border-left-color:var(--err)}
-.kv{display:grid;grid-template-columns:9.375rem 1fr;gap:.375rem;font-size:.84375rem}
+.row{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
+.spread{display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap}
+.banner{display:flex;gap:.85rem;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:.85rem 1rem;margin-bottom:1rem;box-shadow:var(--shadow-1)}
+.banner .ic{width:2rem;height:2rem;border-radius:.55rem;display:grid;place-items:center;flex:none;background:var(--info-soft);color:var(--info)}
+.banner.warn .ic{background:var(--warn-soft);color:var(--warn)}
+.banner.err .ic{background:var(--err-soft);color:var(--err)}
+.banner.run .ic{background:var(--acc-soft);color:var(--acc-strong)}
+.banner .bt{flex:1;min-width:0}
+.banner .bt b{display:block;font-size:.92rem}
+.banner .bs{color:var(--mut);font-size:.82rem;margin-top:.1rem}
+.banner .acts{display:flex;gap:.4rem;flex-wrap:wrap}
+pre.log{background:var(--log-bg);color:var(--log-txt);border-radius:var(--r-sm);padding:.85rem 1rem;font:.76rem/1.6 ui-monospace,Menlo,Consolas,monospace;
+  overflow:auto;max-height:28rem;white-space:pre-wrap;word-break:break-word;overscroll-behavior:contain}
+pre.log.tail{max-height:4.2rem;margin-top:.5rem;font-size:.72rem;padding:.5rem .7rem}
+.empty{color:var(--mut);text-align:center;padding:2rem 1rem;font-size:.9rem}
+
+/* stacks */
+.stack-list{display:grid;gap:.75rem;grid-template-columns:repeat(auto-fill,minmax(22rem,1fr))}
+.stack{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow-1);overflow:hidden}
+.stack-head{display:flex;align-items:center;gap:.6rem;padding:.8rem 1rem;border-bottom:1px solid var(--line)}
+.stack-head .name{font-weight:700;font-size:.98rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stack-head .grow{flex:1;min-width:0;display:flex;align-items:center;gap:.5rem}
+.svc{display:grid;grid-template-columns:1fr auto;gap:.15rem .75rem;padding:.65rem 1rem;border-bottom:1px solid var(--line)}
+.svc:last-child{border-bottom:0}
+.svc .sn{font-weight:600;font-size:.88rem}
+.svc .img{grid-column:1/-1;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.74rem;color:var(--mut);overflow-wrap:anywhere}
+.svc .tags{display:flex;gap:.35rem;flex-wrap:wrap;align-items:center;justify-content:flex-end}
+.svc .acts{grid-column:1/-1;display:flex;gap:.4rem;margin:.15rem 0 -.3rem -.7rem}
+.list{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow-1);overflow:hidden}
+.li{display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;border-bottom:1px solid var(--line)}
+.li:last-child{border-bottom:0}
+.li.click{cursor:pointer}
+.li.click:hover{background:var(--surface-2)}
+.li .grow{flex:1;min-width:0}
+.li .t{font-weight:600;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.li .s{color:var(--mut);font-size:.78rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.filter{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+.search{flex:1;min-width:12rem}
+
+/* forms */
+.form{max-width:44rem;display:grid;gap:1rem}
+.fs{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:1.1rem 1.2rem;box-shadow:var(--shadow-1)}
+.fs>h2{display:flex;align-items:center;gap:.55rem;margin-bottom:.2rem}
+.fs>.desc{color:var(--mut);font-size:.84rem;margin-bottom:.4rem}
+.field{margin-top:.85rem}
+.field>label{display:block;font-size:.8rem;font-weight:650;color:var(--txt-2);margin-bottom:.3rem}
+.field .hint{color:var(--mut);font-size:.78rem;margin-top:.3rem}
+input[type=text],input[type=password],input[type=number],input[type=url],input[type=time],select,textarea{
+  width:100%;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-xs);padding:.55rem .7rem;font-size:.9rem;min-height:2.5rem;
+  transition:border-color .15s,box-shadow .15s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-soft)}
+input:disabled,select:disabled{opacity:.6;cursor:not-allowed}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+.check{display:flex;gap:.6rem;align-items:flex-start;margin-top:.85rem;cursor:pointer}
+.check input{width:1.1rem;height:1.1rem;margin-top:.15rem;accent-color:var(--acc);flex:none}
+.check b{font-size:.88rem}
+.check span{display:block;color:var(--mut);font-size:.78rem}
+.result{font-size:.82rem;margin-top:.5rem}
+.result.ok{color:var(--ok)}.result.err{color:var(--err)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:.3rem 1rem;font-size:.84rem;margin-top:.6rem}
 .kv .k{color:var(--mut)}
-.empty{color:var(--mut);text-align:center;padding:1.625rem}
-.tag-sel{display:flex;gap:.375rem;flex-wrap:wrap;margin-top:.5rem}
-.tag-sel button{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:.375rem;
-  padding:.1875rem .5625rem;font:inherit;font-size:.75rem;cursor:pointer;
-  transition:border-color .15s var(--ease-out),background-color .15s var(--ease-out),transform 120ms var(--ease-out)}
+.kv .v{overflow-wrap:anywhere}
+.tag-sel{display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.5rem}
+.tag-sel button{background:var(--surface-2);border:1px solid var(--line);border-radius:.45rem;padding:.2rem .55rem;font-size:.76rem;cursor:pointer}
 .tag-sel button:hover{border-color:var(--acc)}
-.tag-sel button:active{transform:scale(.96)}
-.tag-sel button.cur{border-color:var(--acc);color:var(--acc);background:var(--acc-bg);font-weight:600}
-.divider{border-top:1px solid var(--line);margin:1.25rem 0}
-/* clickable surfaces get the same press feedback as buttons */
-.is-clickable{cursor:pointer;user-select:none}
-@media (hover:hover){.is-clickable:hover{border-color:var(--line-strong);background-color:var(--panel2)}}
-.is-clickable:active{transform:scale(.99)}
-/* ------------------------------------------------------------ fallbacks */
-@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
-  header{background:var(--panel)}
-  .toast{background:var(--panel2)}
+.tag-sel button.cur{border-color:var(--acc);color:var(--acc-strong);background:var(--acc-soft);font-weight:700}
+.env-lock{display:inline-flex;align-items:center;gap:.25rem;font-size:.72rem;color:var(--warn);font-weight:600;margin-left:.4rem}
+.save-bar{position:sticky;bottom:1rem;display:flex;justify-content:flex-end;gap:.6rem;max-width:44rem;margin-top:1rem}
+.save-bar .btn{box-shadow:var(--shadow-2)}
+
+/* modal / sheet */
+.modal-bg{position:fixed;inset:0;z-index:20;background:rgba(10,14,20,.45);display:flex;align-items:center;justify-content:center;padding:1.5rem;
+  opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-bg.open{opacity:1;pointer-events:auto}
+.modal{background:var(--surface);border-radius:1.1rem;box-shadow:var(--shadow-2);width:min(56rem,100%);max-height:min(88vh,60rem);display:flex;flex-direction:column;
+  transform:translateY(14px) scale(.98);transition:transform .25s cubic-bezier(.2,.9,.3,1)}
+.modal-bg.open .modal{transform:none}
+.m-head{display:flex;align-items:center;gap:.6rem;padding:1rem 1.2rem;border-bottom:1px solid var(--line)}
+.m-head h3{flex:1;font-size:1.05rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m-body{padding:1rem 1.2rem 1.3rem;overflow:auto;overscroll-behavior:contain}
+.grabber{display:none}
+.svc-edit{border:1px solid var(--line);border-radius:var(--r-sm);padding:.8rem .9rem;margin-top:.7rem}
+.svc-edit.focus{border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-soft)}
+.diff{width:100%;border-collapse:collapse;font-size:.8rem;margin-top:.5rem}
+.diff td,.diff th{text-align:left;padding:.3rem .4rem;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
+.diff th{color:var(--mut);font-weight:600}
+
+/* auth screen */
+.auth{min-height:100vh;display:grid;place-items:center;padding:1.5rem}
+.auth-card{width:min(25rem,100%);background:var(--surface);border:1px solid var(--line);border-radius:1.2rem;padding:2rem 1.6rem;box-shadow:var(--shadow-2)}
+.auth-card .logo{width:3rem;height:3rem;border-radius:.85rem;margin:0 auto 1rem}
+.auth-card .logo svg{width:1.6rem;height:1.6rem}
+.auth-card h1{text-align:center;font-size:1.3rem;letter-spacing:-.02em}
+.auth-card p{text-align:center;color:var(--mut);font-size:.88rem;margin:.35rem 0 1.2rem}
+.auth-card .btn{width:100%;margin-top:1rem}
+.auth-foot{display:flex;justify-content:center;gap:.5rem;margin-top:1.2rem}
+
+/* toast */
+.toast{position:fixed;right:1.2rem;bottom:1.2rem;z-index:30;max-width:24rem;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--acc);
+  border-radius:var(--r-sm);padding:.75rem 1rem;box-shadow:var(--shadow-2);font-size:.88rem;opacity:0;transform:translateY(10px);
+  pointer-events:none;transition:opacity .2s,transform .2s}
+.toast.show{opacity:1;transform:none;pointer-events:auto}
+.toast.ok{border-left-color:var(--ok)}.toast.err{border-left-color:var(--err)}
+
+/* =============================================================== mobile */
+@media (max-width:860px){
+  .app{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .mobile-only{display:flex}
+  .topbar{padding:.7rem 1rem;padding-top:calc(.7rem + env(safe-area-inset-top,0px))}
+  .topbar h1{font-size:1.1rem}
+  .topbar .desk{display:none}
+  main{padding:0 1rem calc(5.5rem + var(--safe-b))}
+  .cards{grid-template-columns:1fr 1fr;gap:.65rem}
+  .stat.hero{grid-column:1/-1}
+  .card{padding:.85rem .9rem}
+  .stat .val{font-size:1.35rem}
+  .stat.hero .val{font-size:1.9rem}
+  .stack-list{grid-template-columns:1fr}
+  .tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:15;background:color-mix(in srgb,var(--surface) 92%,transparent);
+    -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-top:1px solid var(--line);padding:.35rem .4rem calc(.35rem + var(--safe-b))}
+  .tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:.15rem;border:0;background:none;color:var(--mut);
+    font-size:.68rem;font-weight:650;padding:.35rem 0;border-radius:.6rem;cursor:pointer;position:relative}
+  .tabbar button svg.i{width:1.4rem;height:1.4rem}
+  .tabbar button.active{color:var(--acc-strong)}
+  .tabbar .count{position:absolute;top:.1rem;left:calc(50% + .4rem);background:var(--warn);color:#fff;border-radius:999px;font-size:.62rem;padding:0 .35rem;min-width:1rem}
+  .modal-bg{align-items:flex-end;padding:0}
+  .modal{width:100%;max-height:92vh;border-radius:1.2rem 1.2rem 0 0;transform:translateY(100%);padding-bottom:var(--safe-b)}
+  .grabber{display:block;width:2.4rem;height:.3rem;border-radius:999px;background:var(--line-strong);margin:.55rem auto 0}
+  .m-head{padding:.7rem 1rem}
+  .m-body{padding:.9rem 1rem 1.3rem}
+  .two{grid-template-columns:1fr}
+  .save-bar{bottom:calc(5rem + var(--safe-b))}
+  .save-bar .btn{flex:1}
+  .toast{left:1rem;right:1rem;bottom:calc(5rem + var(--safe-b));max-width:none}
+  .banner{flex-wrap:wrap}
+  .banner .acts{width:100%}
+  .hide-m{display:none}
 }
-@media (prefers-reduced-transparency:reduce){
-  header,header.scrolled{background:var(--panel);-webkit-backdrop-filter:none;backdrop-filter:none}
-  .toast{background:var(--panel2);-webkit-backdrop-filter:none;backdrop-filter:none}
-  .modal-bg{background:rgba(4,8,12,.74);-webkit-backdrop-filter:none;backdrop-filter:none}
-}
-@media (prefers-contrast:more){
-  :root{--line:var(--line-strong);--mut:#a3b1c2;--txt:#eaf1f8}
-}
-@media (prefers-reduced-motion:reduce){
-  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
-  .dot.run{animation:none;opacity:1}
-  .modal{transform:none!important}
-  /* movement is replaced by a short cross-fade, never a slide or spring */
-  .modal-bg,.toast{transition:opacity .18s ease!important}
-  .nav-pill{display:none}
-  nav button.active{background:var(--panel2)}
-}
-@media(max-width:640px){
-  main{padding:.875rem}
-  header{padding:.625rem .875rem}
-  header h1{font-size:1rem}
-  nav{margin-left:0}
-  .modal-bg{padding:.75rem}
-  .modal{width:100%;max-height:92vh}
-  .cards{grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr))}
-}
+@media (max-width:380px){.cards{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important}}
 </style>
 </head>
 <body>
-<header>
-  <h1><span class="dot" id="hdrDot" title="service status"></span> Portainer Update Service</h1>
-  <nav>
-    <span class="nav-pill" aria-hidden="true"></span>
-    <button data-tab="dash" class="active" aria-current="page">Dashboard</button>
-    <button data-tab="stacks">Stacks</button>
-    <button data-tab="history">History</button>
-    <button data-tab="settings">Settings</button>
+
+<!-- SVG icon sprite -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4L21 8"/><path d="M21 3v5h-5"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 20h14"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 17l-5-5 5-5M5 12h11"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/></symbol>
+  <symbol id="i-plug" viewBox="0 0 24 24"><path d="M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0zM12 17v4"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4"/></symbol>
+  <symbol id="i-rocket" viewBox="0 0 24 24"><path d="M5 15c-1.5 1.5-2 5-2 5s3.5-.5 5-2M9 13l2 2M14 4c3 0 6 3 6 6l-7 7-6-6z"/><circle cx="15" cy="9" r="1.5"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1l1-13M9 7V4h6v3"/></symbol>
+  <symbol id="i-net" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-2h12v2"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></symbol>
+</svg>
+
+<!-- =============================================================== AUTH -->
+<div class="auth hidden" id="authScreen">
+  <form class="auth-card" id="authForm" autocomplete="on">
+    <div class="logo"><svg viewBox="0 0 24 24"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg></div>
+    <h1 id="authTitle" data-i18n="auth.login_title"></h1>
+    <p id="authSub" data-i18n="auth.login_sub"></p>
+    <input type="text" name="username" value="admin" autocomplete="username" class="hidden" aria-hidden="true" tabindex="-1">
+    <div class="field"><label for="authPw" data-i18n="auth.password"></label>
+      <input type="password" id="authPw" autocomplete="current-password" required></div>
+    <div class="field hidden" id="authPw2Wrap"><label for="authPw2" data-i18n="auth.password_again"></label>
+      <input type="password" id="authPw2" autocomplete="new-password"></div>
+    <label class="check" id="authRememberWrap"><input type="checkbox" id="authRemember" checked><div><b data-i18n="auth.remember"></b></div></label>
+    <div class="result err" id="authErr"></div>
+    <button class="btn" type="submit" id="authBtn" data-i18n="auth.login_btn"></button>
+    <div class="auth-foot">
+      <div class="seg" data-lang-seg><button type="button" data-lang="hu">HU</button><button type="button" data-lang="en">EN</button></div>
+    </div>
+  </form>
+</div>
+
+<!-- ================================================================ APP -->
+<div class="app hidden" id="appScreen">
+  <aside class="sidebar">
+    <div class="brand"><div class="logo"><svg viewBox="0 0 24 24"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg></div>
+      <div><b>Portainer Update</b><span data-i18n="app.tagline"></span></div></div>
+    <nav class="nav" id="sideNav">
+      <button data-tab="dash"><svg class="i"><use href="#i-home"/></svg><span data-i18n="nav.dash"></span></button>
+      <button data-tab="stacks"><svg class="i"><use href="#i-layers"/></svg><span data-i18n="nav.stacks"></span><span class="count hidden" data-upd-count></span></button>
+      <button data-tab="history"><svg class="i"><use href="#i-clock"/></svg><span data-i18n="nav.history"></span></button>
+      <button data-tab="settings"><svg class="i"><use href="#i-gear"/></svg><span data-i18n="nav.settings"></span></button>
+    </nav>
+    <div class="side-foot">
+      <div class="seg" data-lang-seg><button data-lang="hu">Magyar</button><button data-lang="en">English</button></div>
+      <div class="seg" data-theme-seg><button data-theme-v="auto" data-i18n="theme.auto"></button><button data-theme-v="light" data-i18n="theme.light"></button><button data-theme-v="dark" data-i18n="theme.dark"></button></div>
+      <button class="btn ghost sm" data-logout style="justify-content:flex-start"><svg class="i"><use href="#i-logout"/></svg><span data-i18n="auth.logout"></span></button>
+    </div>
+  </aside>
+
+  <div class="content">
+    <div class="topbar" id="topbar">
+      <div class="logo mobile-only" style="width:1.9rem;height:1.9rem"><svg viewBox="0 0 24 24"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg></div>
+      <h1 id="pageTitle"></h1>
+      <div class="grow"></div>
+      <span class="status-pill"><span class="dot" id="hdrDot"></span><span id="hdrText">…</span></span>
+      <button class="btn sec sm desk" id="btnCheck"><svg class="i"><use href="#i-refresh"/></svg><span data-i18n="act.check"></span></button>
+      <button class="btn sm desk" id="btnUpdate"><svg class="i"><use href="#i-download"/></svg><span data-i18n="act.update"></span></button>
+    </div>
+
+    <main>
+      <div class="banner err hidden" id="decryptBanner"><div class="ic"><svg class="i"><use href="#i-lock"/></svg></div>
+        <div class="bt"><b data-i18n="banner.decrypt_title"></b><div class="bs" data-i18n="banner.decrypt_sub"></div></div>
+        <div class="acts"><button class="btn sm" data-goto="settings" data-i18n="banner.open_settings"></button></div></div>
+      <div class="banner hidden" id="setupBanner"><div class="ic"><svg class="i"><use href="#i-plug"/></svg></div>
+        <div class="bt"><b data-i18n="banner.setup_title"></b><div class="bs" data-i18n="banner.setup_sub"></div></div>
+        <div class="acts"><button class="btn sm" data-goto="settings" data-i18n="banner.open_setup"></button></div></div>
+      <div class="banner run hidden" id="runBanner"><div class="ic"><svg class="i"><use href="#i-refresh"/></svg></div>
+        <div class="bt"><b id="rbTitle"></b><div class="bs" id="rbSub"></div><div class="bs" id="rbActivity" style="color:var(--acc-strong)"></div>
+          <pre class="log tail" id="rbTail"></pre></div>
+        <div class="acts"><button class="btn sec sm" id="rbLogBtn" data-i18n="banner.live_log"></button></div></div>
+
+      <!-- ======================================================= DASHBOARD -->
+      <div id="tab-dash" class="tab">
+        <div class="grid cards">
+          <div class="card stat hero">
+            <div class="lbl"><svg class="i"><use href="#i-box"/></svg><span data-i18n="dash.updates"></span></div>
+            <div class="val" id="cUpd">–</div><div class="sub" id="cUpdSub"></div>
+            <div class="hero-actions">
+              <button class="btn sec" id="btnCheck2"><svg class="i"><use href="#i-refresh"/></svg><span data-i18n="act.check"></span></button>
+              <button class="btn" id="btnUpdate2"><svg class="i"><use href="#i-download"/></svg><span data-i18n="act.update"></span></button>
+            </div>
+          </div>
+          <div class="card stat click" id="cLastCard" tabindex="0" role="button">
+            <div class="lbl"><svg class="i"><use href="#i-clock"/></svg><span data-i18n="dash.last_run"></span></div>
+            <div class="val sm" id="cLast">–</div><div class="sub" id="cLastSub"></div></div>
+          <div class="card stat">
+            <div class="lbl"><svg class="i"><use href="#i-cal"/></svg><span data-i18n="dash.next"></span></div>
+            <div class="val sm" id="cNext">–</div><div class="sub" id="cNextSub"></div></div>
+          <div class="card stat click" id="cInvCard" tabindex="0" role="button">
+            <div class="lbl"><svg class="i"><use href="#i-trash"/></svg><span data-i18n="dash.reclaimable"></span></div>
+            <div class="val sm" id="cInv">–</div><div class="sub" id="cInvSub"></div></div>
+          <div class="card stat">
+            <div class="lbl"><svg class="i"><use href="#i-check"/></svg><span data-i18n="dash.reclaimed"></span></div>
+            <div class="val sm" id="cReclaim">–</div><div class="sub" id="cReclaimSub"></div></div>
+          <div class="card stat">
+            <div class="lbl"><svg class="i"><use href="#i-sun"/></svg><span data-i18n="dash.server_time"></span></div>
+            <div class="val sm" id="cServerTime">–</div><div class="sub" id="cServerTzSub"></div></div>
+          <div class="card stat">
+            <div class="lbl"><svg class="i"><use href="#i-shield"/></svg><span data-i18n="dash.security"></span></div>
+            <div class="val sm" id="cSec">–</div><div class="sub" id="cSecSub"></div></div>
+        </div>
+        <section>
+          <div class="sec-head"><h2 data-i18n="dash.stacks"></h2><a href="#" data-goto="stacks" data-i18n="dash.all_stacks"></a></div>
+          <div class="list" id="dashStacks"><div class="empty" data-i18n="common.loading"></div></div>
+        </section>
+      </div>
+
+      <!-- ========================================================== STACKS -->
+      <div id="tab-stacks" class="tab hidden">
+        <div class="sec-head">
+          <div class="filter" style="flex:1">
+            <input type="text" class="search" id="stackSearch" data-i18n-ph="stacks.search">
+            <div class="seg" id="stackFilter"><button data-f="all" class="on" data-i18n="stacks.f_all"></button><button data-f="upd" data-i18n="stacks.f_upd"></button></div>
+          </div>
+          <div class="row"><span class="muted small" id="stackCheckInfo"></span>
+            <button class="btn sec sm" id="btnRecheck"><svg class="i"><use href="#i-refresh"/></svg><span data-i18n="stacks.recheck"></span></button></div>
+        </div>
+        <div class="stack-list" id="stackRows"><div class="empty" data-i18n="common.loading"></div></div>
+      </div>
+
+      <!-- ========================================================= HISTORY -->
+      <div id="tab-history" class="tab hidden">
+        <div class="grid cards">
+          <div class="card stat"><div class="lbl" data-i18n="hist.rate"></div><div class="val" id="hRate">–</div><div class="sub" data-i18n="hist.rate_sub"></div></div>
+          <div class="card stat"><div class="lbl" data-i18n="hist.avg"></div><div class="val" id="hDur">–</div><div class="sub" data-i18n="hist.avg_sub"></div></div>
+          <div class="card stat"><div class="lbl" data-i18n="dash.total_runs"></div><div class="val" id="hTotal">–</div><div class="sub" data-i18n="hist.all_time"></div></div>
+        </div>
+        <section>
+          <div class="sec-head"><h2 data-i18n="hist.runs"></h2></div>
+          <div class="list" id="histRows"><div class="empty" data-i18n="common.loading"></div></div>
+          <div id="runLogWrap" class="hidden" style="margin-top:1rem">
+            <div class="spread" style="margin-bottom:.5rem"><h3 id="runLogTitle"></h3><button class="btn ghost sm" id="runLogClose"><svg class="i"><use href="#i-x"/></svg></button></div>
+            <pre class="log" id="runLog"></pre>
+          </div>
+        </section>
+      </div>
+
+      <!-- ======================================================== SETTINGS -->
+      <div id="tab-settings" class="tab hidden">
+        <div class="form">
+
+          <div class="fs" id="fsSecurity">
+            <h2><svg class="i"><use href="#i-shield"/></svg><span data-i18n="set.security"></span></h2>
+            <div class="desc" data-i18n="set.security_desc"></div>
+            <div class="kv" id="secKv"></div>
+            <div id="pwChange">
+              <div class="two">
+                <div class="field"><label data-i18n="set.pw_current"></label><input type="password" id="pwCur" autocomplete="current-password"></div>
+                <div class="field"><label data-i18n="set.pw_new"></label><input type="password" id="pwNew" autocomplete="new-password"></div>
+              </div>
+              <div class="row" style="margin-top:.75rem"><button class="btn sec sm" id="btnPw" data-i18n="set.pw_change"></button></div>
+            </div>
+            <div class="hint small muted hidden" id="pwEnvHint" style="margin-top:.6rem" data-i18n="set.pw_env"></div>
+            <div class="field"><label data-i18n="set.session_days"></label><input type="number" id="sSessionDays" min="1" max="365"></div>
+          </div>
+
+          <div class="fs">
+            <h2><svg class="i"><use href="#i-plug"/></svg><span data-i18n="set.connection"></span></h2>
+            <div class="field"><label>Portainer URL <span class="env-lock hidden" data-lock="portainer_url"><svg class="i"><use href="#i-lock"/></svg>env</span></label>
+              <input type="url" id="sUrl" placeholder="https://nas.local:9443"></div>
+            <div class="field"><label><span data-i18n="set.api_key"></span> <span class="env-lock hidden" data-lock="portainer_api_key"><svg class="i"><use href="#i-lock"/></svg>env</span></label>
+              <input type="password" id="sKey" placeholder="ptr_…" autocomplete="off">
+              <div class="hint" data-i18n="set.api_key_hint"></div></div>
+            <div class="row" style="margin-top:.75rem"><button class="btn sec sm" id="btnTest" data-i18n="set.test"></button></div>
+            <div class="result" id="testResult"></div>
+            <div class="field"><label data-i18n="set.endpoint"></label>
+              <div class="row"><input type="number" id="sEid" data-i18n-ph="set.endpoint_ph" style="flex:1;min-width:8rem"><button class="btn sec sm" id="btnScan" data-i18n="set.scan"></button></div>
+              <div id="scanResult" class="hidden"></div></div>
+          </div>
+
+          <div class="fs">
+            <h2><svg class="i"><use href="#i-lock"/></svg><span data-i18n="set.tls"></span></h2>
+            <div class="desc" data-i18n="set.tls_desc"></div>
+            <div class="field"><label data-i18n="set.tls_mode"></label>
+              <select id="sTlsMode">
+                <option value="off" data-i18n="set.tls_off"></option>
+                <option value="pinned" data-i18n="set.tls_pinned"></option>
+                <option value="system" data-i18n="set.tls_system"></option>
+              </select></div>
+            <div id="tlsPinBox" class="hidden">
+              <div class="field"><label data-i18n="set.tls_fp"></label>
+                <input type="text" id="sFp" class="mono" placeholder="AB:CD:…" autocomplete="off"></div>
+              <div class="row" style="margin-top:.6rem"><button class="btn sec sm" id="btnFetchCert" data-i18n="set.tls_fetch"></button></div>
+              <div id="certInfo" class="hidden"></div>
+            </div>
+            <div class="hint small muted" id="tlsHint" style="margin-top:.6rem"></div>
+          </div>
+
+          <div class="fs">
+            <h2><svg class="i"><use href="#i-cal"/></svg><span data-i18n="set.schedule"></span></h2>
+            <div class="field"><label data-i18n="set.mode"></label>
+              <select id="sMode">
+                <option value="off" data-i18n="set.mode_off"></option>
+                <option value="weekly" data-i18n="set.mode_weekly"></option>
+                <option value="daily" data-i18n="set.mode_daily"></option>
+                <option value="interval" data-i18n="set.mode_interval"></option>
+              </select>
+              <div class="hint" id="modeHint"></div></div>
+            <div class="two">
+              <div class="field" id="modeInterval"><label data-i18n="set.interval"></label><input type="number" id="sInt" min="1" max="8760"></div>
+              <div class="field" id="modeWeekly"><label data-i18n="set.weekday"></label><select id="sDay"></select></div>
+              <div class="field" id="modeTime"><label data-i18n="set.time"></label><input type="time" id="sTime"></div>
+            </div>
+            <div class="two">
+              <div class="field"><label data-i18n="set.check_interval"></label><input type="number" id="sCheckInt" min="1" max="168"></div>
+              <div class="field"><label data-i18n="set.cache"></label><input type="number" id="sCache" min="5" max="720"></div>
+            </div>
+            <div class="hint small muted" style="margin-top:.6rem"><span data-i18n="set.server_time"></span>: <b id="sServerTime">–</b> <span id="sServerTz"></span></div>
+          </div>
+
+          <div class="fs">
+            <h2><svg class="i"><use href="#i-rocket"/></svg><span data-i18n="set.deploy"></span></h2>
+            <div class="two">
+              <div class="field"><label data-i18n="set.parallel"></label><input type="number" id="sPar" min="1" max="10"></div>
+              <div class="field"><label data-i18n="set.wait"></label><input type="number" id="sWait" min="30" max="3600"></div>
+              <div class="field"><label data-i18n="set.keep"></label><input type="number" id="sKeep" min="1" max="100"></div>
+            </div>
+            <label class="check"><input type="checkbox" id="sIncludePortainer"><div><b data-i18n="set.include_portainer"></b><span data-i18n="set.include_portainer_hint"></span></div></label>
+            <div class="row" style="margin-top:.6rem"><button class="btn sec sm" id="btnMountCheck" data-i18n="set.mount_check"></button></div>
+            <div class="result" id="mountCheckResult"></div>
+            <label class="check"><input type="checkbox" id="sRep"><div><b data-i18n="set.repairs"></b><span data-i18n="set.repairs_hint"></span></div></label>
+          </div>
+
+          <div class="fs">
+            <h2><svg class="i"><use href="#i-bell"/></svg><span data-i18n="set.notify"></span></h2>
+            <div class="field"><label><span data-i18n="set.webhook"></span> <span class="env-lock hidden" data-lock="notify_webhook"><svg class="i"><use href="#i-lock"/></svg>env</span></label>
+              <input type="url" id="sHook" placeholder="https://ha.example.hu/api/webhook/pus" autocomplete="off">
+              <div class="hint" data-i18n="set.webhook_hint"></div></div>
+            <label class="check"><input type="checkbox" id="sNotifyUpd"><div><b data-i18n="set.notify_upd"></b><span data-i18n="set.notify_upd_hint"></span></div></label>
+          </div>
+
+          <div class="save-bar"><button class="btn" id="btnSave"><svg class="i"><use href="#i-check"/></svg><span data-i18n="set.save"></span></button></div>
+
+          <div class="fs">
+            <h2><svg class="i"><use href="#i-refresh"/></svg><span data-i18n="set.self_update"></span></h2>
+            <div class="desc" data-i18n="set.self_update_desc"></div>
+            <div class="row"><button class="btn sec" id="btnSelfUpdate" data-i18n="set.self_update_btn"></button></div>
+          </div>
+
+          <div class="fs">
+            <h2><svg class="i"><use href="#i-trash"/></svg><span data-i18n="set.cleanup"></span></h2>
+            <div class="desc" data-i18n="set.cleanup_desc"></div>
+            <div class="row"><button class="btn danger" id="btnPrune" data-i18n="set.cleanup_btn"></button></div>
+          </div>
+
+          <div class="fs mobile-only" style="flex-direction:column;gap:.6rem">
+            <h2 data-i18n="set.appearance"></h2>
+            <div class="seg" data-lang-seg><button data-lang="hu">Magyar</button><button data-lang="en">English</button></div>
+            <div class="seg" data-theme-seg><button data-theme-v="auto" data-i18n="theme.auto"></button><button data-theme-v="light" data-i18n="theme.light"></button><button data-theme-v="dark" data-i18n="theme.dark"></button></div>
+            <button class="btn sec" data-logout><svg class="i"><use href="#i-logout"/></svg><span data-i18n="auth.logout"></span></button>
+          </div>
+
+          <p class="small muted" style="text-align:center;margin-top:.5rem" data-i18n-html="app.credit"></p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <nav class="tabbar" id="tabBar">
+    <button data-tab="dash"><svg class="i"><use href="#i-home"/></svg><span data-i18n="nav.dash"></span></button>
+    <button data-tab="stacks"><svg class="i"><use href="#i-layers"/></svg><span data-i18n="nav.stacks"></span><span class="count hidden" data-upd-count></span></button>
+    <button data-tab="history"><svg class="i"><use href="#i-clock"/></svg><span data-i18n="nav.history"></span></button>
+    <button data-tab="settings"><svg class="i"><use href="#i-gear"/></svg><span data-i18n="nav.settings"></span></button>
   </nav>
-  <div style="margin-left:auto" class="row">
-    <span class="mono" id="hdrInfo"></span>
-    <button class="btn sec sm" id="btnCheck">Check updates</button>
-    <button class="btn sm danger" id="btnUpdate">Run update</button>
-  </div>
-</header>
-
-<main>
-<div class="banner" id="setupBanner">
-  <div class="b-txt"><b>Not connected to Portainer.</b>
-    <div class="b-sub">Enter your Portainer URL and API key to get started.</div></div>
-  <button class="btn sm" onclick="showTab('settings')">Open setup</button>
-</div>
-<div class="banner" id="runBanner">
-  <div class="b-txt"><b id="rbTitle">Update running…</b>
-    <div class="b-sub" id="rbSub"></div>
-    <div class="b-sub" id="rbActivity" style="color:var(--acc);font-size:12.5px;margin-top:2px"></div>
-    <pre class="log" id="rbTail" style="max-height:52px;margin-top:6px;font-size:11px"></pre></div>
-  <button class="btn sec sm" onclick="showTab('history')">History</button>
-  <button class="btn sec sm" id="rbLogBtn">Live log</button>
 </div>
 
-<!-- ============================================================ DASHBOARD -->
-<div id="tab-dash" class="tab">
-  <div class="grid cards">
-    <div class="card"><div class="lbl">Updates available</div><div class="val" id="cUpd">–</div><div class="sub" id="cUpdSub"></div></div>
-    <div class="card is-clickable" id="cLastCard" role="button" tabindex="0" title="open failed run log"><div class="lbl">Last run</div><div class="val" id="cLast">–</div><div class="sub" id="cLastSub"></div></div>
-    <div class="card"><div class="lbl">Next scheduled update</div><div class="val" id="cNext">–</div><div class="sub" id="cNextSub"></div></div>
-    <div class="card"><div class="lbl">Server time</div><div class="val val-sm" id="cServerTime">–</div><div class="sub" id="cServerTzSub"></div></div>
-    <div class="card is-clickable" id="cInvCard" role="button" tabindex="0" title="unused images + networks">
-      <div class="lbl">Reclaimable</div><div class="val" id="cInv">–</div><div class="sub" id="cInvSub"></div></div>
-    <div class="card"><div class="lbl">Reclaimed (30d)</div><div class="val" id="cReclaim">–</div><div class="sub" id="cReclaimSub"></div></div>
-    <div class="card"><div class="lbl">Total runs</div><div class="val" id="cRuns">–</div><div class="sub" id="cRunsSub"></div></div>
-  </div>
-
-  <section>
-    <div class="spread"><h2>Stacks</h2><a href="#" onclick="showTab('stacks');return false">all stacks →</a></div>
-    <div class="panel"><table><thead><tr><th>Stack</th><th class="num">Services</th><th>Updates</th><th>Images</th></tr></thead><tbody id="dashStacks"><tr><td colspan=4 class="empty">Loading…</td></tr></tbody></table></div>
-  </section>
-</div>
-
-<!-- =============================================================== STACKS -->
-<div id="tab-stacks" style="display:none" class="tab">
-  <div class="spread"><h2>Stacks &amp; images</h2>
-    <div class="row">
-      <span class="mono" id="stackCheckInfo"></span>
-      <button class="btn sec sm" id="btnRecheck">Refresh check</button>
-    </div></div>
-  <div class="panel"><table>
-    <thead><tr><th>Stack</th><th>Service</th><th>Image</th><th>Mode</th><th>Update</th><th></th></tr></thead>
-    <tbody id="stackRows"><tr><td colspan=6 class="empty">Loading…</td></tr></tbody>
-  </table></div>
-</div>
-
-<!-- ============================================================== HISTORY -->
-<div id="tab-history" style="display:none" class="tab">
-  <div class="grid cards">
-    <div class="card"><div class="lbl">Success rate</div><div class="val" id="hRate">–</div><div class="sub">last 200 runs</div></div>
-    <div class="card"><div class="lbl">Avg duration</div><div class="val" id="hDur">–</div><div class="sub">full updates</div></div>
-  </div>
-  <section>
-    <h2>Run log</h2>
-    <div class="panel"><table><thead><tr><th>Run</th><th>Kind</th><th>Trigger</th><th>When</th><th class="num">Duration</th><th>Result</th><th></th></tr></thead>
-    <tbody id="histRows"><tr><td colspan=7 class="empty">Loading…</td></tr></tbody></table></div>
-    <pre class="log" id="runLog" style="display:none"></pre>
-  </section>
-</div>
-
-<!-- ============================================================ SETTINGS -->
-<div id="tab-settings" style="display:none" class="tab">
-  <div class="panel" style="max-width:640px;margin:0 auto">
-
-    <h2>Connection</h2>
-    <label class="f">Portainer URL</label><input type="url" id="sUrl" placeholder="https://portainer:9443">
-    <label class="f">API key</label><input type="password" id="sKey" placeholder="ptr_... (leave *** to keep)">
-    <div class="row" style="margin-top:8px">
-      <button class="btn sec sm" id="btnTest">Test connection</button>
-      <span class="mono" id="testResult"></span>
-    </div>
-    <label class="f">Portainer endpoint</label>
-    <div class="row">
-      <input type="number" id="sEid" placeholder="auto / endpoint id" style="flex:1;min-width:130px">
-      <button class="btn sec sm" id="btnScan">Scan</button>
-    </div>
-    <div id="scanResult" style="display:none;margin-top:8px"></div>
-    <label class="f"><input type="checkbox" id="sTls"> Verify TLS certificate</label>
-    <div style="color:var(--mut);font-size:12px">Leave OFF for Portainer's default self-signed certificate (the normal case). Only enable it when Portainer has a real certificate (e.g. via reverse proxy with Let's Encrypt) — or mount Portainer's cert and set <span class="mono">tls_ca_file</span> in config/config.yaml.</div>
-
-    <div class="divider"></div>
-    <h2>Schedule</h2>
-    <label class="f">Schedule mode</label>
-    <select id="sMode" style="width:100%">
-      <option value="interval">Interval (every N hours)</option>
-      <option value="daily">Daily at time</option>
-      <option value="weekly">Weekly at time</option>
-    </select>
-    <div id="modeInterval">
-      <label class="f">Update interval (hours) - checks + full updates</label>
-      <input type="number" id="sInt" min="1" max="8760">
-    </div>
-    <div id="modeTime" style="display:none">
-      <label class="f">Run time (server time)</label>
-      <input type="time" id="sTime">
-    </div>
-    <div id="modeWeekly" style="display:none">
-      <label class="f">Weekday</label>
-      <select id="sDay" style="width:100%">
-        <option value="0">Monday</option><option value="1">Tuesday</option>
-        <option value="2">Wednesday</option><option value="3">Thursday</option>
-        <option value="4">Friday</option><option value="5">Saturday</option>
-        <option value="6">Sunday</option>
-      </select>
-    </div>
-    <div class="b-sub" style="color:var(--mut);font-size:12px;margin-top:8px">
-      Server time: <span id="sServerTime">–</span> (<span id="sServerTz">–</span>) — the schedule refers to this clock.
-    </div>
-    <label class="f">Check cache (minutes)</label><input type="number" id="sCache" min="5" max="720">
-
-    <div class="divider"></div>
-    <h2>Deployment</h2>
-    <label class="f">Max parallel deploys</label><input type="number" id="sPar" min="1" max="10">
-    <label class="f">Deploy wait time (seconds)</label><input type="number" id="sWait" min="30" max="3600">
-    <label class="f">Backups to keep</label><input type="number" id="sKeep" min="1" max="100">
-    <label class="f" style="margin-top:14px"><input type="checkbox" id="sIncludePortainer"> <b>Include Portainer updates</b></label>
-    <div class="row" style="margin-top:8px">
-      <button class="btn sec sm" id="btnMountCheck">Check compose mount</button>
-      <span class="mono" id="mountCheckResult"></span>
-    </div>
-
-    <div class="divider"></div>
-    <h2>System update</h2>
-    <div style="color:var(--mut);font-size:12px">This app's own stack is excluded from regular update runs (redeploying it would stop the update itself). Update it deliberately here - the container restarts and the UI reconnects in a few seconds.</div>
-    <div class="row" style="margin-top:10px">
-      <button class="btn" id="btnSelfUpdate">Update P.U.S.</button>
-      <span class="mono" id="selfUpdateResult"></span>
-    </div>
-
-    <div class="divider"></div>
-    <h2>Notification</h2>
-    <label class="f">Failure notification webhook (optional, e.g. ntfy)</label><input type="url" id="sHook" placeholder="https://ntfy.example/your-topic">
-
-    <div class="divider"></div>
-    <h2>Network integrity repairs</h2>
-    <label class="f"><input type="checkbox" id="sRep"> Automatic network integrity repairs</label>
-    <div style="color:var(--mut);font-size:12px">Built-in: detects containers whose host-gateway mapping (extra_hosts) went stale after a network prune and recreates their stack. Optional custom repair rules can be defined in config/config.yaml (repairs.rules).</div>
-
-    <div class="row" style="margin-top:20px">
-      <button class="btn" id="btnSave">Save settings</button>
-    </div>
-    <p style="color:var(--mut);font-size:12px;margin-top:14px">Settings are persisted to
-      <code>config/config.yaml</code> in the mounted config volume and survive container rebuilds.</p>
-
-    <div class="divider"></div>
-    <h2>Clean Up</h2>
-    <div class="row">
-      <button class="btn danger" id="btnPrune">Clean up unused images now</button>
-      <span style="color:var(--mut);font-size:12.5px">removes all unused images &amp; build cache
-        — previous image versions can't be rolled back afterwards</span>
-    </div>
-  </div>
-</div>
-</main>
-
-<!-- stack detail modal -->
+<!-- stack detail sheet -->
 <div class="modal-bg" id="modalBg" role="dialog" aria-modal="true" aria-labelledby="mTitle">
   <div class="modal" id="modal" tabindex="-1">
-    <div class="m-head" id="mHead" title="drag down to close">
-      <div class="grabber" aria-hidden="true"></div>
-      <div class="spread"><h3 id="mTitle" style="margin-bottom:0">Stack</h3>
-        <div class="row">
-          <button class="btn sm" id="mRedeploy">Update stack now</button>
-          <button class="btn sec sm" id="mClose">Close</button>
-        </div></div>
+    <div class="grabber" id="grabber"></div>
+    <div class="m-head">
+      <h3 id="mTitle">Stack</h3>
+      <button class="btn sm" id="mRedeploy" data-i18n="modal.redeploy"></button>
+      <button class="btn ghost icon" id="mClose" aria-label="close"><svg class="i"><use href="#i-x"/></svg></button>
     </div>
     <div class="m-body">
       <div id="mRollback"></div>
       <div id="mBody"></div>
-      <h3 style="margin-top:18px">Compose file</h3>
-      <pre class="log" id="mCompose" style="max-height:260px"></pre>
+      <h3 style="margin-top:1.2rem" data-i18n="modal.compose"></h3>
+      <pre class="log" id="mCompose" style="max-height:18rem;margin-top:.5rem"></pre>
     </div>
   </div>
 </div>
@@ -402,863 +596,654 @@ input[type=text],input[type=password],input[type=number],input[type=url],input[t
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
+/* ================================================================== i18n */
+const I18N={
+hu:{
+ 'app.tagline':'Stackek frissítése','app.credit':'Az eredeti <a href="https://github.com/joshmadison/Portainer-Update-Service" target="_blank" rel="noopener">Portainer Update Service</a> (Josh Madison, MIT) magyarított, biztonságosabb változata.',
+ 'nav.dash':'Áttekintés','nav.stacks':'Stackek','nav.history':'Előzmények','nav.settings':'Beállítások',
+ 'theme.auto':'Auto','theme.light':'Világos','theme.dark':'Sötét',
+ 'act.check':'Ellenőrzés','act.update':'Frissítés',
+ 'auth.login_title':'Bejelentkezés','auth.login_sub':'Add meg az admin jelszót.','auth.password':'Jelszó','auth.password_again':'Jelszó újra',
+ 'auth.remember':'Maradjak bejelentkezve','auth.login_btn':'Belépés','auth.logout':'Kijelentkezés',
+ 'auth.setup_title':'Admin jelszó létrehozása','auth.setup_sub':'Első indítás: állíts be egy jelszót. Ezzel lehet majd belépni a felületre.','auth.setup_btn':'Jelszó mentése',
+ 'auth.mismatch':'A két jelszó nem egyezik.','auth.too_short':'Legalább {n} karakter legyen.','auth.wrong':'Hibás jelszó.','auth.locked':'Túl sok sikertelen próbálkozás. Próbáld újra {s} mp múlva.',
+ 'status.idle':'Készenlét','status.running':'Fut','status.ok':'Rendben','status.failed':'Hiba','status.not_configured':'Nincs beállítva',
+ 'banner.setup_title':'Nincs kapcsolat a Portainerrel','banner.setup_sub':'Add meg a Portainer címét és az API kulcsot a beállításoknál.','banner.open_setup':'Beállítás',
+ 'banner.decrypt_title':'A titkosított API kulcsot nem sikerült visszafejteni','banner.decrypt_sub':'A kulcsfájl megváltozott (pl. törölt adatkötet). Add meg újra az API kulcsot.','banner.open_settings':'Beállítások',
+ 'banner.live_log':'Élő napló','banner.running':'{x} folyamatban…','banner.steps':'{a}/{b} lépés kész','banner.elapsed':'{m} perce fut',
+ 'dash.updates':'Elérhető frissítés','dash.last_run':'Utolsó futás','dash.next':'Következő frissítés','dash.reclaimable':'Felszabadítható',
+ 'dash.reclaimed':'Felszabadítva (30 nap)','dash.server_time':'Szerveridő','dash.security':'Biztonság','dash.stacks':'Stackek','dash.all_stacks':'Összes stack →','dash.total_runs':'Összes futás',
+ 'dash.checked':'ellenőrizve: {t}','dash.no_check':'még nem volt ellenőrzés','dash.no_runs':'még nem volt futás',
+ 'dash.of_images':'{n} image-ből · {k} használatlan hálózat','dash.prunes':'{p} takarítás · {i} image','dash.unavailable':'nem elérhető',
+ 'dash.sched_off':'Kikapcsolva','dash.sched_off_sub':'csak ellenőrzés, nincs automatikus frissítés','dash.overdue':'esedékes','dash.in':'{t} múlva','dash.failures':'{n} hiba (várakozás)',
+ 'dash.no_stack_data':'Még nincs ellenőrzési adat – nyomd meg az „Ellenőrzés” gombot.','dash.uptodate':'naprakész','dash.n_upd':'{n} frissítés',
+ 'dash.sec_ok':'Védett','dash.sec_partial':'Részben védett','dash.sec_sub':'jelszó · titkosított kulcs · TLS: {m}',
+ 'run.ok':'Sikeres','run.failed':'Sikertelen','run.interrupted':'Megszakadt','run.restarted':'Újraindult',
+ 'kind.full':'teljes frissítés','kind.check':'ellenőrzés','kind.prune':'takarítás','kind.redeploy':'stack újratelepítés','kind.rollback':'visszaállítás','kind.self_update':'önfrissítés','kind.pin':'verzió rögzítés',
+ 'trig.manual':'kézi','trig.scheduled':'ütemezett',
+ 'tls.off':'nincs ellenőrzés','tls.pinned':'rögzített tanúsítvány','tls.ca':'saját CA','tls.system':'rendszer CA','tls.http':'HTTP (titkosítatlan)',
+ 'stacks.search':'Keresés stack vagy image névre…','stacks.f_all':'Mind','stacks.f_upd':'Frissíthető','stacks.recheck':'Újraellenőrzés',
+ 'stacks.none':'Nem található stack – ellenőrizd a beállításokat.','stacks.no_match':'Nincs találat.','stacks.no_images':'nincs image / nincs ellenőrzési adat',
+ 'stacks.manage':'Kezelés','stacks.version':'Verzió','stacks.update':'Frissítés','stacks.current':'naprakész','stacks.not_verified':'nem ellenőrizhető',
+ 'stacks.upd_to':'új: {t}','stacks.mode_digest':'latest (digest)','stacks.mode_semver':'rögzített verzió','stacks.mode_pdigest':'digest-rögzített','stacks.mode_unknown':'ismeretlen',
+ 'stacks.lag':'{d} napja elérhető',
+ 'confirm.redeploy':'Frissíted most a(z) „{n}” stacket? Letölti az image-eket és újraindítja a konténereket.',
+ 'confirm.update':'Indulhat a teljes frissítés?\n\n• menti a Portainert\n• törli a használatlan image-eket\n• újratelepíti az ÖSSZES nem rögzített stacket\n\nTöbb percig is tarthat.',
+ 'confirm.prune':'A takarítás törli az ÖSSZES használatlan image-et és a build cache-t.\n\nUtána a korábbi verziókra nem lehet visszaállni. Folytatod?',
+ 'confirm.self':'Frissíted most ezt az alkalmazást?\n\nA saját stackje újratelepül, a konténer újraindul, a felület pár másodperc múlva újra elérhető.',
+ 'confirm.tag':'A(z) „{t}” tag nem szerepel a registry listájában. Telepíted mégis?',
+ 'toast.check_started':'Ellenőrzés elindítva','toast.update_started':'Teljes frissítés elindítva','toast.redeployed':'„{n}” újratelepítve','toast.redeploy_failed':'Újratelepítés sikertelen – lásd a naplót',
+ 'toast.saved':'Beállítások mentve','toast.first_check':'Kapcsolódva. Az első ellenőrzés elindult.','toast.pw_changed':'Jelszó megváltoztatva','toast.prune_started':'Takarítás elindítva',
+ 'toast.self_started':'Önfrissítés elindítva','toast.deployed':'{s} → {i} telepítve','toast.invalid_image':'Érvénytelen image hivatkozás','toast.rollback_started':'Visszaállítás elindítva',
+ 'toast.cert_pinned':'Ujjlenyomat beírva – mentsd a beállításokat!',
+ 'hist.rate':'Sikerességi arány','hist.rate_sub':'utolsó 200 futás','hist.avg':'Átlagos időtartam','hist.avg_sub':'teljes frissítések','hist.all_time':'összesen','hist.runs':'Futások',
+ 'hist.none':'Még nem volt futás.','hist.log':'Napló','hist.log_title':'Napló: {id}',
+ 'set.security':'Biztonság','set.security_desc':'A felület minden része jelszóval védett. A Portainer API kulcs titkosítva kerül a config.yaml-ba.',
+ 'set.sec_login':'Bejelentkezés','set.sec_login_v':'kötelező (munkamenet süti)','set.sec_secrets':'Titkok tárolása','set.sec_secrets_v':'titkosítva (Fernet / AES)',
+ 'set.sec_tls':'Portainer kapcsolat','set.sec_pw':'Jelszó forrása','set.sec_pw_env':'környezeti változó (stack)','set.sec_pw_ui':'felületen beállítva',
+ 'set.pw_current':'Jelenlegi jelszó','set.pw_new':'Új jelszó','set.pw_change':'Jelszó módosítása','set.pw_env':'A jelszó a stack PUS_AUTH_TOKEN változójából jön, ott lehet módosítani.',
+ 'set.session_days':'Bejelentkezés érvényessége (nap)',
+ 'set.connection':'Portainer kapcsolat','set.api_key':'API kulcs','set.api_key_hint':'Portainer → My account → Access tokens. A *** a mentett kulcsot jelenti.',
+ 'set.test':'Kapcsolat tesztelése','set.testing':'tesztelés…','set.test_ok':'Rendben – Portainer {v} · környezet: {e}','set.test_fail':'Sikertelen: {m}',
+ 'set.endpoint':'Portainer környezet (endpoint)','set.endpoint_ph':'automatikus','set.scan':'Keresés','set.scan_pick':'Válaszd ki:','set.scan_none':'nem található környezet',
+ 'set.tls':'TLS tanúsítvány','set.tls_desc':'A Portainer alapból saját aláírású tanúsítványt használ. A legbiztonságosabb a tanúsítvány rögzítése: csak pontosan ezzel a tanúsítvánnyal kapcsolódik.',
+ 'set.tls_mode':'Ellenőrzés módja','set.tls_off':'Nincs ellenőrzés (bármely tanúsítvány)','set.tls_pinned':'Tanúsítvány rögzítése (ajánlott)','set.tls_system':'Hiteles tanúsítvány (pl. Let’s Encrypt)',
+ 'set.tls_fp':'SHA-256 ujjlenyomat','set.tls_fetch':'Tanúsítvány lekérése a Portainertől',
+ 'set.tls_hint_off':'A kapcsolat titkosított, de nincs ellenőrizve, kivel beszél. Belső hálón elfogadható, a rögzítés biztonságosabb.',
+ 'set.tls_hint_pinned':'Ha a Portainer tanúsítványa megújul, itt újra le kell kérni és menteni.','set.tls_hint_system':'Csak akkor működik, ha a Portainer érvényes, hitelesített tanúsítványt használ.',
+ 'set.tls_hint_http':'HTTP címet adtál meg: a forgalom (és az API kulcs) titkosítás nélkül megy. Használd a https://…:9443 címet.',
+ 'set.cert_subject':'Tulajdonos','set.cert_issuer':'Kiállító','set.cert_valid':'Érvényes eddig','set.cert_fp':'Ujjlenyomat','set.cert_self':'saját aláírású',
+ 'set.cert_use':'Ezt rögzítem','set.cert_compare':'Hasonlítsd össze a Portainer felületén / böngészőben látható ujjlenyomattal.',
+ 'set.schedule':'Ütemezés','set.mode':'Automatikus frissítés','set.mode_off':'Kikapcsolva – csak jelez','set.mode_weekly':'Hetente','set.mode_daily':'Naponta','set.mode_interval':'Óránként (N óránként)',
+ 'set.mode_hint_off':'Nem frissít magától. Ellenőriz, jelzi az újdonságokat, a frissítést te indítod.','set.mode_hint_on':'A beállított időpontban minden nem rögzített stacket frissít.',
+ 'set.interval':'Frissítés gyakorisága (óra)','set.weekday':'Nap','set.time':'Időpont','set.check_interval':'Ellenőrzés gyakorisága (óra)','set.cache':'Registry cache (perc)','set.server_time':'Szerveridő',
+ 'set.deploy':'Telepítés','set.parallel':'Párhuzamos telepítések','set.wait':'Várakozás stackenként (mp)','set.keep':'Megőrzött mentések',
+ 'set.include_portainer':'A Portainert is frissítse','set.include_portainer_hint':'Ehhez Docker socket és a Portainer compose mappájának felcsatolása kell. Biztonsági okból alapból ki van kapcsolva.',
+ 'set.mount_check':'Compose mappa ellenőrzése','set.repairs':'Automatikus hálózat-javítás','set.repairs_hint':'Észleli az elavult host-gateway beállítást takarítás után, és újratelepíti az érintett stacket.',
+ 'set.notify':'Értesítések','set.webhook':'Webhook URL','set.webhook_hint':'Pl. Home Assistant webhook vagy ntfy. JSON-t küld POST-tal. Titkosítva tárolódik.',
+ 'set.notify_upd':'Értesítés új frissítésekről is','set.notify_upd_hint':'Nem csak hibánál: akkor is küld, ha ellenőrzéskor új frissíthető image-et talál (ugyanazt csak egyszer).',
+ 'set.save':'Beállítások mentése','set.self_update':'Alkalmazás frissítése','set.self_update_desc':'Ez az alkalmazás kimarad a rendes frissítésekből. Itt lehet szándékosan frissíteni: a konténer újraindul.',
+ 'set.self_update_btn':'P.U.S. frissítése','set.cleanup':'Takarítás','set.cleanup_desc':'Törli a használatlan image-eket és a build cache-t. Utána a korábbi verziókra nem lehet visszaállni.',
+ 'set.cleanup_btn':'Használatlan image-ek törlése','set.appearance':'Megjelenés',
+ 'days':['Hétfő','Kedd','Szerda','Csütörtök','Péntek','Szombat','Vasárnap'],
+ 'modal.redeploy':'Frissítés most','modal.compose':'Compose fájl','modal.no_images':'A compose fájlban nincs kifejezett image.',
+ 'modal.svc':'Service','modal.current':'Jelenlegi image','modal.apply':'Alkalmaz és telepít','modal.deploying':'Telepítés…','modal.tags':'Elérhető tagek','modal.loading':'Betöltés…',
+ 'modal.edit_hint':'A compose fájlt véglegesen módosítja és újratelepíti a stacket.','modal.no_tags':'nincs tag (privát registry?)',
+ 'rb.title':'Elromlott egy frissítés után?','rb.sub':'A {w} előtti állapot {n} service-t tud visszaállítani:','rb.current':'Jelenlegi','rb.restore':'Visszaállítás erre',
+ 'rb.btn':'Ezeket állítsd vissza','rb.restoring':'Visszaállítás…','rb.nothing':'Mentett állapot: {w} – minden service egyezik, nincs mit visszaállítani.','rb.snap':'Mentett állapot',
+ 'common.loading':'Betöltés…','ago.s':'{n} mp','ago.m':'{n} perce','ago.h':'{n} órája','ago.d':'{n} napja','ago.just':'épp most',
+ 'phase.check':'Ellenőrzés','phase.update':'Teljes frissítés','phase.redeploy':'Stack újratelepítés','phase.prune':'Takarítás','phase.rollback':'Visszaállítás','phase.self_update':'Önfrissítés','phase.pin-version':'Verzió rögzítés',
+ 'act.working':'dolgozik…'
+},
+en:{
+ 'app.tagline':'Keep stacks up to date','app.credit':'A localized, hardened fork of <a href="https://github.com/joshmadison/Portainer-Update-Service" target="_blank" rel="noopener">Portainer Update Service</a> by Josh Madison (MIT).',
+ 'nav.dash':'Overview','nav.stacks':'Stacks','nav.history':'History','nav.settings':'Settings',
+ 'theme.auto':'Auto','theme.light':'Light','theme.dark':'Dark',
+ 'act.check':'Check','act.update':'Update',
+ 'auth.login_title':'Sign in','auth.login_sub':'Enter the admin password.','auth.password':'Password','auth.password_again':'Repeat password',
+ 'auth.remember':'Keep me signed in','auth.login_btn':'Sign in','auth.logout':'Sign out',
+ 'auth.setup_title':'Create admin password','auth.setup_sub':'First start: set a password to protect this dashboard.','auth.setup_btn':'Save password',
+ 'auth.mismatch':'Passwords do not match.','auth.too_short':'Use at least {n} characters.','auth.wrong':'Wrong password.','auth.locked':'Too many failed attempts. Try again in {s}s.',
+ 'status.idle':'Idle','status.running':'Running','status.ok':'OK','status.failed':'Failed','status.not_configured':'Not configured',
+ 'banner.setup_title':'Not connected to Portainer','banner.setup_sub':'Enter your Portainer URL and API key in Settings.','banner.open_setup':'Set up',
+ 'banner.decrypt_title':'The encrypted API key could not be decrypted','banner.decrypt_sub':'The key file changed (e.g. data volume replaced). Re-enter the API key.','banner.open_settings':'Settings',
+ 'banner.live_log':'Live log','banner.running':'{x} running…','banner.steps':'{a}/{b} steps done','banner.elapsed':'{m} min elapsed',
+ 'dash.updates':'Updates available','dash.last_run':'Last run','dash.next':'Next update','dash.reclaimable':'Reclaimable',
+ 'dash.reclaimed':'Reclaimed (30 days)','dash.server_time':'Server time','dash.security':'Security','dash.stacks':'Stacks','dash.all_stacks':'All stacks →','dash.total_runs':'Total runs',
+ 'dash.checked':'checked {t}','dash.no_check':'no check yet','dash.no_runs':'no runs yet',
+ 'dash.of_images':'of {n} images · {k} unused networks','dash.prunes':'{p} prunes · {i} images','dash.unavailable':'unavailable',
+ 'dash.sched_off':'Off','dash.sched_off_sub':'check only, no automatic updates','dash.overdue':'overdue','dash.in':'in {t}','dash.failures':'{n} failures (backoff)',
+ 'dash.no_stack_data':'No check data yet – press “Check”.','dash.uptodate':'up to date','dash.n_upd':'{n} update(s)',
+ 'dash.sec_ok':'Protected','dash.sec_partial':'Partly protected','dash.sec_sub':'password · encrypted key · TLS: {m}',
+ 'run.ok':'Success','run.failed':'Failed','run.interrupted':'Interrupted','run.restarted':'Restarted',
+ 'kind.full':'full update','kind.check':'check','kind.prune':'prune','kind.redeploy':'stack redeploy','kind.rollback':'rollback','kind.self_update':'self-update','kind.pin':'version pin',
+ 'trig.manual':'manual','trig.scheduled':'scheduled',
+ 'tls.off':'not verified','tls.pinned':'pinned certificate','tls.ca':'custom CA','tls.system':'system CA','tls.http':'HTTP (unencrypted)',
+ 'stacks.search':'Search stack or image…','stacks.f_all':'All','stacks.f_upd':'Updatable','stacks.recheck':'Re-check',
+ 'stacks.none':'No stacks found – check Settings.','stacks.no_match':'No matches.','stacks.no_images':'no images / no check data',
+ 'stacks.manage':'Manage','stacks.version':'Version','stacks.update':'Update','stacks.current':'current','stacks.not_verified':'not verified',
+ 'stacks.upd_to':'new: {t}','stacks.mode_digest':'latest (digest)','stacks.mode_semver':'pinned version','stacks.mode_pdigest':'digest-pinned','stacks.mode_unknown':'unknown',
+ 'stacks.lag':'available for {d} days',
+ 'confirm.redeploy':'Redeploy stack “{n}” now? Pulls images and restarts its containers.',
+ 'confirm.update':'Run a full update now?\n\n• backs up Portainer\n• prunes unused images\n• redeploys ALL non-pinned stacks\n\nThis can take several minutes.',
+ 'confirm.prune':'Prune deletes ALL unused images and the build cache.\n\nRolling back to previous versions will no longer be possible. Continue?',
+ 'confirm.self':'Update this app now?\n\nIts own stack is redeployed; the container restarts and the UI reconnects in a few seconds.',
+ 'confirm.tag':'Tag “{t}” is not in the registry tag list. Deploy anyway?',
+ 'toast.check_started':'Check started','toast.update_started':'Full update started','toast.redeployed':'“{n}” redeployed','toast.redeploy_failed':'Redeploy failed – see the log',
+ 'toast.saved':'Settings saved','toast.first_check':'Connected. First check started.','toast.pw_changed':'Password changed','toast.prune_started':'Prune started',
+ 'toast.self_started':'Self-update started','toast.deployed':'{s} → {i} deployed','toast.invalid_image':'Invalid image reference','toast.rollback_started':'Rollback started',
+ 'toast.cert_pinned':'Fingerprint filled in – save the settings!',
+ 'hist.rate':'Success rate','hist.rate_sub':'last 200 runs','hist.avg':'Average duration','hist.avg_sub':'full updates','hist.all_time':'all time','hist.runs':'Runs',
+ 'hist.none':'No runs yet.','hist.log':'Log','hist.log_title':'Log: {id}',
+ 'set.security':'Security','set.security_desc':'Every part of the UI requires the password. The Portainer API key is stored encrypted in config.yaml.',
+ 'set.sec_login':'Login','set.sec_login_v':'required (session cookie)','set.sec_secrets':'Secret storage','set.sec_secrets_v':'encrypted (Fernet / AES)',
+ 'set.sec_tls':'Portainer connection','set.sec_pw':'Password source','set.sec_pw_env':'environment variable (stack)','set.sec_pw_ui':'set in the UI',
+ 'set.pw_current':'Current password','set.pw_new':'New password','set.pw_change':'Change password','set.pw_env':'The password comes from the stack’s PUS_AUTH_TOKEN variable – change it there.',
+ 'set.session_days':'Session lifetime (days)',
+ 'set.connection':'Portainer connection','set.api_key':'API key','set.api_key_hint':'Portainer → My account → Access tokens. *** means the saved key is kept.',
+ 'set.test':'Test connection','set.testing':'testing…','set.test_ok':'OK – Portainer {v} · environment {e}','set.test_fail':'Failed: {m}',
+ 'set.endpoint':'Portainer environment (endpoint)','set.endpoint_ph':'automatic','set.scan':'Scan','set.scan_pick':'Pick one:','set.scan_none':'no environments found',
+ 'set.tls':'TLS certificate','set.tls_desc':'Portainer uses a self-signed certificate by default. Pinning is the safest option: only this exact certificate is accepted.',
+ 'set.tls_mode':'Verification mode','set.tls_off':'No verification (any certificate)','set.tls_pinned':'Pin certificate (recommended)','set.tls_system':'Trusted certificate (e.g. Let’s Encrypt)',
+ 'set.tls_fp':'SHA-256 fingerprint','set.tls_fetch':'Fetch certificate from Portainer',
+ 'set.tls_hint_off':'The connection is encrypted, but the peer is not verified. Acceptable on a LAN; pinning is safer.',
+ 'set.tls_hint_pinned':'When Portainer’s certificate is renewed, fetch and save it again here.','set.tls_hint_system':'Only works when Portainer serves a valid, publicly trusted certificate.',
+ 'set.tls_hint_http':'You entered an HTTP URL: traffic (including the API key) is unencrypted. Use https://…:9443.',
+ 'set.cert_subject':'Subject','set.cert_issuer':'Issuer','set.cert_valid':'Valid until','set.cert_fp':'Fingerprint','set.cert_self':'self-signed',
+ 'set.cert_use':'Pin this one','set.cert_compare':'Compare with the fingerprint shown by your browser for the Portainer UI.',
+ 'set.schedule':'Schedule','set.mode':'Automatic updates','set.mode_off':'Off – notify only','set.mode_weekly':'Weekly','set.mode_daily':'Daily','set.mode_interval':'Every N hours',
+ 'set.mode_hint_off':'Never updates on its own. It checks, flags new versions, and you start the update.','set.mode_hint_on':'At the scheduled time all non-pinned stacks are updated.',
+ 'set.interval':'Update interval (hours)','set.weekday':'Day','set.time':'Time','set.check_interval':'Check interval (hours)','set.cache':'Registry cache (minutes)','set.server_time':'Server time',
+ 'set.deploy':'Deployment','set.parallel':'Parallel deploys','set.wait':'Wait per stack (s)','set.keep':'Backups to keep',
+ 'set.include_portainer':'Also update Portainer','set.include_portainer_hint':'Needs the Docker socket and Portainer’s compose folder mounted. Off by default for security.',
+ 'set.mount_check':'Check compose mount','set.repairs':'Automatic network repairs','set.repairs_hint':'Detects stale host-gateway mappings after a prune and redeploys the affected stack.',
+ 'set.notify':'Notifications','set.webhook':'Webhook URL','set.webhook_hint':'e.g. a Home Assistant webhook or ntfy. Sends JSON via POST. Stored encrypted.',
+ 'set.notify_upd':'Also notify about new updates','set.notify_upd_hint':'Not just on failures: also when a check finds new updatable images (each set only once).',
+ 'set.save':'Save settings','set.self_update':'Update this app','set.self_update_desc':'This app is excluded from regular runs. Update it deliberately here – the container restarts.',
+ 'set.self_update_btn':'Update P.U.S.','set.cleanup':'Clean up','set.cleanup_desc':'Deletes unused images and the build cache. Previous versions can’t be rolled back afterwards.',
+ 'set.cleanup_btn':'Delete unused images','set.appearance':'Appearance',
+ 'days':['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],
+ 'modal.redeploy':'Update now','modal.compose':'Compose file','modal.no_images':'No explicit images in the compose file.',
+ 'modal.svc':'Service','modal.current':'Current image','modal.apply':'Apply & redeploy','modal.deploying':'Deploying…','modal.tags':'Available tags','modal.loading':'Loading…',
+ 'modal.edit_hint':'Edits the compose file permanently and redeploys the stack.','modal.no_tags':'no tags found (private registry?)',
+ 'rb.title':'Broken after an update?','rb.sub':'The state before {w} can restore {n} service(s):','rb.current':'Current','rb.restore':'Restore to',
+ 'rb.btn':'Restore these versions','rb.restoring':'Restoring…','rb.nothing':'Snapshot from {w} – all services match, nothing to restore.','rb.snap':'Snapshot',
+ 'common.loading':'Loading…','ago.s':'{n}s ago','ago.m':'{n}m ago','ago.h':'{n}h ago','ago.d':'{n}d ago','ago.just':'just now',
+ 'phase.check':'Check','phase.update':'Full update','phase.redeploy':'Stack redeploy','phase.prune':'Prune','phase.rollback':'Rollback','phase.self_update':'Self-update','phase.pin-version':'Version pin',
+ 'act.working':'working…'
+}};
+let LANG='hu';
+const store={get(k){try{return localStorage.getItem(k)}catch(_){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(_){}}};
+function t(key,p){let s=(I18N[LANG]&&I18N[LANG][key])??I18N.en[key]??key;
+ if(p&&typeof s==='string')s=s.replace(/\{(\w+)\}/g,(_,k)=>p[k]??'');return s}
+function applyI18n(){
+ document.documentElement.lang=LANG;
+ document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=t(el.dataset.i18n));
+ document.querySelectorAll('[data-i18n-html]').forEach(el=>el.innerHTML=t(el.dataset.i18nHtml));
+ document.querySelectorAll('[data-i18n-ph]').forEach(el=>el.placeholder=t(el.dataset.i18nPh));
+ document.querySelectorAll('[data-lang]').forEach(b=>b.classList.toggle('on',b.dataset.lang===LANG));
+ const days=t('days');const sel=$('sDay');const cur=sel.value;
+ sel.innerHTML=days.map((d,i)=>`<option value="${i}">${d}</option>`).join('');if(cur)sel.value=cur;
+ setTitle();
+}
+function setLang(l){LANG=I18N[l]?l:'hu';store.set('pus_lang',LANG);applyI18n();lastDashHtml=lastStacksHtml=null;
+ if(!$('appScreen').classList.contains('hidden')){refresh();if(currentTab==='stacks')renderStacks();if(currentTab==='history')loadHistory();if(currentTab==='settings')updateTlsHint()}
+ if(!$('authScreen').classList.contains('hidden'))showAuth(authMode)}
+
+/* ================================================================= theme */
+function setTheme(v){store.set('pus_theme',v);
+ if(v==='auto')document.documentElement.removeAttribute('data-theme');else document.documentElement.dataset.theme=v;
+ document.querySelectorAll('[data-theme-v]').forEach(b=>b.classList.toggle('on',b.dataset.themeV===v))}
+
+/* =============================================================== helpers */
 const $=id=>document.getElementById(id);
-const fmt=s=>s?new Date(s*1000).toLocaleString():'–';
-const ago=s=>{if(!s)return'–';const d=Math.floor(Date.now()/1000-s);
- if(d<60)return d+'s ago';if(d<3600)return Math.floor(d/60)+'m ago';
- if(d<86400)return Math.floor(d/3600)+'h ago';return Math.floor(d/86400)+'d ago'};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let lastFailedRun=null;
+const loc=()=>LANG==='hu'?'hu-HU':'en-GB';
+const fmt=s=>s?new Date(s*1000).toLocaleString(loc(),{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'–';
+function ago(s){if(!s)return'–';const d=Math.floor(Date.now()/1000-s);
+ if(d<10)return t('ago.just');if(d<60)return t('ago.s',{n:d});if(d<3600)return t('ago.m',{n:Math.floor(d/60)});
+ if(d<86400)return t('ago.h',{n:Math.floor(d/3600)});return t('ago.d',{n:Math.floor(d/86400)})}
+const DAY_HU={Mon:'H',Tue:'K',Wed:'Sze',Thu:'Cs',Fri:'P',Sat:'Szo',Sun:'V'};
+const dayLoc=s=>s&&LANG==='hu'?s.replace(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)/,d=>DAY_HU[d]):s;
+const dur=d=>d==null?'?':(d>=60?Math.floor(d/60)+'m '+Math.round(d%60)+'s':Math.round(d)+'s');
+const kindTxt=k=>t('kind.'+k)!=='kind.'+k?t('kind.'+k):k;
+const trigTxt=k=>t('trig.'+k)!=='trig.'+k?t('trig.'+k):k;
+let toastTimer=null;
+function toast(msg,cls='',sticky=false){const el=$('toast');el.textContent=msg;el.className='toast show '+cls;
+ clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.className='toast '+cls,sticky?10000:4000)}
 
-/* -------------------------------------------------------- motion engine */
-/* Apple-style springs: damping ratio (overshoot) + response (speed in s).
-   Nothing here has a fixed duration, and every animation starts from the
-   value currently on screen, so it can be grabbed and re-targeted mid-flight. */
-const REDUCED=typeof matchMedia==='function'?matchMedia('(prefers-reduced-motion: reduce)'):{matches:false};
-const UNIT={'--bg-op':'','--bg-blur':'px','--m-op':'','--m-ty':'px','--m-sc':'',
-  '--t-op':'','--t-ty':'px','--px':'px','--py':'px','--pw':'px','--ph':'px',
-  '--toast-op':'','--toast-ty':'px'};
-const springs=new WeakMap(),running=new Set();
-let rafId=0,lastFrame=0;
-const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-const clamp=(v,a,b)=>Math.min(Math.max(v,a),b);
-
-function varValue(el,name){
-  const raw=el.style.getPropertyValue(name)||getComputedStyle(el).getPropertyValue(name);
-  const n=parseFloat(raw);
-  return Number.isFinite(n)?n:0;
-}
-/* direct write that also seeds the spring state, so a follow-up animation
-   picks up exactly where the finger left off */
-function setVar(el,name,value,velocity){
-  const st=springs.get(el);
-  if(st){st.vals[name]=value;st.vels[name]=velocity||0;delete st.goal[name];running.delete(el)}
-  el.style.setProperty(name,value+(UNIT[name]||''));
-}
-function springTo(el,targets,opts={}){
-  const response=opts.response??0.4,damping=opts.damping??1;
-  if(REDUCED.matches){
-    for(const[name,v] of Object.entries(targets))el.style.setProperty(name,v+(UNIT[name]||''));
-    return Promise.resolve();
-  }
-  let st=springs.get(el);
-  if(!st){st={vals:{},vels:{},goal:{},wait:[]};springs.set(el,st)}
-  st.k=Math.pow(2*Math.PI/response,2);
-  st.c=4*Math.PI*damping/response;
-  for(const[name,v] of Object.entries(targets)){
-    if(st.vals[name]==null)st.vals[name]=varValue(el,name);
-    st.goal[name]=v;
-    if(opts.velocity&&opts.velocity[name]!=null)st.vels[name]=opts.velocity[name];
-    if(st.vels[name]==null)st.vels[name]=0;
-  }
-  running.add(el);
-  const done=new Promise(res=>st.wait.push(res));
-  if(!rafId){lastFrame=performance.now();rafId=requestAnimationFrame(frame)}
-  return done;
-}
-function frame(now){
-  const dt=Math.min((now-lastFrame)/1000,1/30);
-  lastFrame=now;
-  for(const el of [...running]){
-    const st=springs.get(el);
-    let settled=true;
-    for(const name in st.goal){
-      const to=st.goal[name];
-      let x=st.vals[name]??0,v=st.vels[name]||0,left=dt;
-      while(left>0){                                  /* fixed sub-steps: stable for any refresh rate */
-        const h=Math.min(1/240,left);left-=h;
-        v+=(-st.k*(x-to)-st.c*v)*h;
-        x+=v*h;
-      }
-      st.vals[name]=x;st.vels[name]=v;
-      if(Math.abs(x-to)>0.001||Math.abs(v)>0.01)settled=false;
-      el.style.setProperty(name,x+(UNIT[name]||''));
-    }
-    if(settled){
-      for(const name in st.goal){
-        st.vals[name]=st.goal[name];st.vels[name]=0;
-        el.style.setProperty(name,st.goal[name]+(UNIT[name]||''));
-      }
-      st.goal={};running.delete(el);
-      st.wait.splice(0).forEach(fn=>fn());
-    }
-  }
-  rafId=running.size?requestAnimationFrame(frame):0;
-}
-/* where a flick is heading (Apple's exponential-decay projection) */
-const project=(v,decel=0.998)=>(v/1000)*decel/(1-decel);
-/* soft boundary: the further past the edge, the less the surface follows */
-const rubberband=(over,dim,c=0.55)=>(over*dim*c)/(dim+c*Math.abs(over));
-
-
-/* ---------------------------------------------------------------- auth */
-let AUTH_TOKEN = localStorage.getItem('pus_token') || '';
-let AUTH_ENABLED = false;
-
-function authHeaders(extra){
-  const h = {...(extra||{})};
-  if(AUTH_TOKEN) h['Authorization'] = 'Bearer ' + AUTH_TOKEN;
-  return h;
-}
-
-/* ---------------------------------------------------------------- toast */
-let toastTimer=null,toastToken=0;
-function toast(msg,cls='',sticky=false){
- const t=$('toast');
- t.textContent=msg;t.className='toast '+cls;t.style.display='block';
- springTo(t,{'--toast-op':1,'--toast-ty':0},{damping:.9,response:.32,velocity:{'--toast-ty':-220}});
- clearTimeout(toastTimer);
- const token=++toastToken;
- toastTimer=setTimeout(async()=>{
-  if(token!==toastToken)return;
-  springTo(t,{'--toast-op':0,'--toast-ty':12},{damping:1,response:.24});
-  await sleep(REDUCED.matches?200:260);
-  if(token===toastToken)t.style.display='none';
- },sticky?12000:4000);
-}
+class AuthError extends Error{constructor(m,j){super(m);this.info=j}}
 async function api(path,opts={}){
- opts.headers=authHeaders(opts.headers);
+ opts.headers={...(opts.headers||{})};
+ opts.credentials='same-origin';
+ const m=(opts.method||'GET').toUpperCase();
+ if(m!=='GET')opts.headers['X-PUS-Request']='1';
  if(opts.body&&!opts.headers['Content-Type'])opts.headers['Content-Type']='application/json';
  const r=await fetch(path,opts);
- if(r.status===401&&AUTH_ENABLED){
-  const tok=prompt('This instance requires an auth token.\n(Settings > auth_token in config.yaml):');
-  if(tok!==null){AUTH_TOKEN=tok.trim();localStorage.setItem('pus_token',AUTH_TOKEN);}
-  if(AUTH_TOKEN){opts.headers=authHeaders(opts.headers);return api(path,opts)}
- }
- const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||r.statusText);return j}
+ const j=await r.json().catch(()=>({}));
+ if(r.status===401&&(j.login_required||j.setup_required)){
+  showAuth(j.setup_required?'setup':'login');throw new AuthError(j.error||'auth',j)}
+ if(!r.ok){const e=new Error(j.error||r.statusText);e.status=r.status;e.info=j;throw e}
+ return j}
+async function apiText(path){const r=await fetch(path,{credentials:'same-origin'});
+ if(r.status===401){showAuth('login');throw new AuthError('auth')}return r.text()}
+async function withBusy(btn,fn){btn.dataset.busy='1';try{return await fn()}finally{delete btn.dataset.busy}}
 
-/* ---------------------------------------------------------------- tabs */
-let currentTabName='dash';
-function showTab(name){
- const changed=currentTabName!==name;
- currentTabName=name;
- document.querySelectorAll('nav button').forEach(b=>{
-  const on=b.dataset.tab===name;
-  b.classList.toggle('active',on);
-  if(on)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');
- });
- ['dash','stacks','history','settings'].forEach(t=>$('tab-'+t).style.display=t===name?'':'none');
- movePill();
- if(changed){
-  const el=$('tab-'+name);
-  if(el&&!REDUCED.matches){
-   /* starts from the live value, so fast tab switching never jumps */
-   setVar(el,'--t-ty',6);setVar(el,'--t-op',0);
-   springTo(el,{'--t-ty':0,'--t-op':1},{damping:1,response:.3});
+/* ================================================================== auth */
+let authMode='login',minPw=8,pollTimer=null;
+function showAuth(mode){
+ authMode=mode;stopPolling();
+ $('appScreen').classList.add('hidden');$('authScreen').classList.remove('hidden');closeModal(true);
+ const setup=mode==='setup';
+ $('authTitle').textContent=t(setup?'auth.setup_title':'auth.login_title');
+ $('authSub').textContent=t(setup?'auth.setup_sub':'auth.login_sub');
+ $('authBtn').textContent=t(setup?'auth.setup_btn':'auth.login_btn');
+ $('authPw2Wrap').classList.toggle('hidden',!setup);
+ $('authRememberWrap').classList.toggle('hidden',setup);
+ $('authPw').autocomplete=setup?'new-password':'current-password';
+ $('authErr').textContent='';
+ setTimeout(()=>$('authPw').focus(),50);
+}
+$('authForm').onsubmit=async e=>{
+ e.preventDefault();
+ const pw=$('authPw').value,err=$('authErr');err.textContent='';
+ try{
+  if(authMode==='setup'){
+   if(pw.length<minPw){err.textContent=t('auth.too_short',{n:minPw});return}
+   if(pw!==$('authPw2').value){err.textContent=t('auth.mismatch');return}
+   await withBusy($('authBtn'),()=>api('/api/auth/setup',{method:'POST',body:JSON.stringify({password:pw})}));
+  }else{
+   await withBusy($('authBtn'),()=>api('/api/auth/login',{method:'POST',body:JSON.stringify({password:pw,remember:$('authRemember').checked})}));
   }
+  $('authPw').value='';$('authPw2').value='';
+  enterApp();
+ }catch(ex){
+  if(ex.status===429)err.textContent=t('auth.locked',{s:ex.info.retry_after||60});
+  else if(ex.status===401)err.textContent=t('auth.wrong');
+  else err.textContent=ex.message;
  }
+};
+document.querySelectorAll('[data-logout]').forEach(b=>b.onclick=async()=>{
+ try{await api('/api/auth/logout',{method:'POST'})}catch(_){}
+ showAuth('login')});
+async function boot(){
+ try{
+  const r=await fetch('/api/auth/status',{credentials:'same-origin'}).then(x=>x.json());
+  minPw=r.min_password_len||8;
+  if(r.setup_required)showAuth('setup');else if(!r.authenticated)showAuth('login');else enterApp();
+ }catch(e){showAuth('login');$('authErr').textContent=e.message}
+}
+function enterApp(){
+ $('authScreen').classList.add('hidden');$('appScreen').classList.remove('hidden');
+ const tab=(location.hash||'').replace('#','');
+ showTab(['dash','stacks','history','settings'].includes(tab)?tab:'dash',true);
+ refresh();startPolling();
+}
+function startPolling(){stopPolling();pollTimer=setInterval(()=>{if(!document.hidden)refresh()},15000)}
+function stopPolling(){if(pollTimer){clearInterval(pollTimer);pollTimer=null}if(bannerTimer){clearInterval(bannerTimer);bannerTimer=null}stopLiveLog()}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&pollTimer)refresh()});
+
+/* ================================================================== tabs */
+let currentTab='dash';
+function setTitle(){$('pageTitle').textContent=t('nav.'+currentTab)}
+function showTab(name,noScroll){
+ currentTab=name;
+ document.querySelectorAll('[data-tab]').forEach(b=>{const on=b.dataset.tab===name;b.classList.toggle('active',on);
+  if(on)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
+ ['dash','stacks','history','settings'].forEach(x=>$('tab-'+x).classList.toggle('hidden',x!==name));
+ setTitle();
+ if(history.replaceState)history.replaceState(null,'','#'+name);
+ if(!noScroll)window.scrollTo({top:0});
+ if(name==='dash'&&lastStatus)renderDashStacks(lastStatus.stacks||{});
  if(name==='stacks')loadStacks();if(name==='history')loadHistory();if(name==='settings')loadSettings();
 }
-document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
-/* arrow keys move through the tabs like a native segmented control */
-document.querySelectorAll('nav button').forEach((b,i,all)=>b.addEventListener('keydown',e=>{
- if(e.key!=='ArrowRight'&&e.key!=='ArrowLeft')return;
- e.preventDefault();
- const next=all[(i+(e.key==='ArrowRight'?1:all.length-1))%all.length];
- next.focus();showTab(next.dataset.tab);
-}));
-document.addEventListener('keydown',e=>{
- if(e.key==='Escape'){closeModal();return}
- if(!modalOpen||e.key!=='Tab')return;
- const f=[...$('modal').querySelectorAll('button,input,select,textarea,a[href],[tabindex]:not([tabindex="-1"])')]
-  .filter(el=>!el.disabled&&el.offsetParent!==null);
- if(!f.length)return;
- const first=f[0],last=f[f.length-1];
- if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}
- else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}
-});
+document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
+addEventListener('hashchange',()=>{const h=location.hash.slice(1);if(['dash','stacks','history','settings'].includes(h)&&h!==currentTab&&!$('appScreen').classList.contains('hidden'))showTab(h)});
+document.addEventListener('click',e=>{const g=e.target.closest('[data-goto]');if(g){e.preventDefault();showTab(g.dataset.goto)}});
+addEventListener('scroll',()=>$('topbar').classList.toggle('scrolled',scrollY>2),{passive:true});
 
-/* nav indicator: springs between tabs, measured from the live DOM so it
-   keeps working when the nav wraps on narrow screens */
-function movePill(animate=true){
- const nav=document.querySelector('nav');
- const active=nav&&nav.querySelector('button.active');
- const pill=nav&&nav.querySelector('.nav-pill');
- if(!active||!pill)return;
- const nb=nav.getBoundingClientRect(),ab=active.getBoundingClientRect();
- nav.classList.add('ready');
- const box={'--px':ab.left-nb.left,'--py':ab.top-nb.top,'--pw':ab.width,'--ph':ab.height};
- if(animate&&!REDUCED.matches)springTo(pill,box,{damping:1,response:.32});
- else for(const k in box)setVar(pill,k,box[k]);
-}
-addEventListener('resize',()=>movePill(false),{passive:true});
-if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>movePill(false));
-
-/* translucent header only grows an edge once content scrolls underneath it */
-const headerEl=document.querySelector('header');
-let scrollQueued=false;
-function onScroll(){
- if(scrollQueued)return;
- scrollQueued=true;
- requestAnimationFrame(()=>{headerEl.classList.toggle('scrolled',scrollY>2);scrollQueued=false});
-}
-addEventListener('scroll',onScroll,{passive:true});
-
-/* ------------------------------------------------------------ status poll */
-let lastDashHtml=null,lastStacksHtml=null;
+/* ============================================================ status poll */
+let lastDashHtml=null,lastFailedRun=null,lastStatus=null,gateBusy=false;
 async function refresh(){
- try{
-  const [s,inv,hh]=await Promise.all([
-   api('/api/status'),
-   api('/api/inventory').catch(()=>null),
-   api('/api/history').catch(()=>null)]);
-  const dot=$('hdrDot');
-  const busy=s.scheduler&&s.scheduler.busy;
-  dot.className='dot '+(busy?'run':s.state==='success'?'ok':s.state==='failed'?'err':'');
-  dot.title=busy?'job running':'service '+(s.state||'idle');
-  $('hdrInfo').textContent=s.configured?'':'not configured';
-  $('hdrInfo').title='';
-  AUTH_ENABLED=!!s.auth_enabled;
-  if(s.auth_enabled&&!AUTH_TOKEN)$('hdrInfo').textContent+=' · auth required';
-  // setup banner
-  $('setupBanner').classList.toggle('open',!s.configured);
-  // run banner: poll fast while busy
-  if(busy){await refreshRunBanner()}
-  else{$('runBanner').classList.remove('open');stopLiveLog()}
-  $('cUpd').textContent=s.check&&s.check.checked_at!=null?s.check.updates_available:'–';
-  $('cUpdSub').textContent=s.check&&s.check.checked_at?('checked '+ago(s.check.checked_at)):'no check yet';
-  const lr=s.last_run;
-  lastFailedRun=lr&&!lr.success&&lr.run_id?lr.run_id:null;
-  $('cLast').textContent=lr?(lr.interrupted?'INTERRUPTED':lr.success==null?'RESTARTED':lr.success?'OK':'FAILED'):'–';
-  $('cLast').style.color=lr?(lr.success==null?'var(--mut)':lr.success?'var(--ok)':'var(--err)'):'var(--txt)';
-  const ld=lr?(lr.duration_s??null):null;
-  const durTxt=ld==null?'?':(ld>=60?Math.floor(ld/60)+'m '+Math.round(ld%60)+'s':Math.round(ld)+'s');
-  $('cLastSub').textContent=lr?(ago(lr.finished)+' · '+lr.kind+' · '+durTxt):'no runs yet';
-  if(s.scheduler){
-   const nf=s.scheduler.next_full_update;
-   const desc=s.scheduler.schedule_desc||'';
-   // server time card
-   $('cServerTime').textContent=s.scheduler.server_time_local||'–';
-   $('cServerTzSub').textContent=(s.scheduler.server_tz||'')+' · '+desc;
-   if(nf){
-    const delta=Math.round((nf-Date.now()/1000)/60);
-    if(delta<0){$('cNext').textContent='overdue';$('cNext').style.color='var(--warn)';
-      $('cNextSub').textContent=`by ${Math.abs(delta)} min · ${desc}`}
-    else{
-     $('cNext').textContent=new Date(nf*1000).toLocaleString([],{
-      weekday:'short',hour:'2-digit',minute:'2-digit'});
-     $('cNext').style.color='var(--txt)';
-     $('cNextSub').textContent=`in ${delta>=120?Math.round(delta/60)+'h':delta+'m'}`;
-    }
-   }
-   if(s.scheduler.consecutive_failures>0){
-    $('cNextSub').textContent+=' · '+s.scheduler.consecutive_failures+' failures (backoff)';
-   }
-  }
-  // inventory card (s.inventory from status if present, else live fetch)
-  const iv=s.inventory||inv;
-  if(iv){
-   $('cInv').textContent=iv.images_unused+' ('+iv.images_unused_mb+' MB)';
-   $('cInvSub').textContent='of '+iv.images_total+' images · '+iv.networks_unused+' unused networks';
-  }else{$('cInv').textContent='–';$('cInvSub').textContent='unavailable'}
-  $('cRuns').textContent=s.runs_total??'–';
-  // reclaimed card from history stats
-  const ps=(hh&&hh.prune_stats_30d)||null;
-  if(ps){$('cReclaim').textContent=(ps.reclaimed_mb_30d||0)+' MB';
-   $('cReclaimSub').textContent='in '+(ps.prune_runs_30d||0)+' prunes · '+(ps.images_deleted_30d||0)+' images'}
-  else{$('cReclaim').textContent='–';$('cReclaimSub').textContent='unavailable'}
-  $('cRunsSub').textContent='all time';
-  if(currentTab()==='dash')renderDashStacks(s.stacks||{});
-  gateBusyFlag=!!busy;
-  if(busy){ensureBannerTimer();setBusyUI(true)}else setBusyUI(false);
- }catch(e){$('hdrInfo').textContent=e.message}
+ let s,inv,hh;
+ try{[s,inv,hh]=await Promise.all([api('/api/status'),api('/api/inventory').catch(()=>null),api('/api/history').catch(()=>null)])}
+ catch(e){if(!(e instanceof AuthError))$('hdrText').textContent=e.message;return}
+ lastStatus=s;
+ const busy=s.scheduler&&s.scheduler.busy;
+ $('hdrDot').className='dot '+(busy?'run':!s.configured?'':s.state==='success'?'ok':s.state==='failed'?'err':'');
+ $('hdrText').textContent=busy?t('status.running'):!s.configured?t('status.not_configured'):s.state==='success'?t('status.ok'):s.state==='failed'?t('status.failed'):t('status.idle');
+ $('setupBanner').classList.toggle('hidden',!!s.configured);
+ $('decryptBanner').classList.toggle('hidden',!s.decrypt_error);
+ if(busy)await refreshRunBanner();else{$('runBanner').classList.add('hidden');stopLiveLog()}
+ // updates
+ const hasCheck=s.check&&s.check.checked_at!=null;
+ const nUpd=hasCheck?s.check.updates_available:0;
+ $('cUpd').textContent=hasCheck?nUpd:'–';
+ $('cUpd').style.color=nUpd?'var(--warn)':'';
+ $('cUpdSub').textContent=hasCheck?t('dash.checked',{t:ago(s.check.checked_at)}):t('dash.no_check');
+ document.querySelectorAll('[data-upd-count]').forEach(el=>{el.textContent=nUpd;el.classList.toggle('hidden',!nUpd)});
+ // last run
+ const lr=s.last_run;
+ lastFailedRun=lr&&!lr.success&&lr.run_id?lr.run_id:null;
+ $('cLast').textContent=lr?(lr.interrupted?t('run.interrupted'):lr.success==null?t('run.restarted'):lr.success?t('run.ok'):t('run.failed')):'–';
+ $('cLast').style.color=lr?(lr.success==null?'var(--mut)':lr.success?'var(--ok)':'var(--err)'):'';
+ $('cLastSub').textContent=lr?`${ago(lr.finished)} · ${kindTxt(lr.kind)} · ${dur(lr.duration_s)}`:t('dash.no_runs');
+ // schedule
+ const sc=s.scheduler||{};
+ $('cServerTime').textContent=dayLoc(sc.server_time_local)||'–';
+ $('cServerTzSub').textContent=sc.server_tz||'';
+ if(s.schedule_off){$('cNext').textContent=t('dash.sched_off');$('cNext').style.color='var(--mut)';$('cNextSub').textContent=t('dash.sched_off_sub')}
+ else if(sc.next_full_update){
+  const delta=Math.round((sc.next_full_update-Date.now()/1000)/60);
+  if(delta<0){$('cNext').textContent=t('dash.overdue');$('cNext').style.color='var(--warn)';$('cNextSub').textContent=''}
+  else{$('cNext').textContent=new Date(sc.next_full_update*1000).toLocaleString(loc(),{weekday:'short',hour:'2-digit',minute:'2-digit'});
+   $('cNext').style.color='';$('cNextSub').textContent=t('dash.in',{t:delta>=120?Math.round(delta/60)+' h':delta+' min'})}
+  if(sc.consecutive_failures>0)$('cNextSub').textContent+=' · '+t('dash.failures',{n:sc.consecutive_failures});
+ }
+ // inventory / reclaimed
+ const iv=s.inventory||inv;
+ if(iv){$('cInv').textContent=`${iv.images_unused} · ${iv.images_unused_mb} MB`;$('cInvSub').textContent=t('dash.of_images',{n:iv.images_total,k:iv.networks_unused})}
+ else{$('cInv').textContent='–';$('cInvSub').textContent=t('dash.unavailable')}
+ const ps=hh&&hh.prune_stats_30d;
+ if(ps){$('cReclaim').textContent=(ps.reclaimed_mb_30d||0)+' MB';$('cReclaimSub').textContent=t('dash.prunes',{p:ps.prune_runs_30d||0,i:ps.images_deleted_30d||0})}
+ else{$('cReclaim').textContent='–';$('cReclaimSub').textContent=t('dash.unavailable')}
+ // security
+ const tm=s.tls_mode||'off';
+ $('cSec').textContent=t((tm==='off'||tm==='http')?'dash.sec_partial':'dash.sec_ok');$('cSec').style.color=(tm==='off'||tm==='http')?'var(--warn)':'var(--ok)';
+ $('cSecSub').textContent=t('dash.sec_sub',{m:t('tls.'+tm)});
+ $('hTotal').textContent=s.runs_total??'–';
+ if(currentTab==='dash')renderDashStacks(s.stacks||{});
+ gateBusy=!!busy;setBusyUI(gateBusy);if(busy)ensureBannerTimer();
 }
-function currentTab(){return document.querySelector('nav button.active').dataset.tab}
 
-/* ----------------------------------------------------------- run banner */
-const PHASES={preflight:'pre-flight checks',backup:'Portainer backup',prune:'docker prune',
- redeploy_stacks:'redeploying stacks',reconciliation_sweep:'verification sweep',
- post_deployment_repairs:'post-deployment repairs',update_portainer:'Portainer self-update',
- docker_prune:'docker prune',pin_version:'version pin',update:'Full update',
- self_update:'PUS self-update',
- check:'Update check',redeploy:'Stack redeploy'};
-/* translate raw log lines into a friendly ongoing-activity line */
+/* ============================================================ run banner */
 function activityLine(tail){
- const lines=(tail||[]).join('').split('\n').map(s=>s.trim()).filter(Boolean);
- for(let i=lines.length-1;i>=0;i--){
-  const l=lines[i];
-  let m;
-  if((m=l.match(/\[INFO\] (.+)$/)))return m[1];
-  if((m=l.match(/\[OK\] (.+)$/)))return m[1].length>70?m[1].slice(0,77)+'…':m[1];
-  if((m=l.match(/\[WARN\] (.+)$/)))return m[1];
+ const lines=(tail||[]).join('').split('\n').map(x=>x.trim()).filter(Boolean);
+ for(let i=lines.length-1;i>=0;i--){const l=lines[i];let m;
+  if((m=l.match(/\[(INFO|OK|WARN)\] (.+)$/)))return m[2].length>90?m[2].slice(0,87)+'…':m[2];
   if((m=l.match(/\[ERROR\] (.+)$/)))return '⚠ '+m[1];
-  if((m=l.match(/Found (\d+) stacks\. Deploying (\d+) now/)))
-   return `redeploying ${m[2]} stacks…`;
-  if((m=l.match(/waiting\.\.\. (\d+)\/(\d+) new container/)))
-   return `waiting for ${m[1]}/${m[2]} new containers to become healthy…`;
-  if((m=l.match(/Pulling image (.+?) for/)))return `pulling ${m[1]}…`;
-  if((m=l.match(/Processing stack: (.+?) \(ID/)))return `checking stack ${m[1]}…`;
-  if((m=l.match(/Checking (\d+) stacks/)))return `checking ${m[1]} stacks against DockerHub…`;
-  if(l.includes('compose pull'))return 'pulling latest Portainer image…';
-  if(l.includes('compose up'))return 'restarting Portainer containers…';
- }
-  return 'working…';
-}
+  if((m=l.match(/Pulling image (.+?) for/)))return '⬇ '+m[1];
+  if((m=l.match(/Processing stack: (.+?) \(ID/)))return '→ '+m[1];}
+ return t('act.working')}
 let bannerTimer=null;
-
 async function refreshRunBanner(){
- try{
-  const c=await api('/api/runs/current');
-  if(!c.active){$('runBanner').classList.remove('open');stopLiveLog();return false}
-  $('runBanner').classList.add('open');
-  const steps=c.steps||[];
-  const okN=steps.filter(x=>x.ok).length;
-  $('rbTitle').textContent=(PHASES[c.holder]||c.holder||'job')+' running…';
-  const tail=(c.log_tail||[]);
-  const joined=tail.join('');
-  $('rbSub').textContent=(steps.length?`${okN}/${steps.length} steps done · `:'')+
-   Math.round((Date.now()/1000-c.since)/60*10)/10+' min elapsed';
-  $('rbActivity').textContent=activityLine(tail);
-  $('rbTail').textContent=joined.trim()?tail.slice(-3).join('').trim():'starting…';
-  $('rbLogBtn').style.display=c.run_id?'':'none';
+ try{const c=await api('/api/runs/current');
+  if(!c.active){$('runBanner').classList.add('hidden');stopLiveLog();return false}
+  $('runBanner').classList.remove('hidden');
+  const steps=c.steps||[],okN=steps.filter(x=>x.ok).length;
+  const ph=t('phase.'+c.holder)!=='phase.'+c.holder?t('phase.'+c.holder):(c.holder||'job');
+  $('rbTitle').textContent=t('banner.running',{x:ph});
+  $('rbSub').textContent=(steps.length?t('banner.steps',{a:okN,b:steps.length})+' · ':'')+t('banner.elapsed',{m:Math.round((Date.now()/1000-c.since)/6)/10});
+  $('rbActivity').textContent=activityLine(c.log_tail);
+  const tail=(c.log_tail||[]).slice(-3).join('').trim();
+  $('rbTail').textContent=tail||'…';
+  $('rbLogBtn').classList.toggle('hidden',!c.run_id);
   $('rbLogBtn').onclick=()=>showRunLog(c.run_id,true);
-  return true;
- }catch(e){return false}
-}
-/* dedicated fast poll while a job runs (banner feels live) */
-function ensureBannerTimer(){
- if(bannerTimer)return;
- bannerTimer=setInterval(async()=>{
-  try{const c=await api('/api/runs/current');
-   if(c.active){await refreshRunBanner()}
-   else{$('runBanner').classList.remove('open');stopLiveLog();clearInterval(bannerTimer);bannerTimer=null;
-    setBusyUI(false);refresh()}}
-  catch(e){}
- },2000);
-}
-let gateBusyFlag=false;
+  return true}catch(e){return false}}
+function ensureBannerTimer(){if(bannerTimer)return;
+ bannerTimer=setInterval(async()=>{try{const c=await api('/api/runs/current');
+  if(c.active)await refreshRunBanner();
+  else{$('runBanner').classList.add('hidden');clearInterval(bannerTimer);bannerTimer=null;setBusyUI(false);refresh();if(currentTab==='stacks')loadStacks()}}catch(e){}},2000)}
+function setBusyUI(b){['btnCheck','btnUpdate','btnCheck2','btnUpdate2','btnPrune','btnRecheck','btnSelfUpdate'].forEach(id=>{if($(id))$(id).disabled=b})}
 
-/* live log in History <pre>: auto-refresh while the run is active */
-let liveLogTimer=null;
-function stopLiveLog(){if(liveLogTimer){clearInterval(liveLogTimer);liveLogTimer=null}
- const p=$('runLog');if(p)p._live=null}
-async function showRunLog(id,live=false){
- if(currentTab()!=='history')showTab('history');
- const p=$('runLog');p.style.display='block';p.textContent='loading…';
- p.scrollIntoView({behavior:REDUCED.matches?'auto':'smooth',block:'nearest'});
- stopLiveLog();
- try{p.textContent=await (await fetch('/api/runs/'+encodeURIComponent(id)+'/log')).text()}
- catch(e){p.textContent=e.message}
- if(live&&id){
-  p._live=id;
-  p.scrollTop=p.scrollHeight;
-  liveLogTimer=setInterval(async()=>{
-   if(!p._live||p._live!==id){clearInterval(liveLogTimer);liveLogTimer=null;return}
-   try{
-    const cur=await api('/api/runs/current');
-    const txt=await (await fetch('/api/runs/'+encodeURIComponent(id)+'/log')).text();
-    const atBottom=p.scrollHeight-p.scrollTop-p.clientHeight<40;
-    p.textContent=txt;
-    if(atBottom||live)p.scrollTop=p.scrollHeight;
-    if(!cur.active||cur.run_id!==id){stopLiveLog()}
-   }catch(e){}
-  },3000);
- }
-}
-
-/* ------------------------------------------------------- dashboard stacks */
+/* ============================================================== dashboard */
 function renderDashStacks(stacks){
- const tb=$('dashStacks');
- const names=Object.keys(stacks);
- let html;
- if(!names.length)html='<tr><td colspan=4 class="empty">No check data yet - run "Check updates".</td></tr>';
+ const names=Object.keys(stacks);let html;
+ if(!names.length)html=`<div class="empty">${esc(t('dash.no_stack_data'))}</div>`;
  else{
-  const rows=names.sort().map(n=>{
-   const svcs=stacks[n],imgs=Object.values(svcs);
-   const upd=imgs.filter(v=>v.update_available).length;
-   const badge=upd?`<span class="badge b-warn">${upd} update${upd>1?'s':''}</span>`:'<span class="badge b-ok">up to date</span>';
-   return `<tr style="cursor:pointer" data-st="${esc(n)}"><td><b>${esc(n)}</b></td><td class="num">${imgs.length}</td><td>${badge}</td><td class="mono" title="${esc(imgs.map(i=>i.image).join(', '))}">${esc(imgs.map(i=>i.image).slice(0,2).join(', '))}</td></tr>`;
-  }).join('');
-  html=rows;
+  const rows=names.map(n=>{const imgs=Object.values(stacks[n]);return{n,imgs,upd:imgs.filter(v=>v.update_available).length}})
+   .sort((a,b)=>b.upd-a.upd||a.n.localeCompare(b.n));
+  html=rows.slice(0,12).map(r=>`<div class="li click" data-st="${esc(r.n)}" tabindex="0" role="button">
+    <div class="grow"><div class="t">${esc(r.n)}</div><div class="s mono">${esc(r.imgs.map(i=>i.image).slice(0,3).join(' · '))}</div></div>
+    ${r.upd?`<span class="badge b-warn">${esc(t('dash.n_upd',{n:r.upd}))}</span>`:`<span class="badge b-ok">${esc(t('dash.uptodate'))}</span>`}</div>`).join('');
  }
- if(html===lastDashHtml)return; // unchanged - zero DOM churn, no flicker
- lastDashHtml=html;
- tb.innerHTML=html;
- tb.querySelectorAll('tr[data-st]').forEach(tr=>{
-  tr.tabIndex=0;tr.setAttribute('role','button');
-  tr.onclick=()=>openStack(tr.dataset.st);
-  tr.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openStack(tr.dataset.st)}};
- });
+ if(html===lastDashHtml)return;lastDashHtml=html;
+ const box=$('dashStacks');box.innerHTML=html;
+ box.querySelectorAll('[data-st]').forEach(el=>{el.onclick=()=>openStack(el.dataset.st);
+  el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openStack(el.dataset.st)}}});
 }
+function cardAction(el,fn){el.onclick=fn;el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fn()}}}
+cardAction($('cInvCard'),()=>showTab('stacks'));
+cardAction($('cLastCard'),()=>{if(lastFailedRun)showRunLog(lastFailedRun);else showTab('history')});
 
-/* ----------------------------------------------------------------- stacks */
-let stacksLoaded=false;
+/* ================================================================= stacks */
+let stacksData=null,lastStacksHtml=null,stackFilter='all';
 async function loadStacks(){
- const tb=$('stackRows');
- if(!stacksLoaded)tb.innerHTML='<tr><td colspan=6 class="empty">Loading…</td></tr>';
- try{
-  const s=await api('/api/stacks');
-  $('stackCheckInfo').textContent=s.checked_at?('checked '+ago(s.checked_at)):'no check data yet';
-  let html;
-  if(!s.stacks.length)html='<tr><td colspan=6 class="empty">No stacks found - check Settings.</td></tr>';
-  else{
-   html='';
-   s.stacks.forEach(st=>{
-    const svcs=Object.entries(st.services||{});
-    if(!svcs.length){html+=`<tr><td><b>${esc(st.name)}</b></td><td colspan=4 class="empty">no images / no check data</td>
-     <td><button class="btn sm sec" data-st="${st.id}" data-nm="${esc(st.name)}" data-act="redeploy">Update</button></td></tr>`;return}
-    const updN=Object.values(st.services).filter(v=>v.update_available).length;
-    svcs.forEach(([svc,v],i)=>{
-     const badge=v.update_available?`<span class="badge b-warn" title="available for ${v.lag_days??0} days">update: ${esc(v.latest_tag||'digest')}</span>`
-       :v.note?'<span class="badge b-mut" title="'+esc(v.note)+'">not verified</span>':'<span class="badge b-ok">current</span>';
-     const mode=v.mode==='digest'?'latest (digest)':v.mode==='semver'?'pinned (version)':
-                v.mode==='pinned-digest'?'digest-pinned':'unknown';
-     html+=`<tr>
-      ${i===0?`<td rowspan="${svcs.length}"><b>${esc(st.name)}</b>${updN?` <span class="badge b-warn">${updN}</span>`:''}<br>
-        <a href="#" data-nm="${esc(st.name)}" data-act="open">manage</a></td>`:''}
-      <td>${esc(svc)}</td><td class="mono" title="${esc(v.image)}">${esc(v.image)}</td>
-      <td><span class="badge b-mut" title="${esc(v.note||'')}">${mode}</span></td><td>${badge}</td>
-      <td><button class="btn sm sec" data-id="${st.id}" data-svc="${esc(svc)}" data-act="pin">Version</button></td></tr>`;
-    });
-   });
-  }
-  if(html!==lastStacksHtml){lastStacksHtml=html;tb.innerHTML=html} // diff-render: no flicker
-  stacksLoaded=true;
- }catch(e){tb.innerHTML=`<tr><td colspan=6 class="empty">${esc(e.message)}</td></tr>`}
+ try{stacksData=await api('/api/stacks');renderStacks()}
+ catch(e){if(!(e instanceof AuthError))$('stackRows').innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
+function modeTxt(m){return m==='digest'?t('stacks.mode_digest'):m==='semver'?t('stacks.mode_semver'):m==='pinned-digest'?t('stacks.mode_pdigest'):t('stacks.mode_unknown')}
+function renderStacks(){
+ const s=stacksData;if(!s)return;
+ $('stackCheckInfo').textContent=s.checked_at?t('dash.checked',{t:ago(s.checked_at)}):t('dash.no_check');
+ const q=$('stackSearch').value.trim().toLowerCase();
+ let list=s.stacks.slice().sort((a,b)=>(b.updates_available||0)-(a.updates_available||0)||a.name.localeCompare(b.name));
+ if(stackFilter==='upd')list=list.filter(x=>x.updates_available>0);
+ if(q)list=list.filter(x=>x.name.toLowerCase().includes(q)||Object.entries(x.services||{}).some(([k,v])=>k.toLowerCase().includes(q)||(v.image||'').toLowerCase().includes(q)));
+ let html;
+ if(!s.stacks.length)html=`<div class="empty">${esc(t('stacks.none'))}</div>`;
+ else if(!list.length)html=`<div class="empty">${esc(t('stacks.no_match'))}</div>`;
+ else html=list.map(st=>{
+  const svcs=Object.entries(st.services||{});
+  const head=`<div class="stack-head"><div class="grow"><span class="name">${esc(st.name)}</span>${st.updates_available?`<span class="badge b-warn">${st.updates_available}</span>`:''}</div>
+   <button class="btn sec sm" data-act="open" data-nm="${esc(st.name)}">${esc(t('stacks.manage'))}</button>
+   <button class="btn sm" data-act="redeploy" data-st="${st.id}" data-nm="${esc(st.name)}">${esc(t('stacks.update'))}</button></div>`;
+  if(!svcs.length)return `<div class="stack">${head}<div class="svc"><div class="muted small">${esc(t('stacks.no_images'))}</div></div></div>`;
+  return `<div class="stack">${head}${svcs.map(([svc,v])=>{
+   const badge=v.update_available?`<span class="badge b-warn" title="${esc(t('stacks.lag',{d:v.lag_days??0}))}">${esc(t('stacks.upd_to',{t:v.latest_tag||'digest'}))}</span>`
+    :v.note?`<span class="badge b-mut" title="${esc(v.note)}">${esc(t('stacks.not_verified'))}</span>`:`<span class="badge b-ok">${esc(t('stacks.current'))}</span>`;
+   return `<div class="svc"><div class="sn">${esc(svc)}</div><div class="tags"><span class="badge b-mut hide-m">${esc(modeTxt(v.mode))}</span>${badge}</div>
+    <div class="img">${esc(v.image)}</div>
+    <div class="acts"><button class="btn ghost sm" data-act="pin" data-id="${st.id}" data-svc="${esc(svc)}">${esc(t('stacks.version'))}</button></div></div>`}).join('')}</div>`;
+ }).join('');
+ if(html!==lastStacksHtml){lastStacksHtml=html;$('stackRows').innerHTML=html}
 }
+$('stackSearch').oninput=()=>renderStacks();
+$('stackFilter').querySelectorAll('button').forEach(b=>b.onclick=()=>{stackFilter=b.dataset.f;
+ $('stackFilter').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));renderStacks()});
+document.addEventListener('click',e=>{const el=e.target.closest('[data-act]');if(!el)return;e.preventDefault();
+ const a=el.dataset.act;
+ if(a==='open')openStack(el.dataset.nm);
+ if(a==='pin')openStack(null,+el.dataset.id,el.dataset.svc);
+ if(a==='redeploy')redeployStack(+el.dataset.st,el.dataset.nm,el)});
+async function redeployStack(id,name,btn){
+ if(!confirm(t('confirm.redeploy',{n:name})))return;
+ const run=async()=>{const r=await api(`/api/stacks/${id}/redeploy`,{method:'POST'});
+  toast(r.ok?t('toast.redeployed',{n:name}):t('toast.redeploy_failed'),r.ok?'ok':'err');refresh();loadStacks()};
+ try{btn?await withBusy(btn,run):await run()}catch(e){if(!(e instanceof AuthError))toast(e.message,'err')}}
 
-/* delegated click actions for dynamically built rows */
-document.addEventListener('click',e=>{
- const el=e.target.closest('[data-act]');
- if(!el)return;
- e.preventDefault();
- const act=el.dataset.act;
- if(act==='open')openStack(el.dataset.nm);
- if(act==='pin')openStack(null,+el.dataset.id,null,el.dataset.svc);
- if(act==='redeploy')redeployStack(+el.dataset.st,el.dataset.nm);
-});
-
-/* per-stack update */
-async function redeployStack(id,name){
- if(!confirm(`Redeploy stack "${name}" now? Pulls images and restarts its containers.`))return;
- try{const r=await api(`/api/stacks/${id}/redeploy`,{method:'POST'});
-  toast(r.ok?`Stack "${name}" redeployed`:`Redeploy FAILED - see run ${r.run_id}`,r.ok?'ok':'err')}
- catch(e){toast(e.message,'err')}
-}
-
-/* ------------------------------------------------------------ stack modal */
-let modalStackId=null;
-async function openStack(name,focusSvc,focusSvcName){
- openModal();$('mTitle').textContent=name||'Stack';
- $('mBody').innerHTML='<div class="empty">loading…</div>';$('mCompose').textContent='';
- try{
-  let id;
-  if(name){const st=await api('/api/stacks');const meta=st.stacks.find(x=>x.name===name);
-   if(!meta)throw new Error('stack not found');id=meta.id}
-  else id=focusSvc;
-  const d=await api('/api/stacks/'+id);
-  modalStackId=id;
-  $('mTitle').textContent=d.name;
-  $('mRedeploy').onclick=()=>redeployStack(id,d.name);
-  $('mCompose').textContent=d.compose;
-  $('mBody').innerHTML='';
-  // rollback strip (before the service table): restore the pre-update snapshot
-  loadRollbackStrip(id,d.name);
-  const entries=Object.entries(d.images||{});
-  if(!entries.length){$('mBody').innerHTML='<div class="empty">No explicit images in compose file.</div>';return}
-  const tbl=document.createElement('table');
-  const thead=document.createElement('thead');
-  thead.innerHTML='<tr><th>Service</th><th>Current image</th><th>Set version</th></tr>';
-  tbl.appendChild(thead);
-  const body=document.createElement('tbody');tbl.appendChild(body);
-  entries.forEach(([svc,img])=>{
-   const tr=body.insertRow();
-   const c1=tr.insertCell();c1.innerHTML=`<b>${esc(svc)}</b>`;
-   const c2=tr.insertCell();c2.className='mono';c2.textContent=img;
-   const td=tr.insertCell();
-   const wrap=document.createElement('div');wrap.className='row';
-   const sel=document.createElement('input');
-   sel.type='text';sel.value=img;sel.style.cssText='flex:1;min-width:160px;max-width:280px';
-   const btn=document.createElement('button');btn.className='btn sm';btn.textContent='Apply & redeploy';
-   const hint=document.createElement('div');hint.className='b-sub';hint.style.cssText='color:var(--mut);font-size:12px';
-   hint.textContent='Edits the compose file permanently and redeploys the stack.';
-   const info=document.createElement('div');info.className='tag-sel';
-   btn.onclick=async()=>{
-    const val=sel.value.trim();
-    if(!/^[A-Za-z0-9_./:@-]+$/.test(val)){toast('Invalid image reference','err');return}
-    // warn if tag not in known registry tags
-    try{
-     const v=await api('/api/versions?image='+encodeURIComponent(img));
-     const all=[...(v.semver_tags||[]),...(v.other_tags||[])];
-     const typed=val.replace(/^[^:]+:/,'');
-     if(all.length&&typed&&!all.includes(typed)&&!val.includes('@sha256')){
-      if(!confirm(`Tag "${typed}" not found in registry tag list. Deploy anyway?`))return;
-     }
-    }catch(_){}
-    btn.disabled=true;btn.textContent='Deploying…';
-    try{await api(`/api/stacks/${id}/image`,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({service:svc,image:val})});
-     toast(`${svc} -> ${val} deployed`,'ok');loadStacks();refresh();
-    }catch(e){toast(e.message,'err')}
-    btn.disabled=false;btn.textContent='Apply & redeploy';
-   };
-   const tagsBtn=document.createElement('button');tagsBtn.className='btn sm sec';tagsBtn.textContent='Show available tags';
-   tagsBtn.onclick=async()=>{
-    tagsBtn.disabled=true;tagsBtn.textContent='Loading…';
-    try{
-     const v=await api('/api/versions?image='+encodeURIComponent(img));
-     info.innerHTML='';
-     const cur=(v.current_tag||'').trim();
-     const mk=t=>{const b=document.createElement('button');b.textContent=t;
-      if(t===cur||img.endsWith(':'+t))b.classList.add('cur');
-      b.onclick=()=>{sel.value=img.replace(/:[^:@]+(@.*)?$/,'')+':'+t;
-       sel.style.borderColor='var(--acc)';setTimeout(()=>sel.style.borderColor='',900);};
-      info.appendChild(b)};
-     (v.semver_tags||[]).slice(0,24).forEach(mk);
-     (v.other_tags||[]).slice(0,10).forEach(mk);
-     if(!(v.semver_tags||[]).length&&!(v.other_tags||[]).length)info.innerHTML='<span class="mono">no tags found (private registry?)</span>';
-    }catch(e){toast(e.message,'err')}
-    tagsBtn.disabled=false;tagsBtn.textContent='Show available tags';
-   };
-   wrap.appendChild(sel);wrap.appendChild(btn);wrap.appendChild(tagsBtn);
-   td.appendChild(wrap);td.appendChild(hint);td.appendChild(info);
-   if(focusSvcName===svc)tr.style.outline='1px solid var(--acc)';
-  });
-  $('mBody').appendChild(tbl);
- }catch(e){$('mBody').innerHTML=`<div class="empty">${esc(e.message)}</div>`}
-}
-/* ----------------------------------------------------- rollback (restore last healthy) */
-async function loadRollbackStrip(stackId, stackName){
- const box=$('mRollback');
- box.innerHTML='';
- let r;
- try{r=await api(`/api/stacks/${stackId}/rollback_info`)}
- catch(e){return}  // endpoint unavailable - ignore
- if(!r.has_snapshot){return}
- const when=r.snapshot_ts?new Date(r.snapshot_ts*1000).toLocaleString():'?';
- if(!r.changes.length){
-  box.innerHTML=`<div class="banner open" style="margin-bottom:10px"><div class="b-txt">
-   <b>Snapshot available</b><div class="b-sub">Pre-update images from ${esc(when)} - all services already match. Nothing to restore.</div></div></div>`;
-  return
- }
- const rows=r.changes.map(c=>
-  `<tr><td><b>${esc(c.service)}</b></td>
-   <td class="mono" style="color:var(--err)">${esc(c.current)}</td>
-   <td class="mono" style="color:var(--ok)">${esc(c.restore)}</td></tr>`).join('');
- const strip=document.createElement('div');
- strip.className='banner warn open';
- strip.style.marginBottom='10px';
- strip.innerHTML=`<div class="b-txt"><b>Broken after an update?</b>
-  <div class="b-sub">Snapshot from ${esc(when)} (pre-update state) can restore ${r.changes.length} service(s):</div>
-  <table style="margin-top:8px;width:100%;font-size:12.5px">
-   <thead><tr><th style="text-align:left">Service</th><th style="text-align:left">Current</th><th style="text-align:left">Restore to</th></tr></thead>
-   <tbody>${rows}</tbody></table></div>`;
- const btn=document.createElement('button');
- btn.className='btn sm';btn.style.marginTop='8px';btn.textContent='Restore these versions';
- btn.onclick=async()=>{
-  if(!btn.disabled){
-   btn.disabled=true;btn.textContent='Restoring…';
-   const images={};
-   r.changes.forEach(c=>images[c.service]=c.restore);
-   try{
-    const res=await api(`/api/stacks/${stackId}/rollback`,{method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({images})});
-    toast(`Rollback started - run ${res.run_id}`,'ok',true);
-    gateBusyFlag=true;setBusyUI(true);ensureBannerTimer();await refreshRunBanner();
-   }catch(e){toast(e.message,'err');btn.disabled=false;btn.textContent='Restore these versions'}
-  }
- };
- strip.appendChild(btn);
- box.appendChild(strip);
-}
-
-/* modal open/close: materialize (blur + scale) rather than plain fade.
-   Closing follows the same path back out, and both directions are interruptible. */
+/* ================================================================== modal */
 let modalOpen=false,lastFocus=null;
-function resetModalVars(){
- const bg=$('modalBg'),m=$('modal');
- setVar(bg,'--bg-op',0);setVar(bg,'--bg-blur',0);
- setVar(m,'--m-op',0);setVar(m,'--m-ty',18);setVar(m,'--m-sc',.97);
-}
-function openModal(){
- if(modalOpen)return;
- const bg=$('modalBg'),m=$('modal');
- modalOpen=true;
- lastFocus=document.activeElement;
- bg.classList.add('open');
- document.body.style.overflow='hidden';
- if(REDUCED.matches){
-  setVar(bg,'--bg-op',1);setVar(bg,'--bg-blur',0);
-  setVar(m,'--m-op',1);setVar(m,'--m-ty',0);setVar(m,'--m-sc',1);
- }else{
-  springTo(bg,{'--bg-op':1,'--bg-blur':14},{damping:1,response:.3});
-  springTo(m,{'--m-op':1,'--m-ty':0,'--m-sc':1},{damping:.9,response:.34});
- }
- try{m.focus({preventScroll:true})}catch(_){}
-}
-async function closeModal(){
- if(!modalOpen)return;
- modalOpen=false;
- const bg=$('modalBg'),m=$('modal');
- if(lastFocus&&lastFocus.focus){try{lastFocus.focus({preventScroll:true})}catch(_){}}
- lastFocus=null;
- if(REDUCED.matches){
-  setVar(bg,'--bg-op',0);
-  setVar(m,'--m-op',0);
-  await sleep(200);
- }else{
-  await Promise.all([
-   springTo(bg,{'--bg-op':0,'--bg-blur':0},{damping:1,response:.26}),
-   springTo(m,{'--m-op':0,'--m-ty':18,'--m-sc':.97},{damping:1,response:.26})
-  ]);
- }
- if(modalOpen)return;                 /* reopened mid-flight - keep it */
- bg.classList.remove('open');
- document.body.style.overflow='';
- resetModalVars();
-}
-
-/* sheet grabber: 1:1 tracking, rubber-band upward, momentum projection,
-   then hand the release velocity to the spring */
-const modalEl=$('modal'),headEl=$('mHead');
-let drag=null;
-headEl.addEventListener('pointerdown',e=>{
- if(e.button!==0||!modalOpen)return;
- if(e.target.closest('button,input,select,textarea,a'))return;
- drag={id:e.pointerId,y0:e.clientY,dy:0,samples:[{y:e.clientY,t:performance.now()}]};
- try{headEl.setPointerCapture(e.pointerId)}catch(_){}
- headEl.classList.add('dragging');
-});
-headEl.addEventListener('pointermove',e=>{
- if(!drag||!modalOpen||e.pointerId!==drag.id)return;
- let dy=e.clientY-drag.y0;
- if(dy<0)dy=rubberband(dy,modalEl.offsetHeight||480);
- drag.dy=dy;
- const last=drag.samples[drag.samples.length-1];
- if(e.clientY!==last.y){
-  drag.samples.push({y:e.clientY,t:performance.now()});
-  if(drag.samples.length>8)drag.samples.shift();
- }
- setVar(modalEl,'--m-ty',dy);                       /* glued to the pointer */
- const p=clamp(dy/((modalEl.offsetHeight||480)*.8),0,1);
- setVar($('modalBg'),'--bg-op',1-p*.9);
-});
-function endDrag(e){
- if(!drag||e.pointerId!==drag.id)return;
- const samples=drag.samples;
- const dy=drag.dy;
- headEl.classList.remove('dragging');
- drag=null;
- if(!modalOpen)return;
- const dt=(samples[samples.length-1].t-samples[0].t)/1000;
- const v=dt>.008?(samples[samples.length-1].y-samples[0].y)/dt:0;
- const h=modalEl.offsetHeight||480;
- const landing=dy+project(v);                       /* where the flick is going */
- if(v>500||landing>h*.35){
-  const bg=$('modalBg');
-  modalOpen=false;
-  if(lastFocus&&lastFocus.focus){try{lastFocus.focus({preventScroll:true})}catch(_){}}
-  lastFocus=null;
-  Promise.all([
-   springTo(bg,{'--bg-op':0,'--bg-blur':0},{damping:1,response:.24}),
-   springTo(modalEl,{'--m-ty':h*.9,'--m-op':0},{damping:1,response:.3,velocity:{'--m-ty':v}})
-  ]).then(()=>{
-   if(modalOpen)return;
-   bg.classList.remove('open');
-   document.body.style.overflow='';
-   resetModalVars();
-  });
- }else{
-  springTo($('modalBg'),{'--bg-op':1,'--bg-blur':14},{damping:1,response:.3});
-  springTo(modalEl,{'--m-ty':0,'--m-sc':1},{damping:.9,response:.36,velocity:{'--m-ty':v}});
- }
-}
-headEl.addEventListener('pointerup',endDrag);
-headEl.addEventListener('pointercancel',endDrag);
-
-$('mClose').onclick=closeModal;
+function openModal(){if(modalOpen)return;modalOpen=true;lastFocus=document.activeElement;
+ $('modalBg').classList.add('open');document.body.style.overflow='hidden';setTimeout(()=>{try{$('modal').focus({preventScroll:true})}catch(_){}},30)}
+function closeModal(instant){if(!modalOpen)return;modalOpen=false;$('modalBg').classList.remove('open');document.body.style.overflow='';
+ $('modal').style.transform='';if(lastFocus&&lastFocus.focus)try{lastFocus.focus({preventScroll:true})}catch(_){}}
+$('mClose').onclick=()=>closeModal();
 $('modalBg').onclick=e=>{if(e.target.id==='modalBg')closeModal()};
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+/* swipe down to close the sheet on phones */
+(function(){let y0=null,dy=0;const m=$('modal'),zone=[$('grabber'),document.querySelector('.m-head')];
+ zone.forEach(z=>{z.addEventListener('touchstart',e=>{if(e.target.closest('button'))return;y0=e.touches[0].clientY;dy=0;m.style.transition='none'},{passive:true});
+  z.addEventListener('touchmove',e=>{if(y0==null)return;dy=Math.max(0,e.touches[0].clientY-y0);m.style.transform=`translateY(${dy}px)`},{passive:true});
+  z.addEventListener('touchend',()=>{if(y0==null)return;m.style.transition='';y0=null;if(dy>110)closeModal();else m.style.transform=''})})})();
 
-/* ---------------------------------------------------------------- history */
-async function loadHistory(){
- const tb=$('histRows');
- tb.innerHTML='<tr><td colspan=7 class="empty">Loading…</td></tr>';
+async function openStack(name,id,focusSvc){
+ openModal();$('mTitle').textContent=name||'Stack';$('mRollback').innerHTML='';
+ $('mBody').innerHTML=`<div class="empty">${esc(t('common.loading'))}</div>`;$('mCompose').textContent='';
  try{
-  const hr=await api('/api/history');
-  const h=hr.history||[];
+  if(name){const st=stacksData||await api('/api/stacks');let meta=st.stacks.find(x=>x.name===name);
+   if(!meta){const fresh=await api('/api/stacks');meta=fresh.stacks.find(x=>x.name===name)}
+   if(!meta)throw new Error('stack not found');id=meta.id}
+  const d=await api('/api/stacks/'+id);
+  $('mTitle').textContent=d.name;
+  $('mRedeploy').onclick=()=>redeployStack(id,d.name,$('mRedeploy'));
+  $('mCompose').textContent=d.compose;
+  loadRollbackStrip(id);
+  const entries=Object.entries(d.images||{});
+  if(!entries.length){$('mBody').innerHTML=`<div class="empty">${esc(t('modal.no_images'))}</div>`;return}
+  $('mBody').innerHTML='';
+  entries.forEach(([svc,img])=>{
+   const box=document.createElement('div');box.className='svc-edit'+(focusSvc===svc?' focus':'');
+   const chk=(d.checks||{})[svc]||{};
+   box.innerHTML=`<div class="spread"><b>${esc(svc)}</b>${chk.update_available?`<span class="badge b-warn">${esc(t('stacks.upd_to',{t:chk.latest_tag||'digest'}))}</span>`:''}</div>
+    <div class="mono muted" style="margin-top:.2rem;overflow-wrap:anywhere">${esc(img)}</div>
+    <div class="row" style="margin-top:.6rem"><input type="text" style="flex:1;min-width:12rem"><button class="btn sm" data-apply>${esc(t('modal.apply'))}</button><button class="btn sec sm" data-tags>${esc(t('modal.tags'))}</button></div>
+    <div class="hint small muted" style="margin-top:.3rem">${esc(t('modal.edit_hint'))}</div><div class="tag-sel"></div>`;
+   const inp=box.querySelector('input'),ap=box.querySelector('[data-apply]'),tg=box.querySelector('[data-tags]'),info=box.querySelector('.tag-sel');
+   inp.value=img;
+   ap.onclick=async()=>{const val=inp.value.trim();
+    if(!/^[A-Za-z0-9_./:@-]+$/.test(val)){toast(t('toast.invalid_image'),'err');return}
+    try{const v=await api('/api/versions?image='+encodeURIComponent(img));const all=[...(v.semver_tags||[]),...(v.other_tags||[])];
+     const typed=val.replace(/^[^:]+:/,'');if(all.length&&typed&&!all.includes(typed)&&!val.includes('@sha256')&&!confirm(t('confirm.tag',{t:typed})))return}catch(_){}
+    await withBusy(ap,async()=>{try{await api(`/api/stacks/${id}/image`,{method:'POST',body:JSON.stringify({service:svc,image:val})});
+     toast(t('toast.deployed',{s:svc,i:val}),'ok');loadStacks();refresh()}catch(e){if(!(e instanceof AuthError))toast(e.message,'err')}})};
+   tg.onclick=()=>withBusy(tg,async()=>{try{const v=await api('/api/versions?image='+encodeURIComponent(img));info.innerHTML='';
+     const cur=(v.current_tag||'').trim();
+     const mk=x=>{const b=document.createElement('button');b.textContent=x;if(x===cur||img.endsWith(':'+x))b.classList.add('cur');
+      b.onclick=()=>{inp.value=img.replace(/:[^:@/]+(@.*)?$/,'')+':'+x;inp.focus()};info.appendChild(b)};
+     (v.semver_tags||[]).slice(0,24).forEach(mk);(v.other_tags||[]).slice(0,10).forEach(mk);
+     if(!info.children.length)info.innerHTML=`<span class="muted small">${esc(t('modal.no_tags'))}</span>`}
+    catch(e){if(!(e instanceof AuthError))toast(e.message,'err')}});
+   $('mBody').appendChild(box);
+   if(focusSvc===svc)setTimeout(()=>box.scrollIntoView({block:'center'}),80);
+  });
+ }catch(e){if(!(e instanceof AuthError))$('mBody').innerHTML=`<div class="empty">${esc(e.message)}</div>`}
+}
+async function loadRollbackStrip(stackId){
+ const box=$('mRollback');box.innerHTML='';let r;
+ try{r=await api(`/api/stacks/${stackId}/rollback_info`)}catch(e){return}
+ if(!r.has_snapshot)return;
+ const when=fmt(r.snapshot_ts);
+ if(!r.changes.length){box.innerHTML=`<div class="banner"><div class="ic"><svg class="i"><use href="#i-info"/></svg></div><div class="bt"><b>${esc(t('rb.snap'))}</b><div class="bs">${esc(t('rb.nothing',{w:when}))}</div></div></div>`;return}
+ const el=document.createElement('div');el.className='banner warn';
+ el.innerHTML=`<div class="ic"><svg class="i"><use href="#i-alert"/></svg></div><div class="bt"><b>${esc(t('rb.title'))}</b>
+  <div class="bs">${esc(t('rb.sub',{w:when,n:r.changes.length}))}</div>
+  <table class="diff"><thead><tr><th>${esc(t('modal.svc'))}</th><th>${esc(t('rb.current'))}</th><th>${esc(t('rb.restore'))}</th></tr></thead>
+  <tbody>${r.changes.map(c=>`<tr><td><b>${esc(c.service)}</b></td><td class="mono" style="color:var(--err)">${esc(c.current)}</td><td class="mono" style="color:var(--ok)">${esc(c.restore)}</td></tr>`).join('')}</tbody></table>
+  <button class="btn sm" style="margin-top:.6rem">${esc(t('rb.btn'))}</button></div>`;
+ const btn=el.querySelector('button');
+ btn.onclick=()=>withBusy(btn,async()=>{const images={};r.changes.forEach(c=>images[c.service]=c.restore);
+  try{const res=await api(`/api/stacks/${stackId}/rollback`,{method:'POST',body:JSON.stringify({images})});
+   toast(t('toast.rollback_started')+' · '+res.run_id,'ok',true);setBusyUI(true);ensureBannerTimer();refreshRunBanner()}
+  catch(e){if(!(e instanceof AuthError))toast(e.message,'err')}});
+ box.appendChild(el);
+}
+
+/* ================================================================ history */
+async function loadHistory(){
+ const box=$('histRows');
+ try{const hr=await api('/api/history');const h=hr.history||[];
   const okN=h.filter(r=>r.success).length;
   $('hRate').textContent=h.length?Math.round(okN/h.length*100)+'%':'–';
-  const full=h.filter(r=>r.kind==='full');
-  const durs=full.map(r=>r.duration_s).filter(x=>x!=null);
-  const avg=durs.length?Math.round(durs.reduce((a,b)=>a+b,0)/durs.length):null;
-  $('hDur').textContent=avg!=null?(avg>=60?Math.floor(avg/60)+'m '+avg%60+'s':avg+'s'):'–';
-  if(!h.length){tb.innerHTML='<tr><td colspan=7 class="empty">No runs yet.</td></tr>'}
-  else{
-   tb.innerHTML='';
-   [...h].reverse().forEach(r=>{
-    const d=r.duration_s;
-    const dur=d==null?'?':(d>=60?Math.floor(d/60)+'m '+Math.round(d%60)+'s':Math.round(d)+'s');
-    const tr=document.createElement('tr');
-    tr.innerHTML=`<td class="mono">${esc(r.run_id)}</td><td>${esc(r.kind)}</td><td>${esc(r.trigger)}</td>
-     <td>${fmt(r.finished)}</td><td class="num">${dur}</td>
-     <td>${r.success==null?'<span class="badge b-mut">restarted</span>':r.success?'<span class="badge b-ok">success</span>':'<span class="badge b-err">failed</span>'}</td>
-     <td><button class="btn sm sec" data-run="${esc(r.run_id)}">Log</button></td>`;
-    tr.querySelector('[data-run]').onclick=()=>showRunLog(r.run_id);
-    tb.appendChild(tr);
-    });
-   }
-  }catch(e){tb.innerHTML=`<tr><td colspan=7 class="empty">${esc(e.message)}</td></tr>`}
+  const durs=h.filter(r=>r.kind==='full').map(r=>r.duration_s).filter(x=>x!=null);
+  $('hDur').textContent=durs.length?dur(durs.reduce((a,b)=>a+b,0)/durs.length):'–';
+  if(!h.length){box.innerHTML=`<div class="empty">${esc(t('hist.none'))}</div>`;return}
+  box.innerHTML=[...h].reverse().map(r=>{
+   const b=r.success==null?`<span class="badge b-mut">${esc(t('run.restarted'))}</span>`:r.success?`<span class="badge b-ok">${esc(t('run.ok'))}</span>`:`<span class="badge b-err">${esc(t('run.failed'))}</span>`;
+   return `<div class="li click" data-run="${esc(r.run_id)}" tabindex="0" role="button"><div class="grow"><div class="t">${esc(kindTxt(r.kind))} <span class="muted small">· ${esc(trigTxt(r.trigger))}</span></div>
+    <div class="s">${esc(fmt(r.finished))} · ${dur(r.duration_s)} · <span class="mono">${esc(r.run_id)}</span></div></div>${b}</div>`}).join('');
+  box.querySelectorAll('[data-run]').forEach(el=>{el.onclick=()=>showRunLog(el.dataset.run);
+   el.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();showRunLog(el.dataset.run)}}});
+ }catch(e){if(!(e instanceof AuthError))box.innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
+let liveLogTimer=null;
+function stopLiveLog(){if(liveLogTimer){clearInterval(liveLogTimer);liveLogTimer=null}}
+async function showRunLog(id,live){
+ if(currentTab!=='history')showTab('history',true);
+ const wrap=$('runLogWrap'),p=$('runLog');wrap.classList.remove('hidden');$('runLogTitle').textContent=t('hist.log_title',{id});
+ p.textContent=t('common.loading');stopLiveLog();
+ const load=async()=>{try{const txt=await apiText('/api/runs/'+encodeURIComponent(id)+'/log');const atBottom=p.scrollHeight-p.scrollTop-p.clientHeight<40;
+  p.textContent=txt;if(atBottom||live)p.scrollTop=p.scrollHeight}catch(e){if(!(e instanceof AuthError))p.textContent=e.message}};
+ await load();setTimeout(()=>wrap.scrollIntoView({behavior:'smooth',block:'start'}),50);
+ if(live)liveLogTimer=setInterval(async()=>{await load();try{const c=await api('/api/runs/current');if(!c.active||c.run_id!==id)stopLiveLog()}catch(_){stopLiveLog()}},3000);
 }
-$('cInvCard').onclick=()=>showTab('stacks');
-$('cLastCard').onclick=()=>{if(lastFailedRun)showRunLog(lastFailedRun);else showTab('history')};
-cardKey($('cInvCard'),()=>showTab('stacks'));
-cardKey($('cLastCard'),()=>{if(lastFailedRun)showRunLog(lastFailedRun);else showTab('history')});
+$('runLogClose').onclick=()=>{$('runLogWrap').classList.add('hidden');stopLiveLog()};
 
-/* --------------------------------------------------------------- settings */
+/* =============================================================== settings */
+let settings=null;
 async function loadSettings(){
- try{
-  const s=await api('/api/settings');
-  $('sUrl').value=s.portainer_url||'';$('sKey').value=s.portainer_api_key||'';
-  $('sEid').value=s.portainer_endpoint_id??'';$('sTls').checked=!!s.tls_verify;
-  $('sMode').value=s.update_schedule_mode||'interval';$('sTime').value=s.update_schedule_time||'03:30';
-  $('sDay').value=s.update_schedule_day??0;$('sPar').value=s.max_parallel_deploys??3;
-  $('sWait').value=s.deploy_wait_time??300;
-  $('sIncludePortainer').checked=!!s.include_portainer;
-  $('sCache').value=s.check_cache_minutes??30;$('sKeep').value=s.keep_backups??5;
-  $('sHook').value=s.notify_webhook||'';$('sRep').checked=!!(s.repairs_enabled??(s.repairs&&s.repairs.enabled));
-  $('mountCheckResult').textContent='';
-  toggleScheduleMode();
-  // server time + tz
-  try{
-   const st=await api('/api/status');
-   $('sServerTime').textContent=st.scheduler.server_time_local||'–';
-   $('sServerTz').textContent=st.scheduler.server_tz||'';
-  }catch(_){}
- }catch(e){toast(e.message,'err')}
-}
-function toggleScheduleMode(){
- const m=$('sMode').value;
- $('modeInterval').style.display=m==='interval'?'':'none';
- $('modeTime').style.display=m!=='interval'?'':'none';
- $('modeWeekly').style.display=m==='weekly'?'':'none';
-}
+ try{const s=await api('/api/settings');settings=s;
+  $('sUrl').value=s.portainer_url||'';$('sKey').value=s.portainer_api_key||'';$('sEid').value=s.portainer_endpoint_id??'';
+  $('sMode').value=s.update_schedule_mode||'interval';$('sInt').value=s.update_interval_hours??168;$('sTime').value=s.update_schedule_time||'03:30';
+  $('sDay').value=s.update_schedule_day??0;$('sCheckInt').value=s.check_interval_hours??12;$('sCache').value=s.check_cache_minutes??30;
+  $('sPar').value=s.max_parallel_deploys??3;$('sWait').value=s.deploy_wait_time??300;$('sKeep').value=s.keep_backups??5;
+  $('sIncludePortainer').checked=!!s.include_portainer;$('sRep').checked=!!s.repairs_enabled;
+  $('sHook').value=s.notify_webhook||'';$('sNotifyUpd').checked=!!s.notify_on_updates;$('sSessionDays').value=s.session_days??30;
+  const fp=s.tls_fingerprint||'';$('sFp').value=fp?fp.match(/.{2}/g).join(':').toUpperCase():'';
+  $('sTlsMode').value=fp?'pinned':s.tls_verify?'system':'off';
+  const locked=new Set(s.env_locked||[]);
+  document.querySelectorAll('[data-lock]').forEach(el=>el.classList.toggle('hidden',!locked.has(el.dataset.lock)));
+  [['sUrl','portainer_url'],['sKey','portainer_api_key'],['sHook','notify_webhook'],['sMode','update_schedule_mode'],['sInt','update_interval_hours'],
+   ['sTime','update_schedule_time'],['sDay','update_schedule_day'],['sPar','max_parallel_deploys'],['sKeep','keep_backups'],['sIncludePortainer','include_portainer'],
+   ['sCheckInt','check_interval_hours'],['sNotifyUpd','notify_on_updates'],['sEid','portainer_endpoint_id'],['sWait','deploy_wait_time'],['sCache','check_cache_minutes'],
+   ['sSessionDays','session_days'],['sRep','repairs_enabled']].forEach(([id,k])=>$(id).disabled=locked.has(k));
+  $('sTlsMode').disabled=locked.has('tls_verify')||locked.has('tls_fingerprint');$('sFp').disabled=locked.has('tls_fingerprint');
+  $('pwChange').classList.toggle('hidden',!!s.password_from_env);$('pwEnvHint').classList.toggle('hidden',!s.password_from_env);
+  $('secKv').innerHTML=`<div class="k">${esc(t('set.sec_login'))}</div><div class="v">✓ ${esc(t('set.sec_login_v'))}</div>
+   <div class="k">${esc(t('set.sec_pw'))}</div><div class="v">${esc(t(s.password_from_env?'set.sec_pw_env':'set.sec_pw_ui'))}</div>
+   <div class="k">${esc(t('set.sec_secrets'))}</div><div class="v">✓ ${esc(t('set.sec_secrets_v'))}</div>
+   <div class="k">${esc(t('set.sec_tls'))}</div><div class="v">${esc(t('tls.'+(s.tls_mode||'off')))}</div>`;
+  toggleScheduleMode();updateTlsHint();$('mountCheckResult').textContent='';$('testResult').textContent='';$('certInfo').classList.add('hidden');
+  if(lastStatus&&lastStatus.scheduler){$('sServerTime').textContent=dayLoc(lastStatus.scheduler.server_time_local)||'–';$('sServerTz').textContent=lastStatus.scheduler.server_tz||''}
+ }catch(e){if(!(e instanceof AuthError))toast(e.message,'err')}}
+function toggleScheduleMode(){const m=$('sMode').value;
+ $('modeInterval').classList.toggle('hidden',m!=='interval');$('modeTime').classList.toggle('hidden',m!=='daily'&&m!=='weekly');
+ $('modeWeekly').classList.toggle('hidden',m!=='weekly');$('modeHint').textContent=t(m==='off'?'set.mode_hint_off':'set.mode_hint_on')}
 $('sMode').onchange=toggleScheduleMode;
+function updateTlsHint(){const m=$('sTlsMode').value,url=$('sUrl').value.trim();
+ $('tlsPinBox').classList.toggle('hidden',m!=='pinned');
+ $('tlsHint').textContent=url.startsWith('http://')?t('set.tls_hint_http'):t('set.tls_hint_'+m);
+ $('tlsHint').style.color=url.startsWith('http://')?'var(--warn)':''}
+$('sTlsMode').onchange=updateTlsHint;$('sUrl').oninput=updateTlsHint;
+const fpClean=v=>v.replace(/[^0-9a-fA-F]/g,'').toLowerCase();
+$('btnFetchCert').onclick=()=>withBusy($('btnFetchCert'),async()=>{const box=$('certInfo');
+ try{const c=await api('/api/tls/inspect',{method:'POST',body:JSON.stringify({portainer_url:$('sUrl').value.trim()})});
+  box.classList.remove('hidden');
+  box.innerHTML=`<div class="kv"><div class="k">${esc(t('set.cert_subject'))}</div><div class="v mono">${esc(c.subject)}${c.self_signed?` <span class="badge b-mut">${esc(t('set.cert_self'))}</span>`:''}</div>
+   <div class="k">${esc(t('set.cert_issuer'))}</div><div class="v mono">${esc(c.issuer)}</div>
+   <div class="k">${esc(t('set.cert_valid'))}</div><div class="v">${esc(new Date(c.not_after).toLocaleDateString(loc()))}</div>
+   <div class="k">${esc(t('set.cert_fp'))}</div><div class="v mono">${esc(c.fingerprint_pretty)}</div></div>
+   <div class="hint small muted" style="margin-top:.4rem">${esc(t('set.cert_compare'))}</div>
+   <div class="row" style="margin-top:.5rem"><button class="btn sm" id="btnUseCert">${esc(t('set.cert_use'))}</button></div>`;
+  $('btnUseCert').onclick=()=>{$('sFp').value=c.fingerprint_pretty;toast(t('toast.cert_pinned'),'ok')};
+ }catch(e){if(!(e instanceof AuthError)){box.classList.remove('hidden');box.innerHTML=`<div class="result err">${esc(e.message)}</div>`}}});
+function tlsBody(){const m=$('sTlsMode').value;return{tls_verify:m==='system',tls_fingerprint:m==='pinned'?fpClean($('sFp').value):''}}
+$('btnTest').onclick=()=>withBusy($('btnTest'),async()=>{const res=$('testResult');res.className='result';res.textContent=t('set.testing');
+ try{const body={portainer_url:$('sUrl').value.trim(),...tlsBody()};const k=$('sKey').value.trim();if(k&&k!=='***')body.portainer_api_key=k;
+  const r=await api('/api/test',{method:'POST',body:JSON.stringify(body)});res.className='result ok';res.textContent=t('set.test_ok',{v:r.version,e:r.endpoint_id})}
+ catch(e){if(!(e instanceof AuthError)){res.className='result err';res.textContent=t('set.test_fail',{m:e.message})}}});
+$('btnScan').onclick=()=>withBusy($('btnScan'),async()=>{const box=$('scanResult');box.classList.remove('hidden');box.textContent='…';
+ try{const body={portainer_url:$('sUrl').value.trim()};const k=$('sKey').value.trim();if(k&&k!=='***')body.portainer_api_key=k;
+  const r=await api('/api/endpoints',{method:'POST',body:JSON.stringify(body)});
+  if(!r.endpoints.length){box.innerHTML=`<div class="result">${esc(t('set.scan_none'))}</div>`;return}
+  box.innerHTML=`<div class="hint small muted" style="margin-top:.5rem">${esc(t('set.scan_pick'))}</div><div class="tag-sel"></div>`;
+  r.endpoints.forEach(e=>{const b=document.createElement('button');b.textContent=`${e.name} (ID ${e.id})`;
+   b.onclick=()=>{$('sEid').value=e.id;box.classList.add('hidden')};box.querySelector('.tag-sel').appendChild(b)})}
+ catch(e){if(!(e instanceof AuthError))box.innerHTML=`<div class="result err">${esc(e.message)}</div>`}});
+$('btnSave').onclick=()=>withBusy($('btnSave'),async()=>{
+ const body={portainer_url:$('sUrl').value.trim(),max_parallel_deploys:+$('sPar').value||3,deploy_wait_time:+$('sWait').value||300,
+  keep_backups:+$('sKeep').value||5,check_cache_minutes:+$('sCache').value||30,check_interval_hours:+$('sCheckInt').value||12,
+  notify_webhook:$('sHook').value.trim(),notify_on_updates:$('sNotifyUpd').checked,include_portainer:$('sIncludePortainer').checked,
+  repairs_enabled:$('sRep').checked,session_days:+$('sSessionDays').value||30,update_schedule_mode:$('sMode').value,...tlsBody()};
+ if(body.update_schedule_mode==='interval')body.update_interval_hours=+$('sInt').value||168;
+ if(body.update_schedule_mode==='daily'||body.update_schedule_mode==='weekly')body.update_schedule_time=$('sTime').value||'03:30';
+ if(body.update_schedule_mode==='weekly')body.update_schedule_day=+$('sDay').value||0;
+ const k=$('sKey').value.trim();if(k&&k!=='***')body.portainer_api_key=k;
+ if($('sEid').value.trim()!=='')body.portainer_endpoint_id=+$('sEid').value;
+ const locked=new Set((settings&&settings.env_locked)||[]);
+ for(const key of Object.keys(body))if(locked.has(key))delete body[key];
+ if(locked.has('repairs_enabled'))delete body.repairs_enabled;
+ try{await api('/api/settings',{method:'POST',body:JSON.stringify(body)});toast(t('toast.saved'),'ok');
+  const first=body.portainer_url&&body.portainer_api_key;await loadSettings();refresh();
+  if(first){try{await api('/api/check',{method:'POST',body:JSON.stringify({force:true})});toast(t('toast.first_check'),'ok');ensureBannerTimer()}catch(_){}}}
+ catch(e){if(!(e instanceof AuthError))toast(e.message,'err',true)}});
+$('btnPw').onclick=()=>withBusy($('btnPw'),async()=>{
+ const n=$('pwNew').value;if(n.length<minPw){toast(t('auth.too_short',{n:minPw}),'err');return}
+ try{await api('/api/auth/password',{method:'POST',body:JSON.stringify({current:$('pwCur').value,new:n})});
+  $('pwCur').value='';$('pwNew').value='';toast(t('toast.pw_changed'),'ok')}catch(e){if(!(e instanceof AuthError))toast(e.message,'err')}});
+$('btnMountCheck').onclick=()=>withBusy($('btnMountCheck'),async()=>{const r0=$('mountCheckResult');
+ try{const r=await api('/api/portainer_mount_check');r0.className='result '+(r.ok?'ok':'err');r0.textContent=r.message||r.state}
+ catch(e){if(!(e instanceof AuthError)){r0.className='result err';r0.textContent=e.message}}});
+$('btnSelfUpdate').onclick=()=>{if(!confirm(t('confirm.self')))return;withBusy($('btnSelfUpdate'),async()=>{
+ try{const r=await api('/api/self_update',{method:'POST'});toast(t('toast.self_started')+' · '+r.run_id,'ok',true);setBusyUI(true);ensureBannerTimer()}
+ catch(e){if(!(e instanceof AuthError))toast(e.message,'err')}})};
+$('btnPrune').onclick=()=>{if(!confirm(t('confirm.prune')))return;withBusy($('btnPrune'),async()=>{
+ try{const r=await api('/api/prune',{method:'POST'});toast(t('toast.prune_started')+' · '+r.run_id,'ok');setBusyUI(true);ensureBannerTimer();refreshRunBanner()}
+ catch(e){if(!(e instanceof AuthError))toast(e.message,'err')}})};
 
-/* endpoint scan: list Portainer endpoints, let user pick one */
-$('btnScan').onclick=async()=>{
- const res=$('scanResult');
- res.style.display='block';res.textContent='scanning…';
- try{
-  const u=$('sUrl').value.trim();
-  let q='';
-  if(u||($('sKey').value.trim()&&$('sKey').value.trim()!=='***')){
-   q='?url='+encodeURIComponent(u)+'&key='+encodeURIComponent($('sKey').value.trim()==='***'?'':$('sKey').value.trim());
-  }
-  const r=await api('/api/endpoints'+q);
-  const box=document.createElement('div');box.className='tag-sel';
-  r.endpoints.forEach(e=>{
-   const b=document.createElement('button');
-   b.textContent=`${e.name} (ID ${e.id}${e.type===1?' · local':''})`;
-   b.onclick=()=>{$('sEid').value=e.id;$('scanResult').style.display='none'};
-   box.appendChild(b);
-  });
-  res.innerHTML='<div style="color:var(--mut);font-size:12px;margin-bottom:4px">click to select:</div>';
-  res.appendChild(box);
-  if(!r.endpoints.length)res.innerHTML='<span class="mono">no endpoints found</span>';
- }catch(e){res.innerHTML=`<span class="mono">${esc(e.message)}</span>`}
-};
-$('btnSave').onclick=async()=>{
- try{
-  const body={portainer_url:$('sUrl').value.trim(),
-   max_parallel_deploys:+$('sPar').value||3,deploy_wait_time:+$('sWait').value||300,
-   keep_backups:+$('sKeep').value||5,
-    check_cache_minutes:+$('sCache').value||30,
-    notify_webhook:$('sHook').value.trim(),
-    tls_verify:$('sTls').checked,include_portainer:$('sIncludePortainer').checked,
-    repairs_enabled:$('sRep').checked};
-  const mode=$('sMode').value;
-  body.update_schedule_mode=mode;
-  if(mode==='interval')body.update_interval_hours=+$('sInt').value||168;
-  else{
-   body.update_schedule_time=$('sTime').value||'03:30';
-   if(mode==='weekly')body.update_schedule_day=+$('sDay').value||0;
-  }
-  if($('sKey').value.trim()&&$('sKey').value.trim()!=='***')body.portainer_api_key=$('sKey').value.trim();
-  if($('sEid').value.trim()!=='')body.portainer_endpoint_id=+$('sEid').value;
-  await api('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  toast('Settings saved','ok');refresh();
-  // first-run convenience: only when credentials were JUST set
-  const firstRun=body.portainer_url&&body.portainer_api_key;
-  if(firstRun){
-   try{await api('/api/check',{method:'POST',body:JSON.stringify({force:true})});
-    toast('Connected. First check started - open Stacks to see per-service status','ok')}catch(e){}
-  }
- }catch(e){toast(e.message,'err')}
-};
-$('btnMountCheck').onclick=async()=>{
- const res=$('mountCheckResult');
- res.textContent='checking…';
- try{
-  const r=await api('/api/portainer_mount_check');
-  res.textContent=r.message||String(r.state);
-  res.style.color=r.ok?'var(--ok)':'var(--err)';
- }catch(e){res.textContent=e.message;res.style.color='var(--err)'}
-};
-$('btnSelfUpdate').onclick=async()=>{
- if(!confirm('Update this app (PUS) now?\n\nRedeploys its own stack - the container will restart and the UI reconnects in a few seconds.'))return;
- const b=$('btnSelfUpdate');b.dataset.busy='1';
- try{const r=await api('/api/self_update',{method:'POST'});
-  toast('PUS self-update started - run '+r.run_id,'ok',true);
-  gateBusyFlag=true;setBusyUI(true);ensureBannerTimer();await refreshRunBanner()}
- catch(e){toast(e.message,'err')}
- finally{delete b.dataset.busy}
-};
-$('btnTest').onclick=async()=>{
- $('testResult').textContent='testing…';
- try{
-  const body={portainer_url:$('sUrl').value.trim()};
-  const key=$('sKey').value.trim();
-  if(key&&key!=='***')body.portainer_api_key=key;
-  const r=await api('/api/test',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(body)});
-  $('testResult').textContent=`OK - Portainer ${r.version} · endpoint ${r.endpoint_id}`;
- }catch(e){$('testResult').textContent='FAILED: '+e.message}
-};
-$('btnPrune').onclick=async()=>{
- if(!confirm('Docker prune deletes ALL unused images and build cache.\n\nRollback to previous image versions becomes impossible and re-pulling will take time.\n\nContinue?'))return;
- const b=$('btnPrune');b.dataset.busy='1';
- try{const r=await api('/api/prune',{method:'POST'});
-  toast('Prune started - run '+r.run_id,'ok');gateBusyFlag=true;
-  setBusyUI(true);ensureBannerTimer();await refreshRunBanner()}
- catch(e){toast(e.message,'err')}
- finally{delete b.dataset.busy}
-};
+/* ================================================================ actions */
+async function doCheck(btn){await withBusy(btn,async()=>{try{await api('/api/check',{method:'POST',body:JSON.stringify({force:true})});
+ toast(t('toast.check_started'),'ok');setBusyUI(true);ensureBannerTimer();refreshRunBanner()}catch(e){if(!(e instanceof AuthError))toast(e.message,'err')}})}
+async function doUpdate(btn){if(!confirm(t('confirm.update')))return;await withBusy(btn,async()=>{try{const r=await api('/api/update',{method:'POST'});
+ toast(t('toast.update_started')+' · '+r.run_id,'ok',true);setBusyUI(true);ensureBannerTimer();refreshRunBanner();showTab('dash')}catch(e){if(!(e instanceof AuthError))toast(e.message,'err')}})}
+$('btnCheck').onclick=()=>doCheck($('btnCheck'));$('btnCheck2').onclick=()=>doCheck($('btnCheck2'));$('btnRecheck').onclick=()=>doCheck($('btnRecheck'));
+$('btnUpdate').onclick=()=>doUpdate($('btnUpdate'));$('btnUpdate2').onclick=()=>doUpdate($('btnUpdate2'));
 
-/* ---------------------------------------------------------------- actions */
-function setBusyUI(busy){
- $('btnCheck').disabled=busy;$('btnUpdate').disabled=busy;$('btnPrune').disabled=busy;
- $('btnRecheck').disabled=busy;
-}
-$('btnCheck').onclick=async()=>{
- const b=$('btnCheck');b.dataset.busy='1';
- try{await api('/api/check',{method:'POST',body:JSON.stringify({force:true})});
-  toast('Update check started','ok');ensureBannerTimer();setBusyUI(true);
-  gateBusyFlag=true;await refreshRunBanner()}
- catch(e){toast(e.message,'err')}
- finally{delete b.dataset.busy}
-};
-$('btnRecheck').onclick=()=>$('btnCheck').onclick();
-$('btnUpdate').onclick=async()=>{
- if(!confirm('Run full update now?\n\n- backs up Portainer data\n- prunes unused images + build cache\n- redeploys ALL stacks (waits for each to become healthy)\n- updates Portainer itself\n\nThis takes several minutes (deploys run up to '+($('sWait')?.value||300)+'s per stack, max '+($('sPar')?.value||3)+' parallel).'))return;
- const b=$('btnUpdate');b.dataset.busy='1';
- try{const r=await api('/api/update',{method:'POST'});
-  toast('Full update started - run '+r.run_id,'ok',true);
-  gateBusyFlag=true;setBusyUI(true);ensureBannerTimer();await refreshRunBanner();
-  showTab('dash')}
- catch(e){toast(e.message,'err')}
- finally{delete b.dataset.busy}
-};
-
-/* keyboard parity for the clickable summary cards */
-function cardKey(el,fn){
- el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fn()}});
-}
-
-/* ------------------------------------------------------------------- boot */
-refresh();setInterval(refresh,15000);
-movePill(false);onScroll();
-
+/* =================================================================== boot */
+document.querySelectorAll('[data-lang]').forEach(b=>b.onclick=()=>setLang(b.dataset.lang));
+document.querySelectorAll('[data-theme-v]').forEach(b=>b.onclick=()=>setTheme(b.dataset.themeV));
+LANG=store.get('pus_lang')||'hu';
+setTheme(store.get('pus_theme')||'auto');
+applyI18n();
+boot();
 </script>
 </body>
 </html>

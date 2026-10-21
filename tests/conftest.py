@@ -37,7 +37,29 @@ def tmp_state(tmp_path, monkeypatch):
     # re-export reloaded objects for consumers that hold module references
     import app.history as history
     importlib.reload(history)
+    from app import auth, crypto
+    crypto.reset_cache()
+    auth.reset_rate_limits()
     yield state
+
+
+TEST_PASSWORD = "test-password-123"
+
+
+@pytest.fixture()
+def api_client(tmp_state, monkeypatch):
+    """Flask test client that is already logged in (session cookie) and sends
+    the CSRF header on every request - mirrors what the real UI does."""
+    monkeypatch.setenv("PUS_AUTH_TOKEN", TEST_PASSWORD)
+    import app.config as cfg
+    cfg.load(force=True)
+    from app.main import app
+    app.config["TESTING"] = True
+    with app.test_client() as c:
+        c.environ_base["HTTP_X_PUS_REQUEST"] = "1"
+        r = c.post("/api/auth/login", json={"password": TEST_PASSWORD})
+        assert r.status_code == 200, r.get_json()
+        yield c
 
 
 @pytest.fixture()

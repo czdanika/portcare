@@ -8,10 +8,22 @@ portainer_api_key: "ptr_xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 # Leave null to auto-detect this host's endpoint via hostname match
 portainer_endpoint_id: null
 
-# How often checks + full updates run (hours). 168 = weekly
-update_interval_hours: 168
+# Automatic updates: interval | daily | weekly | off
+#   off = never update automatically - only check and notify
+update_schedule_mode: "off"
+update_interval_hours: 168      # interval mode
+update_schedule_time: "03:30"   # daily / weekly mode (server time, TZ env)
+update_schedule_day: 6          # weekly mode: 0=Monday .. 6=Sunday
 
-# Verify Portainer TLS certificate (false for self-signed LAN certs)
+# Registry check cadence (hours), independent of the update schedule
+check_interval_hours: 12
+
+# TLS towards Portainer. Recommended: pin Portainer's certificate
+# (Settings > TLS > "Fetch certificate" fills this in). Works with the
+# default self-signed certificate and with IP addresses.
+tls_fingerprint: ""
+
+# Verify against a CA instead (only for publicly trusted certificates)
 tls_verify: false
 
 # Only needed with tls_verify: true AND a self-signed Portainer cert:
@@ -33,19 +45,20 @@ include_portainer: false
 check_cache_minutes: 30
 
 # Web UI bind address. Default 127.0.0.1 = localhost only (safe).
-# Only change to 0.0.0.0 if you front the app with an authenticated
-# reverse proxy or set auth_token below.
+# Containers must use 0.0.0.0 (login is mandatory either way).
 listen_host: "127.0.0.1"
 listen_port: 8090
 
-# Optional API auth: if set, ALL mutating API calls (POST/PUT/DELETE)
-# require "Authorization: Bearer <auth_token>". Recommended when the UI
-# is reachable from other machines.
-auth_token: ""
+# Login is ALWAYS required. The admin password is either
+#  - created in the UI on first start (stored here as auth_password_hash), or
+#  - passed via env PUS_AUTH_TOKEN / PUS_ADMIN_PASSWORD (never written here).
+session_days: 30
 
-# Optional failure notifications: POSTs a JSON summary to this URL whenever
-# an update run fails (compatible with ntfy.sh: https://ntfy.sh/your-topic)
+# Optional notifications: POSTs JSON to this URL when an update run fails,
+# and (notify_on_updates: true) when a check finds new updates.
+# Stored encrypted (enc:v1:...) once saved from the UI.
 notify_webhook: ""
+notify_on_updates: false
 
 # Network integrity repairs, run after every full update.
 # Built-in (no config needed): detects containers with a STALE host-gateway

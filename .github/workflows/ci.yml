@@ -20,7 +20,7 @@ jobs:
         run: |
           python -m pip install --quiet --upgrade pip
           pip install -r requirements.txt
-          pip install --quiet pytest pytest-timeout dukpy
+          pip install --quiet pytest pytest-timeout
 
       - name: Compile gate (syntax)
         run: python -m compileall -q app
@@ -32,23 +32,15 @@ jobs:
       - name: Test suite
         run: python -m pytest tests/ -q --timeout=30
 
-      - name: JS syntax gate (dukpy - catches duplicate let/const with zero build errors)
+      - name: JS syntax gate (node --check)
         run: |
           python - <<'EOF'
           import re, pathlib
           s = pathlib.Path('ui/index.html').read_text(encoding='utf-8')
           js = '\n'.join(re.findall(r'<script>(.*?)</script>', s, re.S))
           pathlib.Path('ui_extract.js').write_text(js, encoding='utf-8')
-          from dukpy import JSInterpreter
-          try:
-              JSInterpreter().evaljs(js)
-              print('JS PARSE OK')
-          except Exception as e:
-              if 'localStorage' in str(e):
-                  print('JS PARSE OK (sandboxed localStorage expected)')
-              else:
-                  raise SystemExit(f'JS SYNTAX ERROR: {e}')
           EOF
+          node --check ui_extract.js && echo 'JS SYNTAX OK'
 
       - name: Duplicate-ID gate
         run: |

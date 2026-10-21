@@ -104,13 +104,10 @@ class TestSaveLoadRoundTrip:
         assert cfg2["repairs"]["enabled"] is False
         assert cfg2["repairs_enabled"] is False
 
-    def test_settings_post_two_pass(self, tmp_state):
+    def test_settings_post_two_pass(self, api_client):
         # a bad key must never leave earlier keys mutated (two-pass validation)
         from app import config as cfg
-        from app.main import app
-        app.config["TESTING"] = True
-        client = app.test_client()
-        cfg.load(force=True)
+        client = api_client
         before = cfg.load()["max_parallel_deploys"]
         r = client.post("/api/settings", json={
             "max_parallel_deploys": 5, "made_up_key": "x"})

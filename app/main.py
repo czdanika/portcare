@@ -1,18 +1,23 @@
 """Flask app: REST API + static frontend for the Portainer update service.
 
-Hardened: shared job gate for all mutating routes, optional Bearer-token auth,
-input validation, non-blocking /api/stacks, run-progress endpoints, /healthz.
+Hardened: mandatory login (session cookie or Bearer), CSRF guard, shared job
+gate for all mutating routes, input validation, encrypted secrets at rest,
+TLS certificate pinning, non-blocking /api/stacks, /healthz.
 """
+import os
 import re
 import socket
 import threading
 import time
+from datetime import timedelta
 from pathlib import Path
 
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory, session
+from flask.sessions import SecureCookieSessionInterface
 
-from . import checker, compose as compose_mod, dockerhub, history, updater
-from .config import get, load, set as cfg_set, save as cfg_save, ConfigError
+from . import auth, checker, compose as compose_mod, crypto, dockerhub, history, updater
+from . import config as config_mod
+from .config import get, load, set as cfg_set, save as cfg_save, ConfigError, env_locked
 from .history import RunLogger
 from .jobs import gate
 from .portainer import Portainer, PortainerError
@@ -20,6 +25,30 @@ from .scheduler import scheduler
 
 app = Flask(__name__, static_folder=None)
 UI_DIR = Path(__file__).resolve().parent.parent / "ui"
+app.config.update(
+    SESSION_COOKIE_NAME="pus_session",
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Strict",
+    # set PUS_COOKIE_SECURE=true when the UI is served over HTTPS only
+    SESSION_COOKIE_SECURE=os.environ.get("PUS_COOKIE_SECURE", "").lower() in ("1", "true", "yes"),
+)
+
+
+def _init_secret_key():
+    if not app.secret_key:
+        app.secret_key = crypto.session_key()
+
+
+class _LazyKeySessionInterface(SecureCookieSessionInterface):
+    """Loads the signing key from DATA_DIR on first use (not at import time,
+    so tests and PUS_DATA_DIR relocation keep working)."""
+
+    def get_signing_serializer(self, app_):
+        _init_secret_key()
+        return super().get_signing_serializer(app_)
+
+
+app.session_interface = _LazyKeySessionInterface()
 
 
 def _err(msg, code=400):
@@ -28,39 +57,138 @@ def _err(msg, code=400):
 
 # ------------------------------------------------------------------- auth
 MUTATING = {"POST", "PUT", "DELETE"}
+PUBLIC_API = {"/api/auth/status", "/api/auth/login", "/api/auth/setup"}
+
+
+def _client_ip() -> str:
+    return request.remote_addr or "?"
+
+
+def _session_valid() -> bool:
+    return bool(session.get("auth")) and session.get("pv") == auth.password_version()
+
+
+def _bearer_valid() -> bool:
+    h = request.headers.get("Authorization", "")
+    if not h.startswith("Bearer "):
+        return False
+    ip = _client_ip()
+    if auth.lockout_remaining(ip):
+        return False
+    ok = auth.check_password(h[7:].strip())
+    if ok:
+        auth.record_success(ip)
+    else:
+        auth.record_failure(ip)
+    return ok
+
+
+def _same_origin() -> bool:
+    origin = request.headers.get("Origin", "")
+    if not origin:
+        return True  # same-origin fetches without Origin / CLI clients
+    return origin.rstrip("/") == request.host_url.rstrip("/")
 
 
 @app.before_request
 def _auth_gate():
-    """Two protections for mutating requests:
+    """Every /api/* route requires a logged-in session (or a Bearer password).
 
-    1. Bearer auth when auth_token is set (constant-time compare).
-    2. CSRF guard when it is NOT set: a cross-site form POST from any
-       website the user visits would otherwise trigger /api/update,
-       /api/prune, /api/self_update (browsers cannot set custom headers
-       cross-origin without a preflight, and simple form posts skip
-       preflight). Requiring a same-origin Origin header (or its absence
-       for same-origin/CLI requests) closes that path without affecting
-       the UI, which always sends a custom Authorization header.
+    - static UI files + /healthz stay public (the UI renders the login form);
+    - mutating requests need a same-origin Origin header AND the custom
+      X-PUS-Request header (CSRF: cross-site forms cannot set it, and the
+      SameSite=Strict cookie is not sent cross-site anyway);
+    - no password configured yet -> 401 setup_required (first-run screen).
     """
-    if request.method not in MUTATING:
+    _init_secret_key()
+    path = request.path
+    if not path.startswith("/api/"):
         return None
-    token = get("auth_token", "")
-    if token:
-        supplied = request.headers.get("Authorization", "")
-        # constant-time compare to avoid timing leaks (plain == short-circuits)
-        import hmac
-        ok = hmac.compare_digest(supplied, f"Bearer {token}")
-        if not ok:
-            return _err("unauthorized - set Authorization: Bearer <auth_token>", 401)
+    if request.method in MUTATING and not _same_origin():
+        return _err("cross-site request rejected", 403)
+    if path in PUBLIC_API:
         return None
-    # no auth_token configured: enforce same-origin (CSRF protection).
-    origin = request.headers.get("Origin", "")
-    if origin:
-        base = request.host_url.rstrip("/")
-        if origin.rstrip("/") != base:
-            return _err("cross-site request rejected - enable auth_token to "
-                        "call the API from other origins", 403)
+    if not auth.configured():
+        return jsonify({"error": "setup required - create an admin password",
+                        "setup_required": True}), 401
+    if _session_valid():
+        if request.method in MUTATING and request.headers.get("X-PUS-Request") != "1":
+            return _err("missing X-PUS-Request header (CSRF protection)", 403)
+        return None
+    if _bearer_valid():
+        return None
+    return jsonify({"error": "login required", "login_required": True}), 401
+
+
+def _login_session(remember: bool):
+    session.clear()
+    session["auth"] = True
+    session["pv"] = auth.password_version()
+    session["t"] = int(time.time())
+    session.permanent = bool(remember)
+    app.permanent_session_lifetime = timedelta(days=int(get("session_days", 30)))
+
+
+@app.route("/api/auth/status")
+def api_auth_status():
+    return jsonify({
+        "authenticated": auth.configured() and _session_valid(),
+        "setup_required": not auth.configured(),
+        "password_from_env": auth.password_from_env(),
+        "min_password_len": auth.MIN_PASSWORD_LEN,
+    })
+
+
+@app.route("/api/auth/setup", methods=["POST"])
+def api_auth_setup():
+    """First run only: create the admin password and log in."""
+    if auth.configured():
+        return _err("already configured", 409)
+    body = request.get_json(silent=True) or {}
+    try:
+        auth.set_password(str(body.get("password") or ""))
+    except config_mod.ConfigError as e:
+        return _err(str(e))
+    _login_session(remember=True)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/auth/login", methods=["POST"])
+def api_auth_login():
+    if not auth.configured():
+        return jsonify({"error": "setup required", "setup_required": True}), 401
+    ip = _client_ip()
+    wait = auth.lockout_remaining(ip)
+    if wait:
+        return jsonify({"error": f"too many failed attempts - try again in {wait}s",
+                        "retry_after": wait}), 429
+    body = request.get_json(silent=True) or {}
+    if not auth.check_password(str(body.get("password") or "")):
+        auth.record_failure(ip)
+        time.sleep(0.4)  # flatten timing + slow down online guessing
+        return _err("wrong password", 401)
+    auth.record_success(ip)
+    _login_session(remember=bool(body.get("remember", True)))
+    return jsonify({"ok": True})
+
+
+@app.route("/api/auth/logout", methods=["POST"])
+def api_auth_logout():
+    session.clear()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/auth/password", methods=["POST"])
+def api_auth_password():
+    body = request.get_json(silent=True) or {}
+    if not auth.check_password(str(body.get("current") or "")):
+        return _err("current password is wrong", 403)
+    try:
+        auth.set_password(str(body.get("new") or ""))
+    except config_mod.ConfigError as e:
+        return _err(str(e))
+    _login_session(remember=True)  # keep THIS browser logged in
+    return jsonify({"ok": True})
 
 
 def _client() -> Portainer:
@@ -122,8 +250,35 @@ def api_status():
     }
     snap["configured"] = _configured()
     snap["endpoint_configured"] = get("portainer_endpoint_id") is not None
-    snap["auth_enabled"] = bool(get("auth_token", ""))
+    snap["auth_enabled"] = True
+    snap["schedule_off"] = get("update_schedule_mode", "interval") == "off"
+    snap["tls_mode"] = _tls_mode_now()
+    snap["decrypt_error"] = config_mod.decrypt_error
     return jsonify(snap)
+
+
+def _tls_mode_now() -> str:
+    from .portainer import tls_mode
+    url = get("portainer_url", "") or ""
+    if url.startswith("http://"):
+        return "http"
+    return tls_mode(bool(get("tls_verify", False)), get("tls_ca_file", ""),
+                    get("tls_fingerprint", ""))
+
+
+@app.route("/api/tls/inspect", methods=["POST"])
+def api_tls_inspect():
+    """Fetch Portainer's certificate (without trusting it) so the user can
+    compare + pin its SHA-256 fingerprint in Settings."""
+    from .portainer import fetch_certificate
+    body = request.get_json(silent=True) or {}
+    url = (body.get("portainer_url") or get("portainer_url") or "").strip()
+    if not url.startswith("https://"):
+        return _err("pinning needs an https:// Portainer URL")
+    try:
+        return jsonify({"ok": True, **fetch_certificate(url)})
+    except (OSError, ValueError) as e:
+        return _err(f"could not read the certificate: {e}", 502)
 
 
 @app.route("/healthz")
@@ -151,23 +306,30 @@ def api_test():
     key = body.get("portainer_api_key") or get("portainer_api_key")
     if not url or not key or key == "***":
         return _err("not configured - Portainer URL and API key required", 400)
-    client = Portainer(url, key, tls_verify=bool(get("tls_verify", False)),
-                          tls_ca_file=(get("tls_ca_file", "") or None))
+    fp = body["tls_fingerprint"] if "tls_fingerprint" in body else get("tls_fingerprint", "")
+    try:
+        fp = config_mod.validate("tls_fingerprint", fp)
+    except ConfigError as e:
+        return _err(str(e))
+    client = Portainer(url, key, tls_verify=bool(body.get("tls_verify", get("tls_verify", False))),
+                       tls_ca_file=(get("tls_ca_file", "") or None), tls_fingerprint=fp)
     try:
         st = client.status()
         endpoint_id = client.resolve_endpoint(socket.gethostname())
     except PortainerError as e:
         return _err(str(e), 502)
     return jsonify({"ok": True, "version": st.get("Version") or st.get("version") or "?",
-                    "endpoint_id": endpoint_id})
+                    "endpoint_id": endpoint_id, "tls_mode": client.tls_mode})
 
 
-@app.route("/api/endpoints")
+@app.route("/api/endpoints", methods=["GET", "POST"])
 def api_endpoints():
     """Scan Portainer for available endpoints (Settings 'Scan' button).
-    Accepts ?url=&key= params to scan BEFORE saving credentials."""
-    url = request.args.get("url") or get("portainer_url")
-    key = request.args.get("key") or get("portainer_api_key")
+    POST {"portainer_url", "portainer_api_key"} scans BEFORE saving
+    credentials (kept out of the query string, so keys never hit logs)."""
+    body = request.get_json(silent=True) or {}
+    url = body.get("portainer_url") or request.args.get("url") or get("portainer_url")
+    key = body.get("portainer_api_key") or request.args.get("key") or get("portainer_api_key")
     if not url or not key or key == "***":
         return _err("not configured - Portainer URL and API key required", 400)
     client = Portainer(url, key, tls_verify=bool(get("tls_verify", False)),
@@ -629,7 +791,14 @@ def api_settings_get():
     cfg = dict(load())
     # never expose the secrets themselves
     cfg["portainer_api_key"] = "***" if cfg.get("portainer_api_key") else ""
-    cfg["auth_token"] = "***" if cfg.get("auth_token") else ""
+    cfg["notify_webhook"] = "***" if cfg.get("notify_webhook") else ""
+    cfg.pop("auth_token", None)
+    cfg.pop("auth_password_hash", None)
+    cfg["password_from_env"] = auth.password_from_env()
+    cfg["env_locked"] = sorted(k for k in cfg if env_locked(k))
+    cfg["tls_mode"] = _tls_mode_now()
+    cfg["decrypt_error"] = config_mod.decrypt_error
+    cfg["secrets_encrypted"] = True
     # flat alias mirroring cfg["repairs"]["enabled"] (UI checkbox reads this)
     cfg["repairs_enabled"] = bool(cfg.get("repairs", {}).get("enabled", True))
     return jsonify(cfg)
@@ -643,9 +812,10 @@ def api_settings_post():
                "update_schedule_time", "update_schedule_day",
                "tls_verify", "max_parallel_deploys", "tls_ca_file",
                "deploy_wait_time", "keep_backups",
-               "check_cache_minutes", "listen_port", "auth_token",
+               "check_cache_minutes", "listen_port",
                "notify_webhook", "include_portainer",
-               "repairs_enabled"}
+               "repairs_enabled", "check_interval_hours", "tls_fingerprint",
+               "notify_on_updates", "session_days"}
     # two-pass: validate EVERYTHING first, then apply - a bad key must never
     # leave earlier keys mutated in memory (memory/disk divergence)
     from .config import validate
@@ -653,10 +823,13 @@ def api_settings_post():
     for k, v in body.items():
         if k not in allowed:
             return _err(f"unknown setting: {k}")
-        if k == "portainer_api_key" and v == "***":
+        if k in ("portainer_api_key", "notify_webhook") and v == "***":
             continue
-        if k == "auth_token" and v == "***":
-            continue
+        if env_locked(k):
+            if v == get(k):
+                continue  # unchanged value echoed back by the form
+            return _err(f"{k} is set via environment variable (PUS_{k.upper()}) "
+                        "- change it in the stack")
         try:
             validated[k] = validate(k, v)  # raises ConfigError on garbage
         except ConfigError as e:
@@ -670,6 +843,7 @@ def api_settings_post():
 # ----------------------------------------------------------------------- main
 def main():
     load()
+    _init_secret_key()
     from .history import mark_interrupted
     mark_interrupted()  # convert stale 'running' markers from a crash
     scheduler.start()

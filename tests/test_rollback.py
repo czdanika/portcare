@@ -189,12 +189,8 @@ class TestSnapshotsInRedeploy:
 
 class TestRollbackApi:
     @pytest.fixture()
-    def client(self, tmp_state, monkeypatch):
-        from app.main import app
-        app.config["TESTING"] = True
-        monkeypatch.setenv("PUS_CONFIG_DIR", str(tmp_state.parent / "cfg"))
-        with app.test_client() as c:
-            yield c
+    def client(self, api_client):
+        yield api_client
 
     def test_rollback_requires_images_map(self, client):
         r = client.post("/api/stacks/1/rollback", json={})

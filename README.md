@@ -1,328 +1,139 @@
-# Portainer Update Service
+# Portainer Update Service – magyar, biztonságosabb változat
 
-**Pull. Redeploy. Done.**
+Webes felület a Portainer stackek frissítéséhez. Megmutatja, melyik image-hez jelent meg újabb verzió, és ütemezve vagy kézzel frissít. Minden futás előtt lementi a Portainert, egy service verzióját egy kattintással rögzítheted, egy elromlott frissítés után pedig visszaállhatsz.
 
-Keep every Portainer stack on current images without opening Portainer. This
-service checks your stacks against their registries, redeploys only what
-changed, backs up first, cleans up after itself, and keeps a readable record of
-every run. Self-hosted — no accounts, no cloud, no telemetry.
+Ez a [joshmadison/Portainer-Update-Service](https://github.com/joshmadison/Portainer-Update-Service) (MIT) forkja. Ami benne új:
 
-[![CI](https://github.com/joshmadison/Portainer-Update-Service/actions/workflows/ci.yml/badge.svg)](https://github.com/joshmadison/Portainer-Update-Service/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-30d158.svg)](LICENSE)
-[![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![Docker ready](https://img.shields.io/badge/docker-ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
-
-<p align="center">
-  <img src="docs/screenshots/dashboard.png" alt="Dashboard: updates available, last and next run, reclaimable space, and per-stack update status" width="100%">
-</p>
-<p align="center">
-  <sub>One page answers the only three questions that matter: what changed, when did it last run, when does it run next.</sub>
-</p>
-
-## Features
-
-- **Per-service checks, not stack guessing.** Every compose service's image is
-  resolved and compared against docker.io and ghcr.io — by tag or digest,
-  whichever the reference uses. The badge tells you how long the update has
-  been out. Registries that can't be read anonymously are shown as *not
-  verified* instead of being guessed at.
-- **Scheduled runs you can trust.** Interval, daily or weekly, in the
-  container's timezone. Manual runs any time. Repeated failures back off
-  instead of hammering your host.
-- **Backup → update → verify → repair.** Portainer's datastore is backed up
-  before anything changes (a failed backup is recorded and the run carries on),
-  unused images and build cache are pruned, changed stacks redeploy in parallel
-  and wait until their containers are healthy, then a verification sweep and
-  network repairs run.
-- **Rollback to the last healthy version.** Pre-update images are snapshotted
-  per stack, so a bad release is one click away from being undone.
-- **Version pinning with real tags.** Pin a service to a specific tag (or move
-  it back to `latest`) and the compose file is edited in Portainer and the
-  stack redeployed — no copy-pasting YAML.
-- **Cleanup with restraint.** Only unused images and build cache are removed.
-  Stopped containers and their networks stay: they encode your intent.
-- **A history that answers questions.** Steps, duration, live log, success
-  rate and 30-day reclaimed space.
-- **Local by design.** The app talks to your Portainer and the registries you
-  already use. Nothing else.
-
-## How it works
-
-```mermaid
-flowchart TD
-    A([Schedule · manual · single stack]) --> B[Pre-flight: Portainer and Docker reachable]
-    B --> C[Back up Portainer's datastore]
-    C --> D[Prune unused images and build cache]
-    D --> E{Updates available?}
-    E -- yes --> F[Redeploy changed stacks in parallel]
-    F --> G[Wait for containers to become healthy]
-    E -- no --> H
-    G --> H[Verification sweep]
-    H --> I[Network integrity repairs]
-    I --> J{Update Portainer itself?}
-    J -- yes --> K[docker compose pull + up]
-    J -- no --> L([History, live log, reclaimed space])
-    K --> L
-```
-
-While a run is active the dashboard shows the current phase, step progress and
-the tail of the log, so you can see what it is doing without leaving the page.
+- **Magyar és angol felület**, egy kattintással váltható (alapból magyar)
+- **Mobilnézet**: alsó menüsor, kártyás stacklista, alulról felcsúszó panel
+- **Világos és sötét téma**, alapból a rendszer beállítását követi
+- **Kötelező bejelentkezés**: nem csak a módosításokhoz, hanem a megtekintéshez is jelszó kell
+- **Titkosított titkok**: a Portainer API kulcs és a webhook URL titkosítva kerül a `config.yaml`-ba
+- **TLS-tanúsítvány rögzítése** (pinning): a Portainer saját aláírású tanúsítványával és IP-címmel is működik
+- **Kikapcsolható ütemező**: „csak jelez” mód, a frissítést te indítod
+- **Értesítés új frissítésekről**, nem csak hibáról (pl. Home Assistant webhookra)
+- **Előre megépített image** amd64-re és arm64-re (GHCR), a NAS-on nem kell semmit buildelni
 
 <p align="center">
-  <img src="docs/screenshots/running.png" alt="A full update running: 3 of 4 steps done, waiting for containers to become healthy, with the live log tail" width="100%">
+  <img src="docs/screenshots/hu-dashboard-light.png" alt="Áttekintés, világos téma" width="68%">
+  <img src="docs/screenshots/hu-mobile-stacks.png" alt="Stackek mobilon" width="24%">
 </p>
 <p align="center">
-  <sub>A run in progress: phase, elapsed time and the last log lines, live.</sub>
+  <img src="docs/screenshots/en-dashboard-dark.png" alt="Overview, dark theme" width="68%">
+  <img src="docs/screenshots/hu-mobile-sheet.png" alt="Verzióváltás mobilon" width="24%">
 </p>
 
-## Requirements
+---
 
-- A running **Portainer** instance
-- A Portainer **API key with admin rights** — *Settings → API keys → Add API key*
+## Telepítés Portainerrel
 
-The key needs admin rights because pruning and backups are admin-only
-endpoints. Portainer may use a self-signed certificate; the service expects
-that by default.
-
-## Quick start
-
-### Option A — as a Portainer stack (recommended)
-
-1. **Stacks → Add stack → Repository**
-2. Repository URL: `https://github.com/joshmadison/Portainer-Update-Service`
-   Build method **Dockerfile**, compose path `docker-compose.yml`
-3. Add these environment variables (only the first is required):
-
-   | Variable | Value | Why |
-   |---|---|---|
-   | `PUS_LISTEN_HOST` | `0.0.0.0` | Required inside a container |
-   | `TZ` | e.g. `Europe/Berlin` | Timezone the schedule refers to |
-   | `PUS_AUTH_TOKEN` | e.g. `change-me` | **Recommended** — protects the UI/API |
-
-4. **Deploy the stack**, then open `http://<host>:8090`
-5. In **Settings**: enter the Portainer URL, paste the API key, **Test
-   connection**, **Save**. The first update check starts by itself.
-
-Settings are written to `config/config.yaml` in the config volume and survive
-redeploys.
-
-### Option B — docker compose
-
-```bash
-git clone https://github.com/joshmadison/Portainer-Update-Service.git
-cd Portainer-Update-Service
-docker compose up -d --build
-# open http://localhost:8090 and finish setup in Settings
-```
-
-The shipped compose file leaves the credentials empty on purpose: configure
-them in the UI, or uncomment `PUS_PORTAINER_URL` / `PUS_PORTAINER_API_KEY`.
-Environment variables win over settings made in the UI.
-
-### Option C — local Python
-
-```bash
-python -m venv .venv
-.venv/Scripts/pip install -r requirements.txt   # Windows
-.venv/bin/pip install -r requirements.txt       # Linux / macOS
-
-.venv/Scripts/python run.py                      # Windows
-.venv/bin/python run.py                          # Linux / macOS
-# open http://127.0.0.1:8090
-```
-
-> [!NOTE]
-> The Docker socket is **optional**. Checks, backups, pruning and stack
-> redeploys all go through Portainer's API. Only *updating Portainer itself*
-> needs the socket (and Portainer's compose directory mounted read-only).
-
-## Using it
-
-**Stacks** is where the per-service truth lives: image, how it's tracked
-(pinned version, digest, …), and whether it's current.
-
-<p align="center">
-  <img src="docs/screenshots/stacks.png" alt="Stacks tab: every stack's services, images, tracking mode and update badge" width="100%">
-</p>
-
-**Run update** performs the whole sequence. **Check updates** only refreshes the
-badges. One job runs at a time — if something is already going, the app says
-so instead of queueing silently.
-
-Open any stack to see its compose file, pin a version, redeploy it alone, or
-roll it back.
-
-## Versions and rollback
-
-The sheet behind each stack is also the recovery path. The snapshot strip at the
-top shows exactly what a rollback would change, and restoring is a single
-button.
-
-<p align="center">
-  <img src="docs/screenshots/stack-detail.png" alt="Stack detail sheet: rollback strip with current and restore images, per-service version pinning and compose file" width="100%">
-</p>
-<p align="center">
-  <sub>Pin a version, redeploy one stack, or restore the images from before the last update.</sub>
-</p>
-
-## Schedule and settings
-
-<p align="center">
-  <img src="docs/screenshots/settings.png" alt="Settings: Portainer connection, TLS, schedule mode, run time and check cache" width="100%">
-</p>
-
-**Schedule mode** offers `interval` (every N hours), `daily` and `weekly` (at
-`HH:MM` in the container's timezone). **Deploy wait time** caps how long each
-redeploy waits for its containers to report healthy. Everything is validated
-before it is saved — and if an environment variable exists for a key, it wins.
-
-## History
-
-<p align="center">
-  <img src="docs/screenshots/history.png" alt="History tab: success rate, average duration, and every run with kind, trigger, when, duration and result" width="100%">
-</p>
-
-Every run — scheduled, manual, redeploy, prune, rollback, self-update — is
-recorded with its steps, duration and full log. Reclaimed space is aggregated
-over the last 30 days.
-
-## Configuration
-
-Most people never touch a config file: the UI covers everything and writes
-`config/config.yaml` in the mounted config volume. The committed template is
-[`config/config.example.yaml`](config/config.example.yaml), including the
-optional custom repair rules.
-
-Every key can also be set as an environment variable with the `PUS_` prefix
-(`portainer_url` → `PUS_PORTAINER_URL`), which is handy for stacks deployed
-from Git.
-
-| Variable | Default | What it does |
-|---|---|---|
-| `PUS_PORTAINER_URL` | — | Portainer base URL |
-| `PUS_PORTAINER_API_KEY` | — | Portainer API key (admin) |
-| `PUS_PORTAINER_ENDPOINT_ID` | auto | Pin an endpoint if auto-detect picks the wrong one |
-| `PUS_LISTEN_HOST` | `127.0.0.1` | Bind address — **must be `0.0.0.0` in a container** |
-| `PUS_LISTEN_PORT` | `8090` | Web UI port |
-| `PUS_AUTH_TOKEN` | — | If set, mutating API calls need `Authorization: Bearer <token>` |
-| `PUS_UPDATE_SCHEDULE_MODE` | `interval` | `interval`, `daily` or `weekly` |
-| `PUS_UPDATE_INTERVAL_HOURS` | `168` | Interval mode: hours between runs |
-| `PUS_UPDATE_SCHEDULE_TIME` | `03:30` | Daily/weekly run time, `HH:MM` |
-| `PUS_UPDATE_SCHEDULE_DAY` | `0` | Weekly mode: `0` = Monday … `6` = Sunday |
-| `PUS_TLS_VERIFY` | `false` | Verify Portainer's TLS certificate |
-| `PUS_TLS_CA_FILE` | — | Path to a CA/cert to verify a self-signed Portainer cert |
-| `PUS_MAX_PARALLEL_DEPLOYS` | `3` | Stacks redeployed at once |
-| `PUS_DEPLOY_WAIT_TIME` | `300` | Seconds to wait for containers to become healthy |
-| `PUS_KEEP_BACKUPS` | `5` | Portainer backups to keep |
-| `PUS_CHECK_CACHE_MINUTES` | `30` | Registry result cache TTL (respects rate limits) |
-| `PUS_NOTIFY_WEBHOOK` | — | POST a JSON summary here when a run fails (ntfy-compatible) |
-| `PUS_INCLUDE_PORTAINER` | `false` | Also update Portainer itself (see below) |
-| `PUS_REPAIRS_ENABLED` | `true` | Automatic network integrity repairs |
-
-## Updating Portainer itself (optional)
-
-Portainer is usually started outside Portainer, so updating it needs two extra
-mounts in this app's stack:
+1. **Portainer → Stacks → Add stack → Web editor**, másold be ezt:
 
 ```yaml
+services:
+  update-service:
+    image: ghcr.io/czdanika/portainerupdater:latest
+    container_name: portainer-update-service
+    restart: unless-stopped
+    ports:
+      - "8742:8090"            # NAS-port : konténer-port
+    environment:
+      TZ: "Europe/Budapest"
+      # Opcionális: fix admin jelszó. Ha kihagyod, első indításkor a felületen kell megadni.
+      # PUS_AUTH_TOKEN: "egy-hosszu-jelszo"
     volumes:
-      - /path/to/portainer:/host-portainer:ro          # Portainer's compose dir
-      - /var/run/docker.sock:/var/run/docker.sock      # for docker compose
+      - pus-data:/app/data     # állapot, előzmények, mentések, titkosító kulcs
+      - pus-config:/app/config # beállítások (config.yaml)
+
+volumes:
+  pus-data:
+  pus-config:
 ```
 
-Enable **Include Portainer updates** in Settings and press **Check compose
-mount** to verify the wiring. A full run then ends with `docker compose pull &&
-docker compose up -d` in that directory — after everything else has finished,
-so the update doesn't cut its own run short.
+2. **Deploy the stack**, majd nyisd meg a `http://<nas-ip>:8742` címet.
+3. Első indításkor **admin jelszót** kell létrehozni (legalább 8 karakter).
+4. **Beállítások → Portainer kapcsolat**:
+   - URL: `https://<nas-ip>:9443`
+   - API kulcs: Portainer → *My account* → *Access tokens* → *Add access token*. Admin felhasználóval kell létrehozni.
+5. **Beállítások → TLS tanúsítvány**: válaszd a *Tanúsítvány rögzítése* módot, nyomd meg a *Tanúsítvány lekérése* gombot, aztán az *Ezt rögzítem* gombot.
+6. **Ütemezés**: az alapbeállítás *Kikapcsolva – csak jelez*. Ha automatikus frissítést szeretnél, válassz napot és időpontot. Előtte a törékeny service-eket (adatbázisok, Immich stb.) rögzítsd a *Verzió* gombbal.
+7. **Mentés**. Az első ellenőrzés automatikusan elindul.
 
-The app's own stack is excluded from regular runs for the same reason. Use
-**Update P.U.S.** in Settings when you want to move it forward deliberately.
+> A Docker socket **nincs** felcsatolva, és nem is kell. Az ellenőrzés, a mentés, a takarítás és az újratelepítés mind a Portainer API-n keresztül megy. Socket csak akkor kell, ha a Portainert is ezzel akarod frissíteni (*A Portainert is frissítse*), de ezt biztonsági okból nem ajánljuk.
 
-## Security
+### Frissítés
 
-> [!WARNING]
-> The UI has **no login**. If it is reachable from other machines, set
-> `auth_token` (or `PUS_AUTH_TOKEN`) — that protects every mutating endpoint —
-> or put an authenticated reverse proxy in front.
+Az image a `main` ág minden változásakor újraépül. A P.U.S. a saját stackjét kihagyja a rendes futásokból. Frissíteni a **Beállítások → P.U.S. frissítése** gombbal lehet, vagy a Portainerben: *Stack → Update → Re-pull image*.
 
-- Mutating requests are also CSRF-guarded when no token is configured: a
-  cross-site form post cannot trigger an update.
-- The API key is stored in `config.yaml`, never returned by the API, and never
-  committed.
-- `tls_verify: false` accepts Portainer's default self-signed certificate. If
-  Portainer has a real certificate, turn verification on; if it is self-signed,
-  mount its certificate and point `tls_ca_file` at it.
-- No telemetry, no analytics, no outbound calls except to your Portainer and the
-  image registries.
+Ha egy konkrét verziót szeretnél használni, a `:latest` helyett írd be a kiadás címkéjét, például `:v1.0.0`.
 
-## API
+---
 
-Every UI action is an API call, so scripts and dashboards can use it too.
+## Biztonság
 
-| Method | Path | Description |
+| Terület | Megoldás |
+|---|---|
+| Bejelentkezés | Minden `/api/*` hívás bejelentkezést kér. A munkamenet aláírt, `HttpOnly`, `SameSite=Strict` süti, alapból 30 napig érvényes. Szkriptekből `Authorization: Bearer <jelszó>` fejléccel is hívható. |
+| Jelszó | A felületen megadott jelszó PBKDF2-hash-ként tárolódik. A `PUS_AUTH_TOKEN` környezeti változóval megadott jelszó soha nem kerül lemezre. Jelszócsere után a többi munkamenet érvénytelenné válik. |
+| Brute force | 5 hibás próbálkozás után exponenciálisan növekvő várakozás következik (legfeljebb 15 perc). |
+| CSRF | A módosító kéréseknél kötelező az azonos eredetű `Origin` és az `X-PUS-Request` fejléc. |
+| Titkok | A `portainer_api_key` és a `notify_webhook` titkosítva tárolódik (`enc:v1:…`, Fernet/AES). A kulcs **másik kötetben** van (`/app/data/keys`), mint a `config.yaml` (`/app/config`). A régi, sima szöveges értékeket első mentéskor automatikusan titkosítja. A `config.yaml` jogosultsága `0600`. |
+| Környezeti változók | `PUS_*` változóval megadott érték nem íródik a `config.yaml`-ba, és a felületen zárolva jelenik meg. |
+| TLS | A tanúsítvány rögzítése (SHA-256 ujjlenyomat) saját aláírású tanúsítvánnyal és IP-címmel is működik. Ha a tanúsítvány megváltozik, a kapcsolat megszakad, és a felület jelzi. Az eredeti kódban volt egy hiba: `tls_verify: true` CA nélkül valójában *nem* ellenőrzött. Ez javítva van. |
+
+További ajánlás: a felületet ne tedd ki az internetre. Elég belső hálón vagy VPN-en (pl. Tailscale) keresztül elérni.
+
+### Titkosító kulcs
+
+Alapból az első induláskor jön létre a `/app/data/keys/secret.key` fájlban. Ha a `pus-data` kötet elveszik, a mentett API kulcsot újra meg kell adni (a felület jelzi). A `PUS_SECRET_KEY` változóval fix kulcs is megadható.
+
+---
+
+## Környezeti változók
+
+| Változó | Alapérték | Leírás |
 |---|---|---|
-| `GET` | `/api/status` | State, last run, current job, next run |
-| `GET` | `/api/stacks` | Stacks with per-service check results |
-| `GET` | `/api/stacks/<id>` | Stack detail and compose file |
-| `POST` | `/api/stacks/<id>/image` | Pin a version: `{"service":"web","image":"nginx:1.27.3"}` |
-| `POST` | `/api/stacks/<id>/redeploy` | Redeploy one stack |
-| `GET` | `/api/stacks/<id>/rollback_info` | What a rollback would change |
-| `POST` | `/api/stacks/<id>/rollback` | Restore a stack's pre-update images |
-| `POST` | `/api/check` | Force an update check |
-| `POST` | `/api/update` | Start a full update run |
-| `POST` | `/api/prune` | Prune images and build cache now |
-| `POST` | `/api/self_update` | Redeploy this app's own stack |
-| `GET` | `/api/inventory` | Unused images and networks |
-| `GET` | `/api/runs/current` | Live progress of the active job |
-| `GET` | `/api/runs/<id>/log` | Full run log (plain text) |
-| `GET` | `/api/history` | Recent runs and 30-day prune stats |
-| `GET` | `/api/versions?image=nginx` | Available tags for an image |
-| `GET` | `/api/endpoints` | Portainer endpoints |
-| `GET`/`POST` | `/api/settings` | Read or change settings |
-| `GET` | `/healthz` | Liveness and scheduler heartbeat |
+| `PUS_AUTH_TOKEN` / `PUS_ADMIN_PASSWORD` | – | Fix admin jelszó. Ha meg van adva, a felületen nem módosítható. |
+| `PUS_SECRET_KEY` | automatikus | A titkosító kulcs (tetszőleges szöveg). |
+| `PUS_PORTAINER_URL` | – | Portainer címe (a felületen is megadható). |
+| `PUS_PORTAINER_API_KEY` | – | Portainer API kulcs (a felületen is megadható). |
+| `PUS_PORTAINER_ENDPOINT_ID` | automatikus | Portainer környezet azonosítója. |
+| `PUS_TLS_FINGERPRINT` | – | A Portainer tanúsítványának SHA-256 ujjlenyomata. |
+| `PUS_UPDATE_SCHEDULE_MODE` | `interval` | `off`, `daily`, `weekly` vagy `interval`. |
+| `PUS_UPDATE_SCHEDULE_DAY` / `_TIME` | `0` / `03:30` | Nap (0 = hétfő) és időpont. |
+| `PUS_UPDATE_INTERVAL_HOURS` | `168` | `interval` módban a frissítések közti idő. |
+| `PUS_CHECK_INTERVAL_HOURS` | `12` | Milyen gyakran ellenőrizze a registryt. |
+| `PUS_NOTIFY_WEBHOOK` | – | Értesítési URL (JSON POST). |
+| `PUS_NOTIFY_ON_UPDATES` | `false` | Új frissítésnél is küldjön értesítést. |
+| `PUS_MAX_PARALLEL_DEPLOYS` | `3` | Egyszerre hány stack települjön újra. |
+| `PUS_KEEP_BACKUPS` | `5` | Ennyi Portainer-mentést tart meg. |
+| `PUS_SESSION_DAYS` | `30` | A bejelentkezés érvényessége napokban. |
+| `PUS_COOKIE_SECURE` | `false` | `true`, ha a felület csak HTTPS-en érhető el (reverse proxy mögött). |
+| `TZ` | `UTC` | Időzóna az ütemezéshez. |
 
-```bash
-curl -X POST -H "Authorization: Bearer $TOKEN" \
-     https://your-host:8090/api/update
+### Webhook formátum
+
+```json
+{"event": "updates_available", "title": "3 container update(s) available", "count": 3,
+ "updates": [{"stack": "immich", "service": "immich-server", "image": "…:v1.119.0", "latest": "v1.120.2"}]}
 ```
 
-## Development
+```json
+{"event": "update_failed", "title": "Portainer update run FAILED", "run_id": "…", "steps": […]}
+```
+
+Home Assistantban egy **Webhook** triggerű automatizáció fogadja: `https://<ha>/api/webhook/<id>`. A `{{ trigger.json.title }}` sablonnal továbbküldhető push értesítésként.
+
+---
+
+## Fejlesztés
 
 ```bash
 pip install -r requirements.txt pytest pytest-timeout
-python -m pytest tests/ -q
-# 119 passed
+python -m pytest tests -q
+PUS_LISTEN_HOST=127.0.0.1 python run.py   # http://127.0.0.1:8090
 ```
 
-The UI is a single `ui/index.html` — no build step, no dependencies. CI runs
-the test suite plus four cheap gates that catch the failures a build step would
-have caught: import, byte-compile, JS syntax (via `dukpy`) and duplicate HTML
-ids.
+## Licenc
 
-## Project layout
-
-```
-app/                    Python package
-  main.py               Flask API + static UI
-  updater.py            the update run (backup, prune, redeploy, verify, repair)
-  checker.py            per-service update checks
-  dockerhub.py          docker.io / ghcr.io tag and digest lookups
-  snapshots.py          pre-update image snapshots (rollback)
-  compose.py            compose file helpers (image parsing, pinning)
-  portainer.py          Portainer API client
-  scheduler.py          interval / daily / weekly scheduling
-  history.py            run history, logs, reclaimed-space stats
-  jobs.py               single-job gate
-  config.py             config loading, validation, persistence
-ui/index.html           the web UI (single file, no build step)
-config/config.example.yaml
-docs/screenshots/       the images in this README
-tests/                  pytest suite
-docker-compose.yml
-Dockerfile
-run.py                  entry point
-```
-
-## License
-
-MIT — see [LICENSE](LICENSE).
+MIT. Az eredeti szerző: Josh Madison ([upstream README](docs/UPSTREAM_README.md)). A módosítások ugyanezen licenc alatt érhetők el.

@@ -44,6 +44,8 @@ def _spec() -> str:
     Persisted alongside next-run timestamps: if the config's spec changes
     while the app is off, the next-run times are recomputed on boot."""
     mode = get("update_schedule_mode", "interval")
+    if mode == "off":
+        return "off"
     if mode == "interval":
         return f"interval:{get('update_interval_hours', 168)}"
     t = get("update_schedule_time", "03:30")
@@ -54,6 +56,8 @@ def _spec() -> str:
 def _schedule_desc() -> str:
     """Human-readable description of the active schedule."""
     mode = get("update_schedule_mode", "interval")
+    if mode == "off":
+        return "automatic updates off (check only)"
     if mode == "interval":
         return f"every {get('update_interval_hours', 168)}h"
     t = get("update_schedule_time", "03:30")
@@ -63,8 +67,11 @@ def _schedule_desc() -> str:
     return f"daily at {t}"
 
 def _next_full_from(now_ts: float) -> float:
-    """Compute the next full-update epoch from the configured schedule."""
+    """Compute the next full-update epoch from the configured schedule.
+    Returns None when automatic updates are switched off."""
     mode = get("update_schedule_mode", "interval")
+    if mode == "off":
+        return None
     if mode != "daily" and mode != "weekly":
         return now_ts + max(1, int(get("update_interval_hours", 168))) * 3600
     t = get("update_schedule_time", "03:30")
@@ -103,10 +110,11 @@ class Scheduler:
         now = time.time()
         self._started_at = now
         self.next_check = max(saved.get("next_check", now + 15), now + 10)
-        full = saved.get("next_full_update", _next_full_from(now))
+        full = saved.get("next_full_update") or _next_full_from(now)
         if saved.get("spec") != _spec():
             full = _next_full_from(now)  # schedule changed while we were off
-        self.next_full_update = max(full, now + BOOT_GRACE_S)
+        self.next_full_update = max(full, now + BOOT_GRACE_S) if full else None
+        self._spec_seen = _spec()
         self._persist()
         self._stop.clear()
         self._thread = threading.Thread(target=self._loop, name="scheduler", daemon=True)
@@ -124,10 +132,15 @@ class Scheduler:
             load()  # pick up config changes from the UI
             try:
                 now = time.time()
+                spec = _spec()
+                if spec != getattr(self, "_spec_seen", spec):
+                    # schedule edited in the UI: recompute the next slot now
+                    self._spec_seen = spec
+                    self._bump_full()
                 if now >= self.next_check:
                     self._run_check()
                     self._bump_check()
-                if now >= self.next_full_update:
+                if self.next_full_update and now >= self.next_full_update:
                     self._run_update("scheduled")
                     self._bump_full()
             except Exception:
@@ -149,8 +162,14 @@ class Scheduler:
         except (TypeError, ValueError):
             return 168
 
+    def _check_interval(self) -> int:
+        try:
+            return max(1, int(get("check_interval_hours", 12)))
+        except (TypeError, ValueError):
+            return 12
+
     def _bump_check(self):
-        self.next_check = time.time() + self._interval() * 3600
+        self.next_check = time.time() + self._check_interval() * 3600
         self._persist()
 
     def _bump_full(self):
@@ -158,7 +177,12 @@ class Scheduler:
         base comes from _next_full_from(); consecutive-failure backoff adds
         ON TOP of the next slot (never skips a slot completely)."""
         now = time.time()
-        if get("update_schedule_mode", "interval") == "interval":
+        mode = get("update_schedule_mode", "interval")
+        if mode == "off":
+            self.next_full_update = None
+            self._persist()
+            return
+        if mode == "interval":
             base = self._interval() * 3600
             # consecutive-failure backoff
             if self.consecutive_failures > 0:
@@ -196,9 +220,46 @@ class Scheduler:
                 # interval (first-run flow: user may be mid-setup)
                 self.next_check = time.time() + 600
                 return
-            checker.run_check(client, client.endpoint_id)
+            result = checker.run_check(client, client.endpoint_id)
         finally:
             gate.release()
+        try:
+            self._notify_updates(result)
+        except Exception:  # noqa: BLE001 - notification must never break checks
+            print("[scheduler] update notification failed:\n" + traceback.format_exc(),
+                  file=sys.stderr, flush=True)
+
+    def _notify_updates(self, result):
+        """POST to the webhook when the set of available updates CHANGED
+        (opt-in: notify_on_updates). Nothing is sent twice for the same set."""
+        url = get("notify_webhook", "")
+        if not url or not get("notify_on_updates", False) or not result:
+            return
+        found = []
+        for stack, svcs in sorted((result.get("stacks") or {}).items()):
+            for svc, v in sorted((svcs or {}).items()):
+                if v.get("update_available"):
+                    found.append({"stack": stack, "service": svc,
+                                  "image": v.get("image"),
+                                  "latest": v.get("latest_tag") or "new digest"})
+        key = json.dumps(found, sort_keys=True)
+        state_file = DATA_DIR / "notified_updates.json"
+        try:
+            prev = state_file.read_text(encoding="utf-8")
+        except OSError:
+            prev = "[]"
+        if key == prev:
+            return
+        state_file.write_text(key, encoding="utf-8")
+        if not found:
+            return
+        import requests
+        requests.post(url, timeout=10, json={
+            "title": f"{len(found)} container update(s) available",
+            "event": "updates_available",
+            "count": len(found),
+            "updates": found,
+        })
 
     def _run_update(self, trigger: str):
         if not gate.try_acquire("update"):
@@ -245,6 +306,7 @@ class Scheduler:
             import requests
             requests.post(url, timeout=10, json={
                 "title": "Portainer update run FAILED",
+                "event": "update_failed",
                 "run_id": runlog.run_id,
                 "steps": [s for s in runlog.steps if not s["ok"]],
             })

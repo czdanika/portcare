@@ -9,6 +9,7 @@ from urllib.parse import quote
 
 import requests
 import urllib3
+from requests.adapters import HTTPAdapter
 
 # Self-signed Portainer certs are explicitly supported (tls_verify=false) -
 # suppress the per-request warning noise in the logs.
@@ -19,33 +20,119 @@ class PortainerError(RuntimeError):
     pass
 
 
+class _FingerprintAdapter(HTTPAdapter):
+    """Certificate pinning: the TLS handshake only succeeds when the server
+    certificate's SHA-256 matches. Works with self-signed certs and bare IP
+    addresses (no CA / hostname check needed) - the right fit for a
+    Portainer instance on the LAN."""
+
+    def __init__(self, fingerprint, **kw):
+        self._fp = fingerprint
+        super().__init__(**kw)
+
+    def init_poolmanager(self, *args, **kw):
+        kw["assert_fingerprint"] = self._fp
+        return super().init_poolmanager(*args, **kw)
+
+
+_UNSET = object()
+
+
+def fetch_certificate(url: str, timeout: float = 8.0) -> dict:
+    """Read the server certificate WITHOUT validating it (trust-on-first-use
+    helper for the Settings 'Pin certificate' button)."""
+    import hashlib
+    import socket
+    import ssl
+    from urllib.parse import urlparse
+
+    from cryptography import x509
+
+    u = urlparse(url)
+    if u.scheme != "https" or not u.hostname:
+        raise ValueError("an https:// URL is required")
+    port = u.port or 443
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    with socket.create_connection((u.hostname, port), timeout=timeout) as sock:
+        with ctx.wrap_socket(sock, server_hostname=u.hostname) as tls:
+            der = tls.getpeercert(binary_form=True)
+    if not der:
+        raise ValueError("the server did not present a certificate")
+    cert = x509.load_der_x509_certificate(der)
+    fp = hashlib.sha256(der).hexdigest()
+    try:
+        not_after = cert.not_valid_after_utc.isoformat()
+    except AttributeError:  # cryptography < 42
+        not_after = cert.not_valid_after.isoformat()
+    return {
+        "fingerprint": fp,
+        "fingerprint_pretty": ":".join(fp[i:i + 2] for i in range(0, 64, 2)).upper(),
+        "subject": cert.subject.rfc4514_string(),
+        "issuer": cert.issuer.rfc4514_string(),
+        "self_signed": cert.subject == cert.issuer,
+        "not_after": not_after,
+    }
+
+
+def tls_mode(tls_verify, tls_ca_file, tls_fingerprint) -> str:
+    """'pinned' | 'ca' | 'system' | 'off' - for the UI and the logs."""
+    if tls_fingerprint:
+        return "pinned"
+    if tls_verify:
+        return "ca" if tls_ca_file else "system"
+    return "off"
+
+
 class Portainer:
     def __init__(self, base_url, api_key, endpoint_id=None, tls_verify=False,
-                 tls_ca_file=None):
+                 tls_ca_file=None, tls_fingerprint=_UNSET):
         self.base = base_url.rstrip("/")
         self.session = requests.Session()
         self.session.headers["X-API-Key"] = api_key
-        # tls_verify=false -> accept self-signed certs.
-        # tls_verify=true + tls_ca_file set -> verify against that CA (the
-        # way to make verification work with a self-signed Portainer cert:
-        # mount the cert and point tls_ca_file at it).
-        self.session.verify = tls_ca_file if tls_verify else False
+        if tls_fingerprint is _UNSET:
+            from .config import get
+            tls_fingerprint = get("tls_fingerprint", "") or ""
+        # TLS modes (see tls_mode()):
+        #  - pinned: tls_fingerprint set -> cert must match that SHA-256
+        #  - ca:     tls_verify + tls_ca_file -> verify against that CA bundle
+        #  - system: tls_verify only -> verify against the system CA store
+        #  - off:    accept any certificate (Portainer's self-signed default)
+        # NOTE: requests treats verify=None as "no verification" - so the
+        # verify=True case must be explicit (upstream passed None here).
+        if tls_fingerprint:
+            self.session.verify = False
+            self.session.mount("https://", _FingerprintAdapter(tls_fingerprint))
+        elif tls_verify:
+            self.session.verify = tls_ca_file or True
+        else:
+            self.session.verify = False
+        self.tls_mode = tls_mode(tls_verify, tls_ca_file, tls_fingerprint)
         self.endpoint_id = endpoint_id
 
     # ------------------------------------------------------------------ HTTP
     def _req(self, method, path, **kw):
         timeout = kw.pop("timeout", 30)
+        # pass verify explicitly: requests lets REQUESTS_CA_BUNDLE/CURL_CA_BUNDLE
+        # env vars override session.verify when the per-request value is None
+        kw.setdefault("verify", self.session.verify)
         try:
             r = self.session.request(method, self.base + path, timeout=timeout, **kw)
         except requests.RequestException as e:
             msg = str(e)
-            if isinstance(e, requests.exceptions.SSLError) or "SSLError" in msg \
+            if "fingerprints did not match" in msg.lower():
+                msg = (f"{method} {path} failed: Portainer's TLS certificate "
+                       f"does NOT match the pinned fingerprint. If Portainer's "
+                       f"certificate was renewed on purpose, pin it again in "
+                       f"Settings - otherwise something is intercepting the "
+                       f"connection.")
+            elif isinstance(e, requests.exceptions.SSLError) or "SSLError" in msg \
                     or "CERTIFICATE_VERIFY_FAILED" in msg:
                 msg = (f"{method} {path} failed: TLS certificate verification "
                        f"failed ({msg[:200]}). This happens when Portainer serves "
-                       f"a self-signed certificate. Either disable 'Verify TLS "
-                       f"certificate' in Settings, or mount Portainer's cert and "
-                       f"set tls_ca_file in config/config.yaml.")
+                       f"a self-signed certificate. Use 'Pin certificate' in "
+                       f"Settings (recommended), or disable TLS verification.")
             raise PortainerError(msg) from e
         if r.status_code >= 400:
             raise PortainerError(f"{method} {path} -> HTTP {r.status_code}: {r.text[:300]}")
