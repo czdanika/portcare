@@ -578,7 +578,7 @@ input:disabled,select:disabled{opacity:.6;cursor:not-allowed}
             </div>
             <div class="two">
               <div class="field"><label data-i18n="set.check_interval"></label><input type="number" id="sCheckInt" min="1" max="168"><div class="hint" id="checkHint"></div></div>
-              <div class="field"><label data-i18n="set.cache"></label><input type="number" id="sCache" min="5" max="720"></div>
+              <div class="field"><label data-i18n="set.cache"></label><input type="number" id="sCache" min="5" max="720"><div class="hint" data-i18n="set.cache_hint"></div></div>
             </div>
             <div class="hint small muted" style="margin-top:.6rem"><span data-i18n="set.server_time"></span>: <b id="sServerTime">–</b> <span id="sServerTz"></span></div>
           </div>
@@ -788,7 +788,7 @@ hu:{
  'set.cert_use':'Ezt rögzítem','set.cert_compare':'Hasonlítsd össze a Portainer felületén / böngészőben látható ujjlenyomattal.',
  'set.schedule':'Alapértelmezett ütemezés','set.mode':'Automatikus frissítés (alapértelmezés)','set.mode_off':'Kikapcsolva – csak jelez','set.mode_weekly':'Hetente','set.mode_daily':'Naponta','set.mode_interval':'Óránként (N óránként)',
  'set.mode_hint_off':'Az alapértelmezett stackek nem frissülnek maguktól: ellenőriz, jelzi az újdonságokat, a frissítést te indítod. Stackenként eltérő szabály a Stackek oldalon állítható.','set.mode_hint_on':'A beállított időpontban az „Alapértelmezett” szabályú stackek frissülnek. Stackenként eltérő szabály (saját időpont, csak jelez, kihagyva) a Stackek oldalon állítható.',
- 'set.interval':'Frissítés gyakorisága (óra)','set.weekday':'Nap','set.time':'Időpont','set.check_interval':'Új verziók keresése – ennyi óránként','set.check_hint':'A registryben (Docker Hub, GHCR) {h} óránként megnézi, van-e újabb image. Ez csak ellenőrzés, nem frissít. Következő: {t}.','set.cache':'Registry cache (perc)','set.server_time':'Szerveridő',
+ 'set.interval':'Frissítés gyakorisága (óra)','set.weekday':'Nap','set.time':'Időpont','set.check_interval':'Új verziók keresése – ennyi óránként','set.check_hint':'A registryben (Docker Hub, GHCR) {h} óránként megnézi, van-e újabb image. Ez csak ellenőrzés, nem frissít. Következő: {t}.','set.cache':'Registry-válaszok megőrzése (perc)','set.cache_hint':'Ennyi ideig használja újra a Docker Hub / GHCR legutóbbi válaszát, mielőtt újra lekérdezné. Kíméli a letöltési korlátot (rate limit). A kézi „Ellenőrzés” gomb ezt figyelmen kívül hagyja.','set.server_time':'Szerveridő',
  'set.deploy':'Telepítés','set.parallel':'Párhuzamos telepítések','set.wait':'Várakozás stackenként (mp)','set.keep':'Megőrzött mentések',
  'set.include_portainer':'A Portainert is frissítse','set.include_portainer_hint':'Ehhez Docker socket és a Portainer compose mappájának felcsatolása kell. Biztonsági okból alapból ki van kapcsolva.',
  'set.mount_check':'Compose mappa ellenőrzése','set.repairs':'Automatikus hálózat-javítás','set.repairs_hint':'Észleli az elavult host-gateway beállítást takarítás után, és újratelepíti az érintett stacket.',
@@ -887,7 +887,7 @@ en:{
  'set.cert_use':'Pin this one','set.cert_compare':'Compare with the fingerprint shown by your browser for the Portainer UI.',
  'set.schedule':'Default schedule','set.mode':'Automatic updates (default)','set.mode_off':'Off – notify only','set.mode_weekly':'Weekly','set.mode_daily':'Daily','set.mode_interval':'Every N hours',
  'set.mode_hint_off':'Stacks on the default rule are never updated on their own: checked and flagged, you start the update. Per-stack rules are set on the Stacks page.','set.mode_hint_on':'At this time all stacks on the “Default” rule are updated. Per-stack rules (own schedule, notify only, ignored) are set on the Stacks page.',
- 'set.interval':'Update interval (hours)','set.weekday':'Day','set.time':'Time','set.check_interval':'Look for new versions – every N hours','set.check_hint':'Every {h} hours it checks the registries (Docker Hub, GHCR) for newer images. This only checks, it never updates. Next: {t}.','set.cache':'Registry cache (minutes)','set.server_time':'Server time',
+ 'set.interval':'Update interval (hours)','set.weekday':'Day','set.time':'Time','set.check_interval':'Look for new versions – every N hours','set.check_hint':'Every {h} hours it checks the registries (Docker Hub, GHCR) for newer images. This only checks, it never updates. Next: {t}.','set.cache':'Keep registry answers (minutes)','set.cache_hint':'How long the last Docker Hub / GHCR answer is reused before asking again. Protects the rate limit. The manual “Check” button ignores it.','set.server_time':'Server time',
  'set.deploy':'Deployment','set.parallel':'Parallel deploys','set.wait':'Wait per stack (s)','set.keep':'Backups to keep',
  'set.include_portainer':'Also update Portainer','set.include_portainer_hint':'Needs the Docker socket and Portainer’s compose folder mounted. Off by default for security.',
  'set.mount_check':'Check compose mount','set.repairs':'Automatic network repairs','set.repairs_hint':'Detects stale host-gateway mappings after a prune and redeploys the affected stack.',
