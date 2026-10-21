@@ -34,7 +34,7 @@ DEFAULTS = {
     "portainer_api_key": "",
     "portainer_endpoint_id": None,   # None = auto-detect via hostname
     "update_interval_hours": 168,    # weekly - only used in "interval" mode
-    "update_schedule_mode": "interval",  # "interval" | "daily" | "weekly" | "off"
+    "update_schedule_mode": "off",       # "off" (default: notify only) | "interval" | "daily" | "weekly"
     "check_interval_hours": 12,      # registry check cadence (independent of updates)
     "update_schedule_time": "03:30",     # HH:MM, server-local time (TZ env)
     "update_schedule_day": 0,            # 0=Monday .. 6=Sunday (weekly mode)

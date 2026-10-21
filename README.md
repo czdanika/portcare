@@ -100,7 +100,7 @@ Alapból az első induláskor jön létre a `/app/data/keys/secret.key` fájlban
 | `PUS_PORTAINER_API_KEY` | – | Portainer API kulcs (a felületen is megadható). |
 | `PUS_PORTAINER_ENDPOINT_ID` | automatikus | Portainer környezet azonosítója. |
 | `PUS_TLS_FINGERPRINT` | – | A Portainer tanúsítványának SHA-256 ujjlenyomata. |
-| `PUS_UPDATE_SCHEDULE_MODE` | `interval` | `off`, `daily`, `weekly` vagy `interval`. |
+| `PUS_UPDATE_SCHEDULE_MODE` | `off` | `off` (csak jelez), `daily`, `weekly` vagy `interval`. |
 | `PUS_UPDATE_SCHEDULE_DAY` / `_TIME` | `0` / `03:30` | Nap (0 = hétfő) és időpont. |
 | `PUS_UPDATE_INTERVAL_HOURS` | `168` | `interval` módban a frissítések közti idő. |
 | `PUS_CHECK_INTERVAL_HOURS` | `12` | Milyen gyakran ellenőrizze a registryt. |
