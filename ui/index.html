@@ -754,7 +754,7 @@ hu:{
  'stacks.search':'Keresés stack vagy image névre…','stacks.f_all':'Mind','stacks.f_upd':'Frissíthető','stacks.recheck':'Újraellenőrzés',
  'stacks.none':'Nem található stack – ellenőrizd a beállításokat.','stacks.no_match':'Nincs találat.','stacks.no_images':'nincs image / nincs ellenőrzési adat',
  'stacks.manage':'Kezelés','stacks.version':'Verzió','stacks.update':'Frissítés','stacks.current':'naprakész','stacks.not_verified':'nem ellenőrizhető',
- 'stacks.upd_to':'új: {t}','stacks.mode_digest':'latest (digest)','stacks.mode_semver':'rögzített verzió','stacks.mode_pdigest':'digest-rögzített','stacks.mode_unknown':'ismeretlen',
+ 'stacks.upd_to':'új: {t}','stacks.ver_to':'új verzió: {t} (kézi)','stacks.major_to':'főverzió: {t} (kézi)','stacks.build_new':'új build','stacks.build_hint':'Ugyanannak a tagnek újabb buildje jelent meg – a Frissítés gomb letölti.','stacks.tag_hint':'Újabb verziószámú tag érhető el. A Frissítés gomb ugyanazt a taget tölti le újra, ezért ezt nem váltja át: a Verzió gombbal állíthatod át (előtte olvasd el a kiadási jegyzetet).','modal.use_latest':'Beírás: {t}','modal.use_same_major':'Biztonságosabb: {t}','stacks.mode_digest':'latest (digest)','stacks.mode_semver':'rögzített verzió','stacks.mode_pdigest':'digest-rögzített','stacks.mode_unknown':'ismeretlen',
  'stacks.lag':'{d} napja elérhető',
  'confirm.redeploy':'Frissíted most a(z) „{n}” stacket? Letölti az image-eket és újraindítja a konténereket.',
  'confirm.update':'Indulhat a teljes frissítés?\n\n• menti a Portainert\n• törli a használatlan image-eket\n• újratelepíti az „Alapértelmezett” és „Saját időpont” szabályú stackeket\n  (a „Csak jelez” és „Kihagyva” stackek kimaradnak)\n\nTöbb percig is tarthat.',
@@ -853,7 +853,7 @@ en:{
  'stacks.search':'Search stack or image…','stacks.f_all':'All','stacks.f_upd':'Updatable','stacks.recheck':'Re-check',
  'stacks.none':'No stacks found – check Settings.','stacks.no_match':'No matches.','stacks.no_images':'no images / no check data',
  'stacks.manage':'Manage','stacks.version':'Version','stacks.update':'Update','stacks.current':'current','stacks.not_verified':'not verified',
- 'stacks.upd_to':'new: {t}','stacks.mode_digest':'latest (digest)','stacks.mode_semver':'pinned version','stacks.mode_pdigest':'digest-pinned','stacks.mode_unknown':'unknown',
+ 'stacks.upd_to':'new: {t}','stacks.ver_to':'new version: {t} (manual)','stacks.major_to':'major: {t} (manual)','stacks.build_new':'new build','stacks.build_hint':'A newer build of the same tag is available – the Update button pulls it.','stacks.tag_hint':'A newer version tag exists. The Update button re-pulls the SAME tag, so it does not switch: use the Version button (read the release notes first).','modal.use_latest':'Fill in: {t}','modal.use_same_major':'Safer: {t}','stacks.mode_digest':'latest (digest)','stacks.mode_semver':'pinned version','stacks.mode_pdigest':'digest-pinned','stacks.mode_unknown':'unknown',
  'stacks.lag':'available for {d} days',
  'confirm.redeploy':'Redeploy stack “{n}” now? Pulls images and restarts its containers.',
  'confirm.update':'Run a full update now?\n\n• backs up Portainer\n• prunes unused images\n• redeploys stacks on the “Default” and “Own schedule” rules\n  (“Notify only” and “Ignored” stacks are skipped)\n\nThis can take several minutes.',
@@ -1160,7 +1160,9 @@ function polText(p,eff){p=p||{mode:'default'};
  return t('pol.default')+' · '+globalSchedTxt()}
 function polCls(eff){return eff==='auto'||eff==='own'?'b-info':eff==='ignore'?'b-mut':'b-warn'}
 function polBadge(st){return `<button class="badge ${polCls(st.effective)}" data-act="policy" data-nm="${esc(st.name)}" title="${esc(t('pol.edit'))}"><svg class="i"><use href="#i-cal"/></svg>${esc(polText(st.policy,st.effective))}</button>`}
-function svcBadge(v){return v.update_available?`<span class="badge b-warn" title="${esc(t('stacks.lag',{d:v.lag_days??0}))}">${esc(t('stacks.upd_to',{t:v.latest_tag||'digest'}))}</span>`
+function svcBadge(v){if(v.update_available&&v.mode==='semver'){const maj=v.upgrade==='major';
+  return `<span class="badge ${maj?'b-err':'b-warn'}" title="${esc(t('stacks.tag_hint'))}">${esc(t(maj?'stacks.major_to':'stacks.ver_to',{t:v.latest_tag}))}</span>`}
+ return v.update_available?`<span class="badge b-warn" title="${esc(t('stacks.build_hint'))}">${esc(t('stacks.build_new'))}</span>`
   :v.note?`<span class="badge b-mut" title="${esc(v.note)}">${esc(t('stacks.not_verified'))}</span>`:`<span class="badge b-ok">${esc(t('stacks.current'))}</span>`}
 function renderStacks(){
  const s=stacksData;if(!s)return;
@@ -1245,6 +1247,9 @@ async function openStack(name,id,focusSvc,focusPolicy){
     <div class="hint small muted" style="margin-top:.3rem">${esc(t('modal.edit_hint'))}</div><div class="tag-sel"></div>`;
    const inp=box.querySelector('input'),ap=box.querySelector('[data-apply]'),tg=box.querySelector('[data-tags]'),info=box.querySelector('.tag-sel');
    inp.value=img;
+   if(chk.update_available&&chk.mode==='semver'){const base=img.replace(/:[^:@/]+(@.*)?$/,'');
+    [[chk.latest_same_major,'modal.use_same_major'],[chk.latest_tag,'modal.use_latest']].forEach(([tg,k])=>{if(!tg)return;
+     const b=document.createElement('button');b.textContent=t(k,{t:tg});b.onclick=()=>{inp.value=base+':'+tg;inp.focus()};info.appendChild(b)})}
    ap.onclick=async()=>{const val=inp.value.trim();
     if(!/^[A-Za-z0-9_./:@-]+$/.test(val)){toast(t('toast.invalid_image'),'err');return}
     try{const v=await api('/api/versions?image='+encodeURIComponent(img));const all=[...(v.semver_tags||[]),...(v.other_tags||[])];

@@ -161,6 +161,45 @@ def semver_key(tag):
     return (maj, mi, pat, rank)
 
 
+def _track(tag):
+    """Split a version tag into (numbers, precision, variant, prerelease).
+
+    '8-bookworm' -> ((8,), 1, 'bookworm', False)   '1.27.3' -> ((1,27,3), 3, '', False)
+    '3.12-slim'  -> ((3,12), 2, 'slim', False)     '3.16-rc-slim' -> (..., True)
+    A candidate only counts as an upgrade of the running tag if it is on the
+    SAME TRACK: same precision ('6.0' is compared with '8.0', not with '8.0.4'),
+    same variant ('-bookworm' never becomes '-trixie') and not a prerelease.
+    """
+    t = tag[1:] if tag[:1] in ("v", "V") else tag
+    m = re.match(r"^(\d+(?:\.\d+){0,3})(?:-(.+))?$", t)
+    if not m:
+        return None
+    nums = tuple(int(x) for x in m.group(1).split("."))
+    rest = m.group(2) or ""
+    pre = bool(rest) and _is_prerelease(rest)
+    return nums, len(nums), ("" if pre else rest.lower()), pre
+
+
+def _pad(nums):
+    return tuple(nums) + (0,) * (4 - len(nums))
+
+
+def _newest_in_track(cur, tags):
+    """(newest tag on the same track, newest tag with the same major)."""
+    best = best_same = None
+    for t in tags:
+        tr = _track(t)
+        if not tr or tr[1] != cur[1] or tr[2] != cur[2]:
+            continue
+        if tr[3] and not cur[3]:
+            continue  # never suggest rc/beta/alpha for a release tag
+        if best is None or _pad(tr[0]) > _pad(_track(best)[0]):
+            best = t
+        if tr[0][0] == cur[0][0] and (best_same is None or _pad(tr[0]) > _pad(_track(best_same)[0])):
+            best_same = t
+    return best, best_same
+
+
 def hub_tags(repo, page_size=100, max_pages=2):
     """Docker Hub API v2 tag list - returns NEWEST-CREATED-FIRST, so 1-2
     requests cover the newest versions (the registry /tags/list endpoint is
@@ -344,9 +383,23 @@ def _check_update_uncached(registry, repo, tag, local_digest):
     cur_key = semver_key(tag)
     if cur_key:
         tags = newest_semver_tags(registry, repo)
-        newest = max((t for t in tags if semver_key(t)), key=semver_key, default=None)
-        newer = bool(newest and semver_key(newest) > cur_key)
-        return {"mode": "semver", "current_tag": tag, "latest_tag": newest,
+        cur = _track(tag)
+        if cur:
+            newest, same_major = _newest_in_track(cur, tags)
+        else:  # defensive: old behaviour
+            newest = max((t for t in tags if semver_key(t)), key=semver_key, default=None)
+            same_major = None
+        newer = bool(newest and (_track(newest) and cur and _pad(_track(newest)[0]) > _pad(cur[0])
+                                 or (not cur and semver_key(newest) > cur_key)))
+        upgrade = None
+        if newer and cur:
+            n = _pad(_track(newest)[0])
+            c = _pad(cur[0])
+            upgrade = "major" if n[0] > c[0] else "minor" if n[1] > c[1] else "patch"
+        if same_major and cur and _pad(_track(same_major)[0]) <= _pad(cur[0]):
+            same_major = None
+        return {"mode": "semver", "current_tag": tag, "latest_tag": newest if newer else None,
+                "latest_same_major": same_major if newer else None, "upgrade": upgrade,
                 "remote_digest": rdigest, "update_available": newer,
                 "note": "" if newer else "pinned version is current"}
     elif local_digest:

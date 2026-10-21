@@ -157,6 +157,8 @@ def run_check(client: Portainer, eid, force=False, log=None) -> dict:
                 "mode": res["mode"],
                 "current_tag": res["current_tag"],
                 "latest_tag": res["latest_tag"],
+                "latest_same_major": res.get("latest_same_major"),
+                "upgrade": res.get("upgrade"),
                 "remote_digest": res["remote_digest"],
                 "update_available": res["update_available"],
                 "note": res["note"],
