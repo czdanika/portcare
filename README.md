@@ -95,7 +95,7 @@ Az **„Összes frissítése”** gomb az *Alapértelmezett* és a *Saját időp
 
 ### Önálló konténerek
 
-A *Stackek* oldal alján külön lista mutatja azokat a konténereket, amelyek nem Portainer stackhez tartoznak (pl. `docker run`-nal indítottak, NAS-alkalmazások, máshol indított compose projektek). A Portainer saját konténere kimarad.
+Az oldalsáv **Önálló konténerek** menüpontja mutatja azokat a konténereket, amelyek nem Portainer stackhez tartoznak (pl. `docker run`-nal indítottak, NAS-alkalmazások, máshol indított compose projektek). A Portainer saját konténere kimarad.
 
 - Ugyanúgy ellenőrzi őket, és ugyanazok a szabályok állíthatók rájuk, de **alapból „Csak jelez”** módban vannak.
 - Frissítéskor letölti az új image-et, és a Portainer **Recreate** funkciójával ugyanazokkal a beállításokkal, kötetekkel és hálózatokkal hozza létre újra a konténert. Régebbi Portainernél ugyanezt maga végzi el a Docker API-n keresztül, és hiba esetén visszaállítja a régi konténert.

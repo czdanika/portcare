@@ -92,7 +92,7 @@ The image is rebuilt on every change to `main`. PortCare excludes its own stack 
 
 ### Standalone containers
 
-A separate list at the bottom of the *Stacks* page shows containers that are not part of a Portainer stack (started with `docker run`, NAS apps, compose projects started elsewhere). Portainer's own container is left out.
+The **Standalone containers** menu item shows containers that are not part of a Portainer stack (started with `docker run`, NAS apps, compose projects started elsewhere). Portainer's own container is left out.
 
 - They are checked the same way and take the same rules, but they are **"Notify only" by default**.
 - An update pulls the new image and recreates the container with Portainer's **Recreate** with the same settings, volumes and networks. On older Portainer versions PortCare does the same itself through the Docker API, and restores the old container if anything fails.

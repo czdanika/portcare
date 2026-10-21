@@ -415,6 +415,7 @@ input:disabled,select:disabled{opacity:.6;cursor:not-allowed}
       <nav class="nav" id="sideNav">
         <button class="side-link" data-tab="dash"><svg class="i"><use href="#i-home"/></svg><span data-i18n="nav.dash"></span></button>
         <button class="side-link" data-tab="stacks"><svg class="i"><use href="#i-layers"/></svg><span data-i18n="nav.stacks"></span><span class="count hidden" data-upd-count></span></button>
+        <button class="side-link" data-tab="containers"><svg class="i"><use href="#i-box"/></svg><span data-i18n="nav.containers"></span><span class="count hidden" data-ct-count></span></button>
         <button class="side-link" data-tab="history"><svg class="i"><use href="#i-history"/></svg><span data-i18n="nav.history"></span></button>
       </nav>
     </div>
@@ -489,8 +490,15 @@ input:disabled,select:disabled{opacity:.6;cursor:not-allowed}
           <div class="w-sub" id="stackCheckInfo"></div>
           <div id="stackRows"><div class="empty" data-i18n="common.loading"></div></div>
         </div>
-        <div class="widget">
-          <div class="w-head"><div class="wt"><span class="wi"><svg class="i"><use href="#i-box"/></svg></span><span data-i18n="ct.title"></span></div></div>
+      </div>
+
+      <!-- ====================================================== CONTAINERS -->
+      <div id="tab-containers" class="tab hidden">
+        <div class="widget" style="margin-top:0">
+          <div class="w-head"><div class="wt"><span class="wi"><svg class="i"><use href="#i-box"/></svg></span><span data-i18n="ct.title"></span></div>
+            <div class="search-box"><svg class="i"><use href="#i-search"/></svg><input type="text" id="ctSearch" data-i18n-ph="ct.search"></div>
+            <div class="seg" id="ctFilter"><button data-f="all" class="on" data-i18n="stacks.f_all"></button><button data-f="upd" data-i18n="stacks.f_upd"></button></div>
+            <button class="btn sec sm" id="btnRecheck2"><svg class="i"><use href="#i-refresh"/></svg><span data-i18n="stacks.recheck"></span></button></div>
           <div class="w-sub" data-i18n="ct.desc"></div>
           <div id="ctRows"><div class="empty" data-i18n="common.loading"></div></div>
         </div>
@@ -667,6 +675,7 @@ input:disabled,select:disabled{opacity:.6;cursor:not-allowed}
   <nav class="tabbar" id="tabBar">
     <button data-tab="dash"><svg class="i"><use href="#i-home"/></svg><span data-i18n="nav.dash"></span></button>
     <button data-tab="stacks"><svg class="i"><use href="#i-layers"/></svg><span data-i18n="nav.stacks"></span><span class="count hidden" data-upd-count></span></button>
+    <button data-tab="containers"><svg class="i"><use href="#i-box"/></svg><span data-i18n="nav.containers_short"></span><span class="count hidden" data-ct-count></span></button>
     <button data-tab="history"><svg class="i"><use href="#i-history"/></svg><span data-i18n="nav.history"></span></button>
     <button data-tab="settings"><svg class="i"><use href="#i-gear"/></svg><span data-i18n="nav.settings"></span></button>
   </nav>
@@ -715,7 +724,7 @@ input:disabled,select:disabled{opacity:.6;cursor:not-allowed}
 const I18N={
 hu:{
  'app.tagline':'Stackek frissítése','app.credit':'PortCare · <a href="https://github.com/czdanika/portcare" target="_blank" rel="noopener">github.com/czdanika/portcare</a>',
- 'nav.dash':'Áttekintés','ct.title':'Önálló konténerek','ct.desc':'Portainer stacken kívül futó konténerek (docker run, NAS-alkalmazások, máshol indított compose). Alapból csak jeleznek. Frissítéskor a konténert a friss image-dzsel, ugyanazokkal a beállításokkal, kötetekkel és hálózatokkal hozza létre újra.','ct.none':'Nincs önálló konténer.','ct.update':'Frissítés','ct.running':'fut','ct.badge':'konténer','ct.project':'Compose projekt (Portainer-en kívül)','ct.confirm':'Frissíted a(z) „{n}” konténert?\n\nLetölti az új image-et, és ugyanazokkal a beállításokkal újra létrehozza (rövid leállással).','ct.updated':'„{n}” frissítve','ct.failed':'„{n}” frissítése sikertelen – lásd a naplót','ct.how':'Frissítéskor letölti az image-et, és a Portainer „Recreate” funkciójával ugyanazokkal a beállításokkal újra létrehozza a konténert. Automatikusan csak akkor frissül, ha a szabálya nem „Csak jelez”, és tényleg van új image.','col.state':'Állapot','pol.title_short':'Szabály','app2.title':'Telefonos app és push értesítés','app2.desc':'Telepítsd a PortCare-t a telefonodra appként (App Store nélkül), és kapj értesítést új frissítésekről, illetve a frissítés végén.',
+ 'nav.dash':'Áttekintés','nav.containers':'Önálló konténerek','nav.containers_short':'Konténerek','crumb.containers':'Környezet › Önálló konténerek','ct.search':'Keresés konténer vagy image névre…','ct.title':'Önálló konténerek','ct.desc':'Portainer stacken kívül futó konténerek (docker run, NAS-alkalmazások, máshol indított compose). Alapból csak jeleznek. Frissítéskor a konténert a friss image-dzsel, ugyanazokkal a beállításokkal, kötetekkel és hálózatokkal hozza létre újra.','ct.none':'Nincs önálló konténer.','ct.update':'Frissítés','ct.running':'fut','ct.badge':'konténer','ct.project':'Compose projekt (Portainer-en kívül)','ct.confirm':'Frissíted a(z) „{n}” konténert?\n\nLetölti az új image-et, és ugyanazokkal a beállításokkal újra létrehozza (rövid leállással).','ct.updated':'„{n}” frissítve','ct.failed':'„{n}” frissítése sikertelen – lásd a naplót','ct.how':'Frissítéskor letölti az image-et, és a Portainer „Recreate” funkciójával ugyanazokkal a beállításokkal újra létrehozza a konténert. Automatikusan csak akkor frissül, ha a szabálya nem „Csak jelez”, és tényleg van új image.','col.state':'Állapot','pol.title_short':'Szabály','app2.title':'Telefonos app és push értesítés','app2.desc':'Telepítsd a PortCare-t a telefonodra appként (App Store nélkül), és kapj értesítést új frissítésekről, illetve a frissítés végén.',
  'app2.install_state':'Ezen az eszközön','app2.public_url':'Nyilvános cím (HTTPS) – honnan érhető el és honnan jön a push','app2.use_origin':'Jelenlegi cím',
  'app2.public_url_hint':'Pl. a Cloudflare domain. Az értesítésre koppintva ez nyílik meg, és ennek a domainnek a nevében mennek a push üzenetek. A telefonon is erről a címről telepítsd az appot.',
  'app2.contact':'Kapcsolattartó a push szolgáltatóknak (e-mail vagy https://domain)','app2.contact_hint':'Az Apple / Google push szolgáltatás ezt látja feladóként. Most érvényes: {c}',
@@ -814,7 +823,7 @@ hu:{
 },
 en:{
  'app.tagline':'Keep stacks up to date','app.credit':'PortCare · <a href="https://github.com/czdanika/portcare" target="_blank" rel="noopener">github.com/czdanika/portcare</a>',
- 'nav.dash':'Overview','ct.title':'Standalone containers','ct.desc':'Containers running outside Portainer stacks (docker run, NAS apps, compose started elsewhere). Notify only by default. An update recreates the container with the fresh image and the same settings, volumes and networks.','ct.none':'No standalone containers.','ct.update':'Update','ct.running':'running','ct.badge':'container','ct.project':'Compose project (outside Portainer)','ct.confirm':'Update container “{n}”?\n\nPulls the new image and recreates it with the same settings (short downtime).','ct.updated':'“{n}” updated','ct.failed':'Updating “{n}” failed – see the log','ct.how':'An update pulls the image and recreates the container with Portainer’s “Recreate” with the same settings. It is only updated automatically if its rule is not “Notify only” and there really is a new image.','col.state':'State','pol.title_short':'Rule','app2.title':'Phone app & push notifications','app2.desc':'Install PortCare on your phone as an app (no app store) and get notified about new updates and when an update run finishes.',
+ 'nav.dash':'Overview','nav.containers':'Standalone containers','nav.containers_short':'Containers','crumb.containers':'Environment › Standalone containers','ct.search':'Search container or image…','ct.title':'Standalone containers','ct.desc':'Containers running outside Portainer stacks (docker run, NAS apps, compose started elsewhere). Notify only by default. An update recreates the container with the fresh image and the same settings, volumes and networks.','ct.none':'No standalone containers.','ct.update':'Update','ct.running':'running','ct.badge':'container','ct.project':'Compose project (outside Portainer)','ct.confirm':'Update container “{n}”?\n\nPulls the new image and recreates it with the same settings (short downtime).','ct.updated':'“{n}” updated','ct.failed':'Updating “{n}” failed – see the log','ct.how':'An update pulls the image and recreates the container with Portainer’s “Recreate” with the same settings. It is only updated automatically if its rule is not “Notify only” and there really is a new image.','col.state':'State','pol.title_short':'Rule','app2.title':'Phone app & push notifications','app2.desc':'Install PortCare on your phone as an app (no app store) and get notified about new updates and when an update run finishes.',
  'app2.install_state':'On this device','app2.public_url':'Public address (HTTPS) – where the app lives and where push comes from','app2.use_origin':'Current address',
  'app2.public_url_hint':'e.g. your Cloudflare domain. Tapping a notification opens this address and pushes are sent on behalf of this domain. Install the phone app from this address too.',
  'app2.contact':'Contact for the push services (e-mail or https://domain)','app2.contact_hint':'Apple / Google push services see this as the sender. Currently effective: {c}',
@@ -1015,7 +1024,7 @@ async function boot(){
 function enterApp(){
  $('authScreen').classList.add('hidden');$('appScreen').classList.remove('hidden');
  const tab=(location.hash||'').replace('#','');
- showTab(['dash','stacks','history','settings'].includes(tab)?tab:'dash',true);
+ showTab(['dash','stacks','containers','history','settings'].includes(tab)?tab:'dash',true);
  refresh();startPolling();
  setTimeout(maybeInstallBanner,isIOS()?2500:500);
 }
@@ -1030,15 +1039,15 @@ function showTab(name,noScroll){
  currentTab=name;
  document.querySelectorAll('[data-tab]').forEach(b=>{const on=b.dataset.tab===name;b.classList.toggle('active',on);
   if(on)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
- ['dash','stacks','history','settings'].forEach(x=>$('tab-'+x).classList.toggle('hidden',x!==name));
+ ['dash','stacks','containers','history','settings'].forEach(x=>$('tab-'+x).classList.toggle('hidden',x!==name));
  setTitle();
  if(history.replaceState)history.replaceState(null,'','#'+name);
  if(!noScroll)window.scrollTo({top:0});
  if(name==='dash'&&lastStatus)renderDashStacks(lastStatus.stacks||{});
- if(name==='stacks')loadStacks();if(name==='history')loadHistory();if(name==='settings')loadSettings();
+ if(name==='stacks')loadStacks();if(name==='containers')loadContainers();if(name==='history')loadHistory();if(name==='settings')loadSettings();
 }
 document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
-addEventListener('hashchange',()=>{const h=location.hash.slice(1);if(['dash','stacks','history','settings'].includes(h)&&h!==currentTab&&!$('appScreen').classList.contains('hidden'))showTab(h)});
+addEventListener('hashchange',()=>{const h=location.hash.slice(1);if(['dash','stacks','containers','history','settings'].includes(h)&&h!==currentTab&&!$('appScreen').classList.contains('hidden'))showTab(h)});
 document.addEventListener('click',e=>{const g=e.target.closest('[data-goto]');if(g){e.preventDefault();showTab(g.dataset.goto)}});
 addEventListener('scroll',()=>$('topbar').classList.toggle('scrolled',scrollY>2),{passive:true});
 
@@ -1067,7 +1076,10 @@ async function refresh(){
  $('cUpd').textContent=hasCheck?nUpd:'–';
  $('cUpdIcon').className='ti'+(nUpd?' warn':hasCheck?' ok':'');
  $('cUpdSub').textContent=hasCheck?t('dash.checked',{t:ago(s.check.checked_at)}):t('dash.no_check');
- document.querySelectorAll('[data-upd-count]').forEach(el=>{el.textContent=nUpd;el.classList.toggle('hidden',!nUpd)});
+ const cnt=(pred)=>Object.entries(s.stacks||{}).filter(([k])=>pred(k)).reduce((n,[,svc])=>n+Object.values(svc).filter(v=>v.update_available).length,0);
+ const nSt=cnt(k=>!k.startsWith('@')),nCt=cnt(k=>k.startsWith('@'));
+ document.querySelectorAll('[data-upd-count]').forEach(el=>{el.textContent=nSt;el.classList.toggle('hidden',!nSt)});
+ document.querySelectorAll('[data-ct-count]').forEach(el=>{el.textContent=nCt;el.classList.toggle('hidden',!nCt)});
  // last run
  const lr=s.last_run;
  lastFailedRun=lr&&!lr.success&&lr.run_id?lr.run_id:null;
@@ -1099,7 +1111,8 @@ async function refresh(){
  $('cSecSub').textContent=t('dash.sec_sub',{m:t('tls.'+tm)});
  $('hTotal').textContent=s.runs_total??'–';
  if(currentTab==='dash')renderDashStacks(s.stacks||{});
- if(currentTab==='stacks'&&stacksData){renderStacks();renderContainers()}
+ if(currentTab==='stacks'&&stacksData)renderStacks();
+ if(currentTab==='containers'&&ctData)renderContainers();
  gateBusy=!!busy;setBusyUI(gateBusy);if(busy)ensureBannerTimer();
 }
 
@@ -1131,7 +1144,7 @@ function ensureBannerTimer(){if(bannerTimer)return;
  bannerTimer=setInterval(async()=>{try{const c=await api('/api/runs/current');
   if(c.active)await refreshRunBanner();
   else{$('runBanner').classList.add('hidden');clearInterval(bannerTimer);bannerTimer=null;setBusyUI(false);refresh();if(currentTab==='stacks')loadStacks()}}catch(e){}},2000)}
-function setBusyUI(b){['btnCheck','btnUpdate','btnPrune','btnRecheck','btnSelfUpdate'].forEach(id=>{if($(id))$(id).disabled=b})}
+function setBusyUI(b){['btnCheck','btnUpdate','btnRecheck2','btnPrune','btnRecheck','btnSelfUpdate'].forEach(id=>{if($(id))$(id).disabled=b})}
 
 /* ============================================================== dashboard */
 function renderDashStacks(stacks){
@@ -1167,11 +1180,10 @@ cardAction($('cLastCard'),()=>{if(lastFailedRun)showRunLog(lastFailedRun);else s
 /* ================================================================= stacks */
 let stacksData=null,lastStacksHtml=null,stackFilter='all';
 async function loadStacks(){
- loadContainers();
  try{stacksData=await api('/api/stacks');renderStacks()}
  catch(e){if(!(e instanceof AuthError))$('stackRows').innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
 /* ---------------------------------------------------- standalone containers */
-let ctData=null,lastCtHtml=null;
+let ctData=null,lastCtHtml=null,ctFilter='all';
 async function loadContainers(){
  try{ctData=await api('/api/containers');renderContainers()}
  catch(e){if(!(e instanceof AuthError))$('ctRows').innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
@@ -1179,9 +1191,9 @@ function ctPolBadge(c){return `<button class="badge ${polCls(c.effective)}" data
 function ctStateBadge(c){return c.state==='running'?`<span class="badge b-ok" title="${esc(c.status)}">${esc(t('ct.running'))}</span>`:`<span class="badge b-mut" title="${esc(c.status)}">${esc(c.state||'?')}</span>`}
 function renderContainers(){
  const d=ctData;if(!d)return;
- const q=$('stackSearch').value.trim().toLowerCase();
+ const q=$('ctSearch').value.trim().toLowerCase();
  let list=d.containers.slice().sort((a,b)=>(b.updates_available||0)-(a.updates_available||0)||a.name.localeCompare(b.name));
- if(stackFilter==='upd')list=list.filter(c=>c.updates_available>0);
+ if(ctFilter==='upd')list=list.filter(c=>c.updates_available>0);
  if(q)list=list.filter(c=>c.name.toLowerCase().includes(q)||(c.image||'').toLowerCase().includes(q));
  let html;
  if(!d.containers.length)html=`<div class="empty">${esc(t('ct.none'))}</div>`;
@@ -1263,9 +1275,11 @@ function renderStacks(){
  }
  if(html!==lastStacksHtml){lastStacksHtml=html;$('stackRows').innerHTML=html}
 }
-$('stackSearch').oninput=()=>{renderStacks();renderContainers()};
+$('stackSearch').oninput=()=>renderStacks();
+$('ctSearch').oninput=()=>renderContainers();
+$('ctFilter').querySelectorAll('button').forEach(b=>b.onclick=()=>{ctFilter=b.dataset.f;$('ctFilter').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));renderContainers()});
 $('stackFilter').querySelectorAll('button').forEach(b=>b.onclick=()=>{stackFilter=b.dataset.f;
- $('stackFilter').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));renderStacks();renderContainers()});
+ $('stackFilter').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));renderStacks()});
 document.addEventListener('click',e=>{const el=e.target.closest('[data-act]');if(!el)return;e.preventDefault();
  const a=el.dataset.act;
  if(a==='open')openStack(el.dataset.nm);
@@ -1523,6 +1537,7 @@ async function doUpdate(btn){if(!confirm(t('confirm.update')))return;await withB
  toast(t('toast.update_started')+' · '+r.run_id,'ok',true);setBusyUI(true);ensureBannerTimer();refreshRunBanner();showTab('dash')}catch(e){if(!(e instanceof AuthError))toast(e.message,'err')}})}
 $('btnCheck').onclick=()=>doCheck($('btnCheck'));$('btnRecheck').onclick=()=>doCheck($('btnRecheck'));
 $('btnUpdate').onclick=()=>doUpdate($('btnUpdate'));
+$('btnRecheck2').onclick=()=>doCheck($('btnRecheck2'));
 $('btnReload').onclick=()=>{refresh();if(currentTab==='stacks')loadStacks();if(currentTab==='history')loadHistory();if(currentTab==='settings')loadSettings()};
 
 /* ====================================================== app install + push */
