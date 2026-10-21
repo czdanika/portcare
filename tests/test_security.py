@@ -60,8 +60,8 @@ class TestLogin:
         anon.post("/api/auth/setup", json={"password": "a-long-password"})
         del anon.environ_base["HTTP_X_PUS_REQUEST"]
         assert anon.post("/api/update").status_code == 403
-        assert anon.post("/api/update", headers={"Origin": "https://evil.example",
-                                                 "X-PUS-Request": "1"}).status_code == 403
+        # cross-site without the custom header (a browser can't add it cross-site)
+        assert anon.post("/api/update", headers={"Origin": "https://evil.example"}).status_code == 403
 
     def test_password_change_invalidates_other_sessions(self, tmp_state):
         from app.main import app
@@ -291,8 +291,15 @@ class TestProxyOrigin:
         cfg.load(force=True)
         cfg.set("public_url", "https://portcare.example.com")
         r = anon.post("/api/auth/setup", json={"password": "a-long-password"},
-                      headers={"Origin": "https://evil.example"})
+                      headers={"Origin": "https://evil.example", "X-PUS-Request": ""})
         assert r.status_code == 403
         r = anon.post("/api/auth/setup", json={"password": "a-long-password"},
                       headers={"Origin": "https://portcare.example.com"})
         assert r.status_code == 200
+
+
+def test_rewritten_host_with_custom_header_ok(anon):
+    # tunnel rewrites Host to the LAN address; the UI's custom header still proves same-origin
+    r = anon.post("/api/auth/setup", json={"password": "a-long-password"},
+                  headers={"Origin": "https://portcare.example.com", "Host": "192.168.1.10:8742"})
+    assert r.status_code == 200

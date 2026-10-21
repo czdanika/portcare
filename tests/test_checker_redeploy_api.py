@@ -110,7 +110,8 @@ class TestApiSmoke:
             assert key in body
 
     def test_csrf_cross_origin_rejected(self, client):
-        r = client.post("/api/update", headers={"Origin": "https://evil.example"})
+        r = client.post("/api/update", headers={"Origin": "https://evil.example",
+                                                "X-PUS-Request": ""})
         assert r.status_code == 403
 
     def test_csrf_same_origin_allowed(self, client):

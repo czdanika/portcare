@@ -121,7 +121,13 @@ def _auth_gate():
     path = request.path
     if not path.startswith("/api/"):
         return None
-    if request.method in MUTATING and not _same_origin():
+    # CSRF: browsers cannot attach the custom X-PUS-Request header to a
+    # cross-site request without a CORS preflight, which this app never
+    # grants - so the header alone proves same-origin. The Origin host check
+    # is the extra layer for header-less clients (it can't see the public
+    # host when a proxy rewrites the Host header, e.g. some tunnels).
+    if request.method in MUTATING and request.headers.get("X-PUS-Request") != "1" \
+            and not _same_origin():
         return _err("cross-site request rejected", 403)
     if path in PUBLIC_API:
         return None
