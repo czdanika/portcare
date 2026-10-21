@@ -35,3 +35,17 @@ def test_precision_kept_and_same_major(chk):
     assert r["latest_same_major"] is None
     r = chk("nginx:1.25.3", ["1.27.2", "1.25.5", "2.0.0-beta1", "1.27"])
     assert r["latest_tag"] == "1.27.2" and r["upgrade"] == "minor"
+
+
+def test_variants_are_not_prereleases():
+    from app.dockerhub import _is_prerelease, _track
+    for v in ("bookworm", "bullseye", "alpine", "alpine3.24", "apache", "debian"):
+        assert not _is_prerelease(v), v
+    for v in ("rc1", "rc", "beta.2", "alpha", "b3", "a1", "dev", "rc-slim-trixie"):
+        assert _is_prerelease(v), v
+    assert _track("8-bookworm") == ((8,), 1, "bookworm", False)
+
+
+def test_bookworm_never_becomes_alpine(chk):
+    r = chk("docker.io/valkey/valkey:8-bookworm", ["9-alpine3.24", "9-trixie", "9.2-alpine", "8-bookworm"])
+    assert r["update_available"] is False

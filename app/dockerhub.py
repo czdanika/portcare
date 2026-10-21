@@ -113,7 +113,12 @@ def remote_digest(registry, repo, tag):
 
 
 def _is_prerelease(pre: str) -> bool:
-    return bool(re.match(r"^(rc|pre|beta|alpha|b|a|dev|snapshot|nightly|test)", pre, re.I))
+    """'rc1', 'beta.2', 'alpha', 'b3', 'dev' -> True.
+    Variant names that merely START with those letters ('bookworm',
+    'bullseye', 'alpine3.20', 'apache', 'debian') are NOT prereleases -
+    upstream matched a bare 'b'/'a' prefix and treated them as such."""
+    return bool(re.match(r"^(rc|pre|preview|beta|alpha|dev|snapshot|nightly|canary|test)(\d|[.\-_]|$)"
+                         r"|^[ab]\d", pre, re.I))
 
 
 # distro suffixes that appear in tags like '18.6-trixie' / '1.27-alpine' -
