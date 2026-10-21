@@ -5,6 +5,7 @@ Webes felület a Portainer stackek frissítéséhez. Megmutatja, melyik image-he
 Ez a [joshmadison/Portainer-Update-Service](https://github.com/joshmadison/Portainer-Update-Service) (MIT) forkja. Ami benne új:
 
 - **Magyar és angol felület**, egy kattintással váltható (alapból magyar)
+- **Portainer-szerű kinézet**: sötét oldalsáv környezet-blokkal, „widget” panelek, táblázatok – világos és sötét témában
 - **Mobilnézet**: alsó menüsor, kártyás stacklista, alulról felcsúszó panel
 - **Világos és sötét téma**, alapból a rendszer beállítását követi
 - **Kötelező bejelentkezés**: nem csak a módosításokhoz, hanem a megtekintéshez is jelszó kell
