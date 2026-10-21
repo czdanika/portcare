@@ -153,6 +153,7 @@ main{padding:0 1.25rem 2rem;width:100%}
 .tile .lbl{color:var(--txt-2);font-size:.82rem;font-weight:500}
 .tile .sub{color:var(--mut);font-size:.76rem;margin-top:.1rem}
 .widget{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow-1);margin-top:1rem;overflow:hidden}
+.widget>[id]{overflow-x:auto}
 .w-head{display:flex;align-items:center;gap:.7rem;padding:.8rem 1rem;flex-wrap:wrap}
 .w-head .wt{display:flex;align-items:center;gap:.6rem;font-weight:600;font-size:.95rem;margin-right:auto}
 .wi{width:2rem;height:2rem;border-radius:50%;background:var(--icon-bg);color:var(--icon-fg);display:grid;place-items:center;flex:none}
@@ -167,7 +168,7 @@ table.dt{width:100%;border-collapse:collapse;font-size:.86rem}
 .dt td{padding:.6rem 1rem;border-bottom:1px solid var(--line);vertical-align:middle}
 .dt tr:last-child td{border-bottom:0}
 .dt tr.sep td{border-top:1px solid var(--line-strong)}
-.dt td.mono{color:var(--txt-2);max-width:26rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dt td.mono{color:var(--txt-2);max-width:20rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dt a{font-weight:500}
 .dt tbody tr:hover td{background:var(--surface-2)}
 .dt .num{text-align:right}
@@ -213,6 +214,17 @@ pre.log{background:var(--log-bg);color:var(--log-txt);border-radius:var(--r-sm);
 pre.log.tail{max-height:4.2rem;margin-top:.45rem;font-size:.72rem;padding:.45rem .7rem}
 .empty{color:var(--mut);text-align:center;padding:1.8rem 1rem;font-size:.86rem}
 .cards-m{display:none}
+button.badge{cursor:pointer;font-family:inherit}
+button.badge:hover{filter:brightness(.95);text-decoration:underline}
+.pol-line{padding:.1rem 1rem .55rem;background:var(--surface-2)}
+.pol-box{border:1px solid var(--line);border-radius:var(--r);padding:.8rem .9rem;margin-bottom:.8rem;background:var(--surface-2)}
+.pol-box.focus{border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-soft)}
+.pol-opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(11rem,1fr));gap:.5rem;margin-top:.6rem}
+.pol-opt{display:flex;gap:.5rem;align-items:flex-start;border:1px solid var(--line-strong);border-radius:var(--r-sm);padding:.55rem .65rem;cursor:pointer;background:var(--surface)}
+.pol-opt input{margin-top:.2rem;accent-color:var(--acc)}
+.pol-opt b{display:block;font-size:.84rem}
+.pol-opt span{display:block;font-size:.74rem;color:var(--mut)}
+.pol-opt.on{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc-soft)}
 
 /* stack cards (mobile) */
 .stack{border-top:1px solid var(--line)}
@@ -493,6 +505,7 @@ input:disabled,select:disabled{opacity:.6;cursor:not-allowed}
           <div class="fs" id="fsSecurity">
             <h2><svg class="i"><use href="#i-shield"/></svg><span data-i18n="set.security"></span></h2>
             <div class="desc" data-i18n="set.security_desc"></div>
+            <div class="banner" style="margin:.6rem 0 0"><div class="ic"><svg class="i"><use href="#i-info"/></svg></div><div class="bt"><div class="bs" data-i18n="set.env_note"></div></div></div>
             <div class="kv" id="secKv"></div>
             <div id="pwChange">
               <div class="two">
@@ -625,6 +638,7 @@ input:disabled,select:disabled{opacity:.6;cursor:not-allowed}
       <button class="btn ghost icon" id="mClose" aria-label="close"><svg class="i"><use href="#i-x"/></svg></button>
     </div>
     <div class="m-body">
+      <div id="mPolicy"></div>
       <div id="mRollback"></div>
       <div id="mBody"></div>
       <h3 style="margin-top:1.2rem" data-i18n="modal.compose"></h3>
@@ -640,7 +654,10 @@ input:disabled,select:disabled{opacity:.6;cursor:not-allowed}
 const I18N={
 hu:{
  'app.tagline':'Stackek frissítése','app.credit':'PortCare – az eredeti <a href="https://github.com/joshmadison/Portainer-Update-Service" target="_blank" rel="noopener">Portainer Update Service</a> (Josh Madison, MIT) magyarított, biztonságosabb változata.',
- 'nav.dash':'Áttekintés','nav.env':'Portainer környezet','nav.admin':'Adminisztráció','act.update_all':'Összes frissítése','crumb.dash':'Környezet › Áttekintés','crumb.stacks':'Környezet › Stackek','crumb.history':'Környezet › Előzmények','crumb.settings':'Adminisztráció › Beállítások','col.stack':'Név','col.service':'Service','col.image':'Image','col.mode':'Mód','col.status':'Állapot','col.actions':'Műveletek','col.services':'Service-ek','col.run':'Futás','col.kind':'Típus','col.trigger':'Indító','col.when':'Időpont','col.duration':'Időtartam','col.result':'Eredmény','stacks.n_stacks':'{n} stack · ','nav.stacks':'Stackek','nav.history':'Előzmények','nav.settings':'Beállítások',
+ 'nav.dash':'Áttekintés','pol.title':'Frissítési szabály ennél a stacknél','pol.default':'Alapértelmezett','pol.notify':'Csak jelez','pol.own':'Saját időpont','pol.ignore':'Kihagyva',
+ 'pol.notify_d':'Nem frissül magától, csak jelzi az új verziót','pol.own_d':'Saját nap / időpont','pol.ignore_d':'Nem ellenőrzi és nem frissíti','pol.daily':'Naponta','pol.weekly':'Hetente',
+ 'pol.global_off':'kikapcsolva (csak jelez)','pol.every_h':'{h} óránként','pol.save':'Szabály mentése','pol.saved':'„{n}” szabálya mentve','pol.next':'Következő: {t}','pol.edit':'Frissítési szabály módosítása',
+ 'pol.hint':'Az alapértelmezett ütemezést a Beállításokban állítod.','stacks.ignored_hint':'kihagyva – nem ellenőrzi','nav.env':'Portainer környezet','nav.admin':'Adminisztráció','act.update_all':'Összes frissítése','crumb.dash':'Környezet › Áttekintés','crumb.stacks':'Környezet › Stackek','crumb.history':'Környezet › Előzmények','crumb.settings':'Adminisztráció › Beállítások','col.stack':'Név','col.service':'Service','col.image':'Image','col.mode':'Mód','col.status':'Állapot','col.actions':'Műveletek','col.services':'Service-ek','col.run':'Futás','col.kind':'Típus','col.trigger':'Indító','col.when':'Időpont','col.duration':'Időtartam','col.result':'Eredmény','stacks.n_stacks':'{n} stack · ','nav.stacks':'Stackek','nav.history':'Előzmények','nav.settings':'Beállítások',
  'theme.auto':'Auto','theme.light':'Világos','theme.dark':'Sötét',
  'act.check':'Ellenőrzés','act.update':'Frissítés',
  'auth.login_title':'Bejelentkezés','auth.login_sub':'Add meg az admin jelszót.','auth.password':'Jelszó','auth.password_again':'Jelszó újra',
@@ -668,7 +685,7 @@ hu:{
  'stacks.upd_to':'új: {t}','stacks.mode_digest':'latest (digest)','stacks.mode_semver':'rögzített verzió','stacks.mode_pdigest':'digest-rögzített','stacks.mode_unknown':'ismeretlen',
  'stacks.lag':'{d} napja elérhető',
  'confirm.redeploy':'Frissíted most a(z) „{n}” stacket? Letölti az image-eket és újraindítja a konténereket.',
- 'confirm.update':'Indulhat a teljes frissítés?\n\n• menti a Portainert\n• törli a használatlan image-eket\n• újratelepíti az ÖSSZES nem rögzített stacket\n\nTöbb percig is tarthat.',
+ 'confirm.update':'Indulhat a teljes frissítés?\n\n• menti a Portainert\n• törli a használatlan image-eket\n• újratelepíti az „Alapértelmezett” és „Saját időpont” szabályú stackeket\n  (a „Csak jelez” és „Kihagyva” stackek kimaradnak)\n\nTöbb percig is tarthat.',
  'confirm.prune':'A takarítás törli az ÖSSZES használatlan image-et és a build cache-t.\n\nUtána a korábbi verziókra nem lehet visszaállni. Folytatod?',
  'confirm.self':'Frissíted most ezt az alkalmazást?\n\nA saját stackje újratelepül, a konténer újraindul, a felület pár másodperc múlva újra elérhető.',
  'confirm.tag':'A(z) „{t}” tag nem szerepel a registry listájában. Telepíted mégis?',
@@ -681,7 +698,7 @@ hu:{
  'set.security':'Biztonság','set.security_desc':'A felület minden része jelszóval védett. A Portainer API kulcs titkosítva kerül a config.yaml-ba.',
  'set.sec_login':'Bejelentkezés','set.sec_login_v':'kötelező (munkamenet süti)','set.sec_secrets':'Titkok tárolása','set.sec_secrets_v':'titkosítva (Fernet / AES)',
  'set.sec_tls':'Portainer kapcsolat','set.sec_pw':'Jelszó forrása','set.sec_pw_env':'környezeti változó (stack)','set.sec_pw_ui':'felületen beállítva',
- 'set.pw_current':'Jelenlegi jelszó','set.pw_new':'Új jelszó','set.pw_change':'Jelszó módosítása','set.pw_env':'A jelszó a stack PUS_AUTH_TOKEN változójából jön, ott lehet módosítani.',
+ 'set.env_note':'A stackben megadott PUS_* értékek (pl. jelszó, ütemezés) csak első indításkor számítanak alapértéknek. Utána minden itt, a felületen állítható, és a mentett érték az irányadó.','set.pw_current':'Jelenlegi jelszó','set.pw_new':'Új jelszó','set.pw_change':'Jelszó módosítása','set.pw_env':'A jelszó a stack PUS_AUTH_TOKEN változójából jön, ott lehet módosítani.',
  'set.session_days':'Bejelentkezés érvényessége (nap)',
  'set.connection':'Portainer kapcsolat','set.api_key':'API kulcs','set.api_key_hint':'Portainer → My account → Access tokens. A *** a mentett kulcsot jelenti.',
  'set.test':'Kapcsolat tesztelése','set.testing':'tesztelés…','set.test_ok':'Rendben – Portainer {v} · környezet: {e}','set.test_fail':'Sikertelen: {m}',
@@ -694,8 +711,8 @@ hu:{
  'set.tls_hint_http':'HTTP címet adtál meg: a forgalom (és az API kulcs) titkosítás nélkül megy. Használd a https://…:9443 címet.',
  'set.cert_subject':'Tulajdonos','set.cert_issuer':'Kiállító','set.cert_valid':'Érvényes eddig','set.cert_fp':'Ujjlenyomat','set.cert_self':'saját aláírású',
  'set.cert_use':'Ezt rögzítem','set.cert_compare':'Hasonlítsd össze a Portainer felületén / böngészőben látható ujjlenyomattal.',
- 'set.schedule':'Ütemezés','set.mode':'Automatikus frissítés','set.mode_off':'Kikapcsolva – csak jelez','set.mode_weekly':'Hetente','set.mode_daily':'Naponta','set.mode_interval':'Óránként (N óránként)',
- 'set.mode_hint_off':'Nem frissít magától. Ellenőriz, jelzi az újdonságokat, a frissítést te indítod.','set.mode_hint_on':'A beállított időpontban minden nem rögzített stacket frissít.',
+ 'set.schedule':'Alapértelmezett ütemezés','set.mode':'Automatikus frissítés (alapértelmezés)','set.mode_off':'Kikapcsolva – csak jelez','set.mode_weekly':'Hetente','set.mode_daily':'Naponta','set.mode_interval':'Óránként (N óránként)',
+ 'set.mode_hint_off':'Az alapértelmezett stackek nem frissülnek maguktól: ellenőriz, jelzi az újdonságokat, a frissítést te indítod. Stackenként eltérő szabály a Stackek oldalon állítható.','set.mode_hint_on':'A beállított időpontban az „Alapértelmezett” szabályú stackek frissülnek. Stackenként eltérő szabály (saját időpont, csak jelez, kihagyva) a Stackek oldalon állítható.',
  'set.interval':'Frissítés gyakorisága (óra)','set.weekday':'Nap','set.time':'Időpont','set.check_interval':'Ellenőrzés gyakorisága (óra)','set.cache':'Registry cache (perc)','set.server_time':'Szerveridő',
  'set.deploy':'Telepítés','set.parallel':'Párhuzamos telepítések','set.wait':'Várakozás stackenként (mp)','set.keep':'Megőrzött mentések',
  'set.include_portainer':'A Portainert is frissítse','set.include_portainer_hint':'Ehhez Docker socket és a Portainer compose mappájának felcsatolása kell. Biztonsági okból alapból ki van kapcsolva.',
@@ -717,7 +734,10 @@ hu:{
 },
 en:{
  'app.tagline':'Keep stacks up to date','app.credit':'PortCare – a localized, hardened fork of <a href="https://github.com/joshmadison/Portainer-Update-Service" target="_blank" rel="noopener">Portainer Update Service</a> by Josh Madison (MIT).',
- 'nav.dash':'Overview','nav.env':'Portainer environment','nav.admin':'Administration','act.update_all':'Update all','crumb.dash':'Environment › Overview','crumb.stacks':'Environment › Stacks','crumb.history':'Environment › History','crumb.settings':'Administration › Settings','col.stack':'Name','col.service':'Service','col.image':'Image','col.mode':'Mode','col.status':'Status','col.actions':'Actions','col.services':'Services','col.run':'Run','col.kind':'Type','col.trigger':'Trigger','col.when':'Time','col.duration':'Duration','col.result':'Result','stacks.n_stacks':'{n} stacks · ','nav.stacks':'Stacks','nav.history':'History','nav.settings':'Settings',
+ 'nav.dash':'Overview','pol.title':'Update rule for this stack','pol.default':'Default','pol.notify':'Notify only','pol.own':'Own schedule','pol.ignore':'Ignored',
+ 'pol.notify_d':'Never updated automatically, only flagged','pol.own_d':'Its own day / time','pol.ignore_d':'Not checked, not updated','pol.daily':'Daily','pol.weekly':'Weekly',
+ 'pol.global_off':'off (notify only)','pol.every_h':'every {h}h','pol.save':'Save rule','pol.saved':'Rule for “{n}” saved','pol.next':'Next: {t}','pol.edit':'Change update rule',
+ 'pol.hint':'The default schedule is set in Settings.','stacks.ignored_hint':'ignored – not checked','nav.env':'Portainer environment','nav.admin':'Administration','act.update_all':'Update all','crumb.dash':'Environment › Overview','crumb.stacks':'Environment › Stacks','crumb.history':'Environment › History','crumb.settings':'Administration › Settings','col.stack':'Name','col.service':'Service','col.image':'Image','col.mode':'Mode','col.status':'Status','col.actions':'Actions','col.services':'Services','col.run':'Run','col.kind':'Type','col.trigger':'Trigger','col.when':'Time','col.duration':'Duration','col.result':'Result','stacks.n_stacks':'{n} stacks · ','nav.stacks':'Stacks','nav.history':'History','nav.settings':'Settings',
  'theme.auto':'Auto','theme.light':'Light','theme.dark':'Dark',
  'act.check':'Check','act.update':'Update',
  'auth.login_title':'Sign in','auth.login_sub':'Enter the admin password.','auth.password':'Password','auth.password_again':'Repeat password',
@@ -745,7 +765,7 @@ en:{
  'stacks.upd_to':'new: {t}','stacks.mode_digest':'latest (digest)','stacks.mode_semver':'pinned version','stacks.mode_pdigest':'digest-pinned','stacks.mode_unknown':'unknown',
  'stacks.lag':'available for {d} days',
  'confirm.redeploy':'Redeploy stack “{n}” now? Pulls images and restarts its containers.',
- 'confirm.update':'Run a full update now?\n\n• backs up Portainer\n• prunes unused images\n• redeploys ALL non-pinned stacks\n\nThis can take several minutes.',
+ 'confirm.update':'Run a full update now?\n\n• backs up Portainer\n• prunes unused images\n• redeploys stacks on the “Default” and “Own schedule” rules\n  (“Notify only” and “Ignored” stacks are skipped)\n\nThis can take several minutes.',
  'confirm.prune':'Prune deletes ALL unused images and the build cache.\n\nRolling back to previous versions will no longer be possible. Continue?',
  'confirm.self':'Update this app now?\n\nIts own stack is redeployed; the container restarts and the UI reconnects in a few seconds.',
  'confirm.tag':'Tag “{t}” is not in the registry tag list. Deploy anyway?',
@@ -758,7 +778,7 @@ en:{
  'set.security':'Security','set.security_desc':'Every part of the UI requires the password. The Portainer API key is stored encrypted in config.yaml.',
  'set.sec_login':'Login','set.sec_login_v':'required (session cookie)','set.sec_secrets':'Secret storage','set.sec_secrets_v':'encrypted (Fernet / AES)',
  'set.sec_tls':'Portainer connection','set.sec_pw':'Password source','set.sec_pw_env':'environment variable (stack)','set.sec_pw_ui':'set in the UI',
- 'set.pw_current':'Current password','set.pw_new':'New password','set.pw_change':'Change password','set.pw_env':'The password comes from the stack’s PUS_AUTH_TOKEN variable – change it there.',
+ 'set.env_note':'PUS_* values in the stack (password, schedule, …) only seed the initial defaults. Afterwards everything is set here in the UI and the saved value wins.','set.pw_current':'Current password','set.pw_new':'New password','set.pw_change':'Change password','set.pw_env':'The password comes from the stack’s PUS_AUTH_TOKEN variable – change it there.',
  'set.session_days':'Session lifetime (days)',
  'set.connection':'Portainer connection','set.api_key':'API key','set.api_key_hint':'Portainer → My account → Access tokens. *** means the saved key is kept.',
  'set.test':'Test connection','set.testing':'testing…','set.test_ok':'OK – Portainer {v} · environment {e}','set.test_fail':'Failed: {m}',
@@ -771,8 +791,8 @@ en:{
  'set.tls_hint_http':'You entered an HTTP URL: traffic (including the API key) is unencrypted. Use https://…:9443.',
  'set.cert_subject':'Subject','set.cert_issuer':'Issuer','set.cert_valid':'Valid until','set.cert_fp':'Fingerprint','set.cert_self':'self-signed',
  'set.cert_use':'Pin this one','set.cert_compare':'Compare with the fingerprint shown by your browser for the Portainer UI.',
- 'set.schedule':'Schedule','set.mode':'Automatic updates','set.mode_off':'Off – notify only','set.mode_weekly':'Weekly','set.mode_daily':'Daily','set.mode_interval':'Every N hours',
- 'set.mode_hint_off':'Never updates on its own. It checks, flags new versions, and you start the update.','set.mode_hint_on':'At the scheduled time all non-pinned stacks are updated.',
+ 'set.schedule':'Default schedule','set.mode':'Automatic updates (default)','set.mode_off':'Off – notify only','set.mode_weekly':'Weekly','set.mode_daily':'Daily','set.mode_interval':'Every N hours',
+ 'set.mode_hint_off':'Stacks on the default rule are never updated on their own: checked and flagged, you start the update. Per-stack rules are set on the Stacks page.','set.mode_hint_on':'At this time all stacks on the “Default” rule are updated. Per-stack rules (own schedule, notify only, ignored) are set on the Stacks page.',
  'set.interval':'Update interval (hours)','set.weekday':'Day','set.time':'Time','set.check_interval':'Check interval (hours)','set.cache':'Registry cache (minutes)','set.server_time':'Server time',
  'set.deploy':'Deployment','set.parallel':'Parallel deploys','set.wait':'Wait per stack (s)','set.keep':'Backups to keep',
  'set.include_portainer':'Also update Portainer','set.include_portainer_hint':'Needs the Docker socket and Portainer’s compose folder mounted. Off by default for security.',
@@ -973,6 +993,7 @@ async function refresh(){
  $('cSecSub').textContent=t('dash.sec_sub',{m:t('tls.'+tm)});
  $('hTotal').textContent=s.runs_total??'–';
  if(currentTab==='dash')renderDashStacks(s.stacks||{});
+ if(currentTab==='stacks'&&stacksData)renderStacks();
  gateBusy=!!busy;setBusyUI(gateBusy);if(busy)ensureBannerTimer();
 }
 
@@ -1036,6 +1057,17 @@ async function loadStacks(){
  try{stacksData=await api('/api/stacks');renderStacks()}
  catch(e){if(!(e instanceof AuthError))$('stackRows').innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
 function modeTxt(m){return m==='digest'?t('stacks.mode_digest'):m==='semver'?t('stacks.mode_semver'):m==='pinned-digest'?t('stacks.mode_pdigest'):t('stacks.mode_unknown')}
+const DAYS_SHORT={hu:['H','K','Sze','Cs','P','Szo','V'],en:['Mon','Tue','Wed','Thu','Fri','Sat','Sun']};
+function schedTxt(kind,day,tm){return kind==='weekly'?`${t('days')[day||0]} ${tm}`:`${t('pol.daily')} ${tm}`}
+function globalSchedTxt(){const sc=(lastStatus&&lastStatus.scheduler)||{};const m=sc.schedule_mode;
+ if(!m||m==='off')return t('pol.global_off');if(m==='interval')return t('pol.every_h',{h:sc.interval_hours});
+ return m==='weekly'?schedTxt('weekly',sc.schedule_day,sc.schedule_time):schedTxt('daily',0,sc.schedule_time)}
+function polText(p,eff){p=p||{mode:'default'};
+ if(p.mode==='notify')return t('pol.notify');if(p.mode==='ignore')return t('pol.ignore');
+ if(p.mode==='schedule')return t('pol.own')+': '+schedTxt(p.kind,p.day,p.time);
+ return t('pol.default')+' · '+globalSchedTxt()}
+function polCls(eff){return eff==='auto'||eff==='own'?'b-info':eff==='ignore'?'b-mut':'b-warn'}
+function polBadge(st){return `<button class="badge ${polCls(st.effective)}" data-act="policy" data-nm="${esc(st.name)}" title="${esc(t('pol.edit'))}"><svg class="i"><use href="#i-cal"/></svg>${esc(polText(st.policy,st.effective))}</button>`}
 function svcBadge(v){return v.update_available?`<span class="badge b-warn" title="${esc(t('stacks.lag',{d:v.lag_days??0}))}">${esc(t('stacks.upd_to',{t:v.latest_tag||'digest'}))}</span>`
   :v.note?`<span class="badge b-mut" title="${esc(v.note)}">${esc(t('stacks.not_verified'))}</span>`:`<span class="badge b-ok">${esc(t('stacks.current'))}</span>`}
 function renderStacks(){
@@ -1053,13 +1085,13 @@ function renderStacks(){
   const stackBtns=st=>`<button class="btn ${st.updates_available?'':'sec '}sm" data-act="redeploy" data-st="${st.id}" data-nm="${esc(st.name)}"><svg class="i"><use href="#i-download"/></svg>${esc(t('stacks.update'))}</button>`;
   let rows='';
   list.forEach(st=>{const svcs=Object.entries(st.services||{});
-   if(!svcs.length){rows+=`<tr class="sep"><td><a href="#" data-act="open" data-nm="${esc(st.name)}">${esc(st.name)}</a></td><td colspan="4" class="muted">${esc(t('stacks.no_images'))}</td><td>${stackBtns(st)}</td></tr>`;return}
-   svcs.forEach(([svc,v],i)=>{rows+=`<tr${i===0?' class="sep"':''}>${i===0?`<td rowspan="${svcs.length}" style="vertical-align:top"><a href="#" data-act="open" data-nm="${esc(st.name)}">${esc(st.name)}</a>${st.updates_available?` <span class="badge b-warn">${st.updates_available}</span>`:''}<div style="margin-top:.45rem">${stackBtns(st)}</div></td>`:''}
+   if(!svcs.length){rows+=`<tr class="sep"><td><a href="#" data-act="open" data-nm="${esc(st.name)}">${esc(st.name)}</a><div style="margin-top:.35rem">${polBadge(st)}</div></td><td colspan="4" class="muted">${esc(t(st.effective==='ignore'?'stacks.ignored_hint':'stacks.no_images'))}</td><td>${stackBtns(st)}</td></tr>`;return}
+   svcs.forEach(([svc,v],i)=>{rows+=`<tr${i===0?' class="sep"':''}>${i===0?`<td rowspan="${svcs.length}" style="vertical-align:top"><a href="#" data-act="open" data-nm="${esc(st.name)}">${esc(st.name)}</a>${st.updates_available?` <span class="badge b-warn">${st.updates_available}</span>`:''}<div style="margin-top:.35rem">${polBadge(st)}</div><div style="margin-top:.45rem">${stackBtns(st)}</div></td>`:''}
     <td>${esc(svc)}</td><td class="mono" title="${esc(v.image)}">${esc(v.image)}</td><td><span class="badge b-mut">${esc(modeTxt(v.mode))}</span></td><td>${svcBadge(v)}</td>
     <td><button class="btn sec sm" data-act="pin" data-id="${st.id}" data-svc="${esc(svc)}">${esc(t('stacks.version'))}</button></td></tr>`})});
   html=`<table class="dt table-d"><thead><tr><th>${esc(t('col.stack'))}</th><th>${esc(t('col.service'))}</th><th>${esc(t('col.image'))}</th><th>${esc(t('col.mode'))}</th><th>${esc(t('col.status'))}</th><th>${esc(t('col.actions'))}</th></tr></thead><tbody>${rows}</tbody></table>`;
   html+=`<div class="cards-m">`+list.map(st=>{const svcs=Object.entries(st.services||{});
-   const head=`<div class="stack-head"><div class="grow"><a href="#" class="name" data-act="open" data-nm="${esc(st.name)}">${esc(st.name)}</a>${st.updates_available?`<span class="badge b-warn">${st.updates_available}</span>`:''}</div>${stackBtns(st)}</div>`;
+   const head=`<div class="stack-head"><div class="grow"><a href="#" class="name" data-act="open" data-nm="${esc(st.name)}">${esc(st.name)}</a>${st.updates_available?`<span class="badge b-warn">${st.updates_available}</span>`:''}</div>${stackBtns(st)}</div><div class="pol-line">${polBadge(st)}</div>`;
    if(!svcs.length)return `<div class="stack">${head}<div class="svc"><div class="muted small">${esc(t('stacks.no_images'))}</div></div></div>`;
    return `<div class="stack">${head}${svcs.map(([svc,v])=>`<div class="svc"><div class="sn">${esc(svc)}</div><div class="tags">${svcBadge(v)}</div>
     <div class="img">${esc(v.image)}</div><div class="acts"><button class="btn ghost sm" data-act="pin" data-id="${st.id}" data-svc="${esc(svc)}">${esc(t('stacks.version'))}</button></div></div>`).join('')}</div>`}).join('')+`</div>`;
@@ -1072,6 +1104,7 @@ $('stackFilter').querySelectorAll('button').forEach(b=>b.onclick=()=>{stackFilte
 document.addEventListener('click',e=>{const el=e.target.closest('[data-act]');if(!el)return;e.preventDefault();
  const a=el.dataset.act;
  if(a==='open')openStack(el.dataset.nm);
+ if(a==='policy')openStack(el.dataset.nm,null,null,true);
  if(a==='pin')openStack(null,+el.dataset.id,el.dataset.svc);
  if(a==='redeploy')redeployStack(+el.dataset.st,el.dataset.nm,el)});
 async function redeployStack(id,name,btn){
@@ -1095,8 +1128,8 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
   z.addEventListener('touchmove',e=>{if(y0==null)return;dy=Math.max(0,e.touches[0].clientY-y0);m.style.transform=`translateY(${dy}px)`},{passive:true});
   z.addEventListener('touchend',()=>{if(y0==null)return;m.style.transition='';y0=null;if(dy>110)closeModal();else m.style.transform=''})})})();
 
-async function openStack(name,id,focusSvc){
- openModal();$('mTitle').textContent=name||'Stack';$('mRollback').innerHTML='';
+async function openStack(name,id,focusSvc,focusPolicy){
+ openModal();$('mTitle').textContent=name||'Stack';$('mRollback').innerHTML='';$('mPolicy').innerHTML='';
  $('mBody').innerHTML=`<div class="empty">${esc(t('common.loading'))}</div>`;$('mCompose').textContent='';
  try{
   if(name){const st=stacksData||await api('/api/stacks');let meta=st.stacks.find(x=>x.name===name);
@@ -1106,6 +1139,7 @@ async function openStack(name,id,focusSvc){
   $('mTitle').textContent=d.name;
   $('mRedeploy').onclick=()=>redeployStack(id,d.name,$('mRedeploy'));
   $('mCompose').textContent=d.compose;
+  renderPolicyBox(d,focusPolicy);
   loadRollbackStrip(id);
   const entries=Object.entries(d.images||{});
   if(!entries.length){$('mBody').innerHTML=`<div class="empty">${esc(t('modal.no_images'))}</div>`;return}
@@ -1136,6 +1170,32 @@ async function openStack(name,id,focusSvc){
    if(focusSvc===svc)setTimeout(()=>box.scrollIntoView({block:'center'}),80);
   });
  }catch(e){if(!(e instanceof AuthError))$('mBody').innerHTML=`<div class="empty">${esc(e.message)}</div>`}
+}
+function renderPolicyBox(d,focus){
+ const box=$('mPolicy');const p=d.policy||{mode:'default'};
+ const opt=(v,ti,de)=>`<label class="pol-opt${p.mode===v?' on':''}"><input type="radio" name="polMode" value="${v}"${p.mode===v?' checked':''}><div><b>${esc(t(ti))}</b><span>${esc(de)}</span></div></label>`;
+ box.innerHTML=`<div class="pol-box${focus?' focus':''}"><div class="spread"><b><svg class="i" style="vertical-align:-2px"><use href="#i-cal"/></svg> ${esc(t('pol.title'))}</b>
+   <span class="small muted" id="polNext"></span></div>
+  <div class="pol-opts">${opt('default','pol.default',globalSchedTxt())}${opt('notify','pol.notify',t('pol.notify_d'))}${opt('schedule','pol.own',t('pol.own_d'))}${opt('ignore','pol.ignore',t('pol.ignore_d'))}</div>
+  <div class="row hidden" id="polOwn" style="margin-top:.6rem">
+   <select id="polKind" style="width:auto"><option value="daily">${esc(t('pol.daily'))}</option><option value="weekly">${esc(t('pol.weekly'))}</option></select>
+   <select id="polDay" style="width:auto">${t('days').map((x,i)=>`<option value="${i}">${esc(x)}</option>`).join('')}</select>
+   <input type="time" id="polTime" style="width:auto">
+  </div>
+  <div class="row" style="margin-top:.7rem"><button class="btn sm" id="polSave">${esc(t('pol.save'))}</button><span class="small muted">${esc(t('pol.hint'))}</span></div></div>`;
+ $('polKind').value=p.kind||'daily';$('polDay').value=p.day??6;$('polTime').value=p.time||'04:00';
+ const sync=()=>{const m=box.querySelector('input[name=polMode]:checked').value;
+  box.querySelectorAll('.pol-opt').forEach(l=>l.classList.toggle('on',l.querySelector('input').checked));
+  $('polOwn').classList.toggle('hidden',m!=='schedule');$('polDay').classList.toggle('hidden',$('polKind').value!=='weekly')};
+ box.querySelectorAll('input[name=polMode]').forEach(r=>r.onchange=sync);$('polKind').onchange=sync;sync();
+ const showNext=n=>{$('polNext').textContent=n?t('pol.next',{t:new Date(n*1000).toLocaleString(loc(),{weekday:'short',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}):''};
+ showNext(d.effective==='own'?d.next_run:d.effective==='auto'&&lastStatus?lastStatus.scheduler.next_full_update:null);
+ $('polSave').onclick=()=>withBusy($('polSave'),async()=>{
+  const body={name:d.name,mode:box.querySelector('input[name=polMode]:checked').value,kind:$('polKind').value,day:+$('polDay').value,time:$('polTime').value||'04:00'};
+  try{const r=await api('/api/stacks/policy',{method:'POST',body:JSON.stringify(body)});
+   toast(t('pol.saved',{n:d.name}),'ok');showNext(r.effective==='own'?r.next_run:null);d.policy=r.policy;d.effective=r.effective;
+   lastStacksHtml=null;loadStacks()}catch(e){if(!(e instanceof AuthError))toast(e.message,'err')}});
+ if(focus)setTimeout(()=>box.scrollIntoView({block:'start'}),60);
 }
 async function loadRollbackStrip(stackId){
  const box=$('mRollback');box.innerHTML='';let r;
@@ -1210,7 +1270,6 @@ async function loadSettings(){
   $('sTlsMode').disabled=locked.has('tls_verify')||locked.has('tls_fingerprint');$('sFp').disabled=locked.has('tls_fingerprint');
   $('pwChange').classList.toggle('hidden',!!s.password_from_env);$('pwEnvHint').classList.toggle('hidden',!s.password_from_env);
   $('secKv').innerHTML=`<div class="k">${esc(t('set.sec_login'))}</div><div class="v">✓ ${esc(t('set.sec_login_v'))}</div>
-   <div class="k">${esc(t('set.sec_pw'))}</div><div class="v">${esc(t(s.password_from_env?'set.sec_pw_env':'set.sec_pw_ui'))}</div>
    <div class="k">${esc(t('set.sec_secrets'))}</div><div class="v">✓ ${esc(t('set.sec_secrets_v'))}</div>
    <div class="k">${esc(t('set.sec_tls'))}</div><div class="v">${esc(t('tls.'+(s.tls_mode||'off')))}</div>`;
   toggleScheduleMode();updateTlsHint();$('mountCheckResult').textContent='';$('testResult').textContent='';$('certInfo').classList.add('hidden');

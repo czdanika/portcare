@@ -12,6 +12,8 @@ Ez a [joshmadison/Portainer-Update-Service](https://github.com/joshmadison/Porta
 - **Titkosított titkok**: a Portainer API kulcs és a webhook URL titkosítva kerül a `config.yaml`-ba
 - **TLS-tanúsítvány rögzítése** (pinning): a Portainer saját aláírású tanúsítványával és IP-címmel is működik
 - **Kikapcsolható ütemező**: „csak jelez” mód, a frissítést te indítod
+- **Stackenkénti frissítési szabály**: alapértelmezett, csak jelez, saját nap/időpont vagy kihagyva
+- **Minden a webes felületről állítható**: a stack `PUS_*` változói csak első induláskor adnak alapértéket
 - **Értesítés új frissítésekről**, nem csak hibáról (pl. Home Assistant webhookra)
 - **Előre megépített image** amd64-re és arm64-re (GHCR), a NAS-on nem kell semmit buildelni
 
@@ -70,16 +72,36 @@ Ha egy konkrét verziót szeretnél használni, a `:latest` helyett írd be a ki
 
 ---
 
+## Ütemezés és stackenkénti szabályok
+
+- **Alapértelmezett ütemezés** (*Beállítások → Alapértelmezett ütemezés*): kikapcsolva (csak jelez), naponta, hetente vagy N óránként. Ez minden olyan stackre vonatkozik, amelynek nincs saját szabálya.
+- **Stackenkénti szabály** (*Stackek* → a stack neve alatti címke, vagy *Kezelés*):
+
+| Szabály | Mit csinál |
+|---|---|
+| Alapértelmezett | Az alapértelmezett ütemezéssel frissül. |
+| Csak jelez | Ellenőrzi és jelzi az új verziót, de csak kézzel frissül. |
+| Saját időpont | Saját napon és időpontban frissül (naponta vagy hetente). |
+| Kihagyva | Nem ellenőrzi és nem frissíti. |
+
+Az **„Összes frissítése”** gomb az *Alapértelmezett* és a *Saját időpont* szabályú stackeket frissíti. A *Csak jelez* és a *Kihagyva* szabályú stackek csak a saját *Frissítés* gombjukkal frissülnek.
+
+### Környezeti változók és a felület
+
+A stackben megadott `PUS_*` értékek **csak első induláskor** számítanak alapértéknek. Amint egy beállítást a felületen elmentesz, onnantól a mentett érték az irányadó. A `PUS_AUTH_TOKEN` az első admin jelszó lesz, utána a jelszót a felületen lehet megváltoztatni. Kivétel a `PUS_LISTEN_HOST` és a `PUS_LISTEN_PORT`: ezek mindig a stackből jönnek.
+
+---
+
 ## Biztonság
 
 | Terület | Megoldás |
 |---|---|
 | Bejelentkezés | Minden `/api/*` hívás bejelentkezést kér. A munkamenet aláírt, `HttpOnly`, `SameSite=Strict` süti, alapból 30 napig érvényes. Szkriptekből `Authorization: Bearer <jelszó>` fejléccel is hívható. |
-| Jelszó | A felületen megadott jelszó PBKDF2-hash-ként tárolódik. A `PUS_AUTH_TOKEN` környezeti változóval megadott jelszó soha nem kerül lemezre. Jelszócsere után a többi munkamenet érvénytelenné válik. |
+| Jelszó | PBKDF2-hash-ként tárolódik, sima szövegként soha. A `PUS_AUTH_TOKEN` csak az első jelszót adja meg. Jelszócsere után a többi munkamenet érvénytelenné válik. |
 | Brute force | 5 hibás próbálkozás után exponenciálisan növekvő várakozás következik (legfeljebb 15 perc). |
 | CSRF | A módosító kéréseknél kötelező az azonos eredetű `Origin` és az `X-PUS-Request` fejléc. |
 | Titkok | A `portainer_api_key` és a `notify_webhook` titkosítva tárolódik (`enc:v1:…`, Fernet/AES). A kulcs **másik kötetben** van (`/app/data/keys`), mint a `config.yaml` (`/app/config`). A régi, sima szöveges értékeket első mentéskor automatikusan titkosítja. A `config.yaml` jogosultsága `0600`. |
-| Környezeti változók | `PUS_*` változóval megadott érték nem íródik a `config.yaml`-ba, és a felületen zárolva jelenik meg. |
+| Környezeti változók | A `PUS_*` értékek csak kezdő alapértékek. Amíg a felületen nem változtatod meg őket, nem íródnak a `config.yaml`-ba. |
 | TLS | A tanúsítvány rögzítése (SHA-256 ujjlenyomat) saját aláírású tanúsítvánnyal és IP-címmel is működik. Ha a tanúsítvány megváltozik, a kapcsolat megszakad, és a felület jelzi. Az eredeti kódban volt egy hiba: `tls_verify: true` CA nélkül valójában *nem* ellenőrzött. Ez javítva van. |
 
 További ajánlás: a felületet ne tedd ki az internetre. Elég belső hálón vagy VPN-en (pl. Tailscale) keresztül elérni.
@@ -94,7 +116,7 @@ Alapból az első induláskor jön létre a `/app/data/keys/secret.key` fájlban
 
 | Változó | Alapérték | Leírás |
 |---|---|---|
-| `PUS_AUTH_TOKEN` / `PUS_ADMIN_PASSWORD` | – | Fix admin jelszó. Ha meg van adva, a felületen nem módosítható. |
+| `PUS_AUTH_TOKEN` / `PUS_ADMIN_PASSWORD` | – | Az első admin jelszó. Utána a felületen módosítható. |
 | `PUS_SECRET_KEY` | automatikus | A titkosító kulcs (tetszőleges szöveg). |
 | `PUS_PORTAINER_URL` | – | Portainer címe (a felületen is megadható). |
 | `PUS_PORTAINER_API_KEY` | – | Portainer API kulcs (a felületen is megadható). |

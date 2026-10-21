@@ -1071,8 +1071,12 @@ def post_deployment_repairs(client, eid, log) -> bool:
 
 
 # ----------------------------------------------------------------- orchestrator
-def run_full_update(runlog) -> bool:
-    """Full update run. Caller must hold the job gate (app.jobs.gate)."""
+def run_full_update(runlog, stack_filter=None, targeted=False) -> bool:
+    """Full update run. Caller must hold the job gate (app.jobs.gate).
+
+    stack_filter(name) -> bool limits which stacks are redeployed (per-stack
+    policies). targeted=True is a per-stack scheduled run: backup + redeploy
+    + sweep only (no prune, no network repairs, no Portainer self-update)."""
     cfg_url = get("portainer_url")
     cfg_key = get("portainer_api_key")
     if not cfg_url or not cfg_key:
@@ -1096,21 +1100,34 @@ def run_full_update(runlog) -> bool:
         return False
     runlog.step("preflight", True)
 
-    ok_backup = backup_portainer(client, runlog.log, Path(get("backup_dir")))
-    runlog.step("backup", ok_backup, "" if ok_backup else "backup failed/skipped - continuing")
-    cleanup_docker(client, eid, runlog.log)
-    runlog.step("prune", True)
-
     try:
         stacks = [s for s in client.stacks() if s.get("EndpointId") == eid]
     except PortainerError as e:
         runlog.log(f"[ERROR] Could not fetch stacks: {e}")
         return False
+    if stack_filter is not None:
+        skipped = [s.get("Name") for s in stacks if not stack_filter(s.get("Name") or "")]
+        stacks = [s for s in stacks if stack_filter(s.get("Name") or "")]
+        if skipped:
+            runlog.log(f"[INFO] Skipped by stack policy: {', '.join(sorted(skipped))}")
+        runlog.log(f"[INFO] Stacks in this run: {', '.join(sorted(s.get('Name') or '?' for s in stacks)) or '(none)'}")
+        if not stacks:
+            runlog.log("[OK] Nothing to update in this run.")
+            runlog.step("redeploy_stacks", True, "no stacks selected")
+            return True
+
+    ok_backup = backup_portainer(client, runlog.log, Path(get("backup_dir")))
+    runlog.step("backup", ok_backup, "" if ok_backup else "backup failed/skipped - continuing")
+    if not targeted:
+        cleanup_docker(client, eid, runlog.log)
+        runlog.step("prune", True)
 
     ok_stacks, failed, excluded = redeploy_stacks(client, eid, stacks, runlog.log)
     runlog.step("redeploy_stacks", ok_stacks, f"failed: {', '.join(failed)}" if failed else "")
     ok_sweep = reconciliation_sweep(client, eid, stacks, runlog.log)
     runlog.step("reconciliation_sweep", ok_sweep)
+    if targeted:
+        return ok_stacks and ok_sweep
     ok_repairs = post_deployment_repairs(client, eid, runlog.log)
     runlog.step("post_deployment_repairs", ok_repairs)
     # Portainer self-update LAST: restarting the API mid-run would blind

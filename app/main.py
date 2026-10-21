@@ -15,7 +15,7 @@ from pathlib import Path
 from flask import Flask, jsonify, request, send_from_directory, session
 from flask.sessions import SecureCookieSessionInterface
 
-from . import auth, checker, compose as compose_mod, crypto, dockerhub, history, updater
+from . import auth, checker, compose as compose_mod, crypto, dockerhub, history, policies, updater
 from . import config as config_mod
 from .config import get, load, set as cfg_set, save as cfg_save, ConfigError, env_locked
 from .history import RunLogger
@@ -460,16 +460,51 @@ def api_stacks():
     for s in stacks:
         name = s["Name"]
         svc_check = (check.get("stacks") or {}).get(name, {})
+        nxt = (scheduler.stack_next.get(name) or {}).get("next")
         out.append({
             "id": s["Id"], "name": name, "status": s.get("Status"),
             "services": svc_check,
             "updates_available": sum(1 for v in svc_check.values()
                                      if v.get("update_available")),
+            "policy": policies.get_policy(name),
+            "effective": policies.effective(name),
+            "next_run": nxt if policies.effective(name) == "own" else
+                        (scheduler.next_full_update if policies.effective(name) == "auto" else None),
         })
     return jsonify({"endpoint_id": eid,
                     "checked_at": check.get("checked_at"),
                     "check_running": bool(check.get("running")),
                     "stacks": out})
+
+
+@app.route("/api/stacks/policy", methods=["POST"])
+def api_stack_policy():
+    """Set one stack's update policy (web UI only).
+    Body: {"name": "immich", "mode": "default|notify|schedule|ignore",
+           "kind": "daily|weekly", "time": "04:00", "day": 6}"""
+    body = request.get_json(silent=True) or {}
+    name = str(body.get("name") or "")
+    if not policies.valid_name(name):
+        return _err("valid stack name required")
+    try:
+        pol = policies.normalize(body)
+    except policies.PolicyError as e:
+        return _err(str(e))
+    current = dict(get("stack_policies", {}) or {})
+    if pol["mode"] == "default":
+        current.pop(name, None)
+    else:
+        current[name] = pol
+    try:
+        cfg_set("stack_policies", current)
+    except ConfigError as e:
+        return _err(str(e))
+    cfg_save()
+    scheduler._sync_stack_schedules()
+    _stacks_cache.clear()
+    return jsonify({"ok": True, "name": name, "policy": policies.get_policy(name),
+                    "effective": policies.effective(name),
+                    "next_run": (scheduler.stack_next.get(name) or {}).get("next")})
 
 
 @app.route("/api/stacks/<int:stack_id>")
@@ -495,6 +530,9 @@ def api_stack_detail(stack_id):
         "id": stack_id, "name": stack.get("Name"),
         "compose": content, "images": images,
         "checks": check,
+        "policy": policies.get_policy(stack.get("Name") or ""),
+        "effective": policies.effective(stack.get("Name") or ""),
+        "next_run": (scheduler.stack_next.get(stack.get("Name") or "") or {}).get("next"),
     })
 
 

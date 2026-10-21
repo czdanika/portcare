@@ -1,8 +1,8 @@
 """Admin login: mandatory authentication for the whole UI + API.
 
-Password sources (first match wins):
-  1. PUS_AUTH_TOKEN / PUS_ADMIN_PASSWORD env var  (read-only in the UI)
-  2. auth_password_hash in config.yaml           (set/changed in the UI)
+Password: auth_password_hash in config.yaml (PBKDF2). The initial value can
+come from PUS_AUTH_TOKEN / PUS_ADMIN_PASSWORD (hashed on first start); after
+that the password is changed in the web UI only.
 
 If neither is set, the instance is in *setup* mode: every API call answers
 401 {"setup_required": true} and the UI shows a "create password" screen.
@@ -12,7 +12,6 @@ keep using `Authorization: Bearer <password>`. Failed logins are rate-limited
 per client IP (exponential lockout).
 """
 import hashlib
-import hmac
 import threading
 import time
 
@@ -27,38 +26,26 @@ _fail_lock = threading.Lock()
 _failures: dict = {}   # ip -> (count, locked_until)
 
 
-def _env_password() -> str:
-    return str(get("auth_token", "") or "")
-
-
 def configured() -> bool:
-    return bool(_env_password() or get("auth_password_hash", ""))
+    return bool(get("auth_password_hash", ""))
 
 
 def password_from_env() -> bool:
-    return bool(_env_password()) and env_locked("auth_token")
+    return False  # env only seeds the first password; the UI owns it afterwards
 
 
 def check_password(pw: str) -> bool:
-    if not pw:
-        return False
-    env_pw = _env_password()
-    if env_pw:
-        return hmac.compare_digest(pw.encode("utf-8"), env_pw.encode("utf-8"))
     h = get("auth_password_hash", "")
-    return bool(h) and check_password_hash(h, pw)
+    return bool(pw) and bool(h) and check_password_hash(h, pw)
 
 
 def password_version() -> str:
     """Changes whenever the password changes -> old sessions become invalid."""
-    src = _env_password() or get("auth_password_hash", "") or ""
+    src = get("auth_password_hash", "") or ""
     return hashlib.sha256(("pus-session:" + src).encode("utf-8")).hexdigest()[:16]
 
 
 def set_password(new_pw: str) -> None:
-    if password_from_env():
-        raise _config.ConfigError("the password is set via environment variable "
-                          "(PUS_AUTH_TOKEN) - change it in the stack")
     if len(new_pw or "") < MIN_PASSWORD_LEN:
         raise _config.ConfigError(f"password must be at least {MIN_PASSWORD_LEN} characters")
     cfg_set("auth_password_hash", generate_password_hash(new_pw))

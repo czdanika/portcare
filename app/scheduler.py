@@ -13,7 +13,7 @@ import time
 import traceback
 from datetime import datetime, timedelta
 
-from . import checker, updater
+from . import checker, policies, updater
 from .config import DATA_DIR, get, load
 from .history import RunLogger
 from .jobs import gate
@@ -30,12 +30,12 @@ def _load_next() -> dict:
             pass
     return {}
 
-def _save_next(next_check: float, next_full: float) -> None:
+def _save_next(next_check: float, next_full: float, stacks: dict | None = None) -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     tmp = NEXT_FILE.with_suffix(".tmp")
     tmp.write_text(json.dumps({
         "next_check": next_check, "next_full_update": next_full,
-        "spec": _spec(),
+        "spec": _spec(), "stacks": stacks or {},
     }), encoding="utf-8")
     tmp.replace(NEXT_FILE)
 
@@ -99,6 +99,8 @@ class Scheduler:
         self.consecutive_failures = 0
         self.last_tick = None
         self.last_error = None
+        # per-stack own schedules: name -> {"next": epoch, "spec": str}
+        self.stack_next: dict = {}
 
     def start(self):
         if self._thread and self._thread.is_alive():
@@ -115,6 +117,9 @@ class Scheduler:
             full = _next_full_from(now)  # schedule changed while we were off
         self.next_full_update = max(full, now + BOOT_GRACE_S) if full else None
         self._spec_seen = _spec()
+        self.stack_next = {k: v for k, v in (saved.get("stacks") or {}).items()
+                           if isinstance(v, dict) and v.get("next")}
+        self._sync_stack_schedules(now, boot=True)
         self._persist()
         self._stop.clear()
         self._thread = threading.Thread(target=self._loop, name="scheduler", daemon=True)
@@ -124,7 +129,64 @@ class Scheduler:
         self._stop.set()
 
     def _persist(self):
-        _save_next(self.next_check or 0, self.next_full_update or 0)
+        _save_next(self.next_check or 0, self.next_full_update or 0, self.stack_next)
+
+    def _sync_stack_schedules(self, now=None, boot=False):
+        """Keep stack_next in line with the per-stack policies (added,
+        removed or edited in the UI)."""
+        now = time.time() if now is None else now
+        own = policies.own_schedules()
+        changed = False
+        for name in list(self.stack_next):
+            if name not in own:
+                del self.stack_next[name]
+                changed = True
+        for name, pol in own.items():
+            sp = policies.spec(pol)
+            cur = self.stack_next.get(name)
+            if not cur or cur.get("spec") != sp:
+                nxt = policies.next_due(pol, now)
+                if boot:
+                    nxt = max(nxt, now + BOOT_GRACE_S)
+                self.stack_next[name] = {"next": nxt, "spec": sp}
+                changed = True
+        if changed:
+            self._persist()
+
+    def _run_due_stacks(self, now):
+        due = sorted(n for n, v in self.stack_next.items() if now >= v["next"])
+        if not due:
+            return
+        if not gate.try_acquire("update"):
+            return  # another job is running - retry on the next tick
+        runlog = None
+        try:
+            runlog = RunLogger("full", "scheduled")
+            gate.set_runlog(runlog)
+            runlog.log(f"[INFO] Per-stack schedule due: {', '.join(due)}")
+            wanted = set(due)
+            ok = updater.run_full_update(runlog, stack_filter=lambda n: n in wanted,
+                                         targeted=True)
+            runlog.finish(ok)
+            if not ok:
+                self._notify_failure(runlog)
+        except Exception:
+            self.last_error = traceback.format_exc()
+            print(f"[scheduler] stack run crashed:\n{self.last_error}", file=sys.stderr, flush=True)
+            if runlog:
+                try:
+                    runlog.log("[ERROR] stack run crashed:\n" + self.last_error)
+                except Exception:  # noqa: BLE001
+                    pass
+                runlog.finish(False)
+        finally:
+            gate.release()
+        for n in due:
+            pol = policies.own_schedules().get(n)
+            if pol:
+                self.stack_next[n] = {"next": policies.next_due(pol, time.time() + 60),
+                                      "spec": policies.spec(pol)}
+        self._persist()
 
     def _loop(self):
         while not self._stop.wait(10):
@@ -143,6 +205,8 @@ class Scheduler:
                 if self.next_full_update and now >= self.next_full_update:
                     self._run_update("scheduled")
                     self._bump_full()
+                self._sync_stack_schedules(now)
+                self._run_due_stacks(now)
             except Exception:
                 # never swallow: log to stderr (visible in journald/systemd)
                 self.last_error = traceback.format_exc()
@@ -268,7 +332,7 @@ class Scheduler:
         try:
             runlog = RunLogger("full", trigger)
             gate.set_runlog(runlog)  # attach logger to the lock we already hold
-            ok = updater.run_full_update(runlog)
+            ok = updater.run_full_update(runlog, stack_filter=policies.in_global_run)
             runlog.finish(ok)
             if ok:
                 self.consecutive_failures = 0
@@ -343,7 +407,7 @@ class Scheduler:
 
     def _update_worker(self, runlog):
         try:
-            ok = updater.run_full_update(runlog)
+            ok = updater.run_full_update(runlog, stack_filter=policies.in_manual_all)
             runlog.finish(ok)
             if ok:
                 self.consecutive_failures = 0

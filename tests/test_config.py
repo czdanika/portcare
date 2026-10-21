@@ -49,20 +49,23 @@ class TestLoadEnvCoercion:
     def test_auth_token_no_stays_string(self, tmp_state, monkeypatch):
         from app import config as cfg
         monkeypatch.setenv("PUS_AUTH_TOKEN", "no")
-        c = cfg.load(force=True)
-        assert c["auth_token"] == "no"  # NOT False (which silently disabled auth)
+        cfg.load(force=True)
+        from app import auth
+        assert auth.check_password("no")  # literal, NOT False (which disabled auth)
 
     def test_numeric_key_stays_string(self, tmp_state, monkeypatch):
         from app import config as cfg
         monkeypatch.setenv("PUS_AUTH_TOKEN", "0123456789")
-        c = cfg.load(force=True)
-        assert c["auth_token"] == "0123456789"  # not int 123456789
+        cfg.load(force=True)
+        from app import auth
+        assert auth.check_password("0123456789")  # not int 123456789
 
     def test_hash_not_stripped_as_comment(self, tmp_state, monkeypatch):
         from app import config as cfg
         monkeypatch.setenv("PUS_AUTH_TOKEN", "abc#xyz")
-        c = cfg.load(force=True)
-        assert c["auth_token"] == "abc#xyz"
+        cfg.load(force=True)
+        from app import auth
+        assert auth.check_password("abc#xyz")
 
     def test_int_keys_still_coerce(self, tmp_state, monkeypatch):
         from app import config as cfg

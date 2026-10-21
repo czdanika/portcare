@@ -28,6 +28,7 @@ UI_DIR = BASE_DIR / "ui"
 # Container deployments set configuration via env vars (PUS_<KEY>) -
 # they take precedence over config.yaml. See docker-compose.yml.
 ENV_PREFIX = "PUS_"
+ENV_ALWAYS = ("listen_host", "listen_port")
 
 DEFAULTS = {
     "portainer_url": "",
@@ -57,6 +58,8 @@ DEFAULTS = {
     "session_days": 30,              # login session lifetime
     "notify_webhook": "",            # optional POST target for notifications
     "notify_on_updates": False,      # also notify when new updates are found
+    "stack_policies": {},            # per-stack update mode (see policies.py),
+                                      # set in the web UI only
     "include_portainer": False,      # true = also update Portainer itself
                                       # (compose pull/up in /host-portainer)
     "repairs": {
@@ -117,6 +120,12 @@ def validate(key: str, value):
         if not isinstance(value, bool):
             raise ConfigError(f"{key} must be true/false")
         return value
+    if key == "stack_policies":
+        from .policies import PolicyError, normalize_all
+        try:
+            return normalize_all(value)
+        except PolicyError as e:
+            raise ConfigError(str(e))
     if key == "tls_fingerprint":
         v = re.sub(r"[^0-9a-fA-F]", "", str(value or "")).lower()
         if v and len(v) != 64:
@@ -171,6 +180,8 @@ def _load(force: bool = False) -> dict:
         DATA_DIR.mkdir(parents=True, exist_ok=True)
         RUNS_DIR.mkdir(parents=True, exist_ok=True)
         cfg = dict(DEFAULTS)
+        cfg["stack_policies"] = {}
+        user = {}
         if CONFIG_FILE.exists():
             with open(CONFIG_FILE, encoding="utf-8") as f:
                 user = yaml.safe_load(f) or {}
@@ -192,26 +203,35 @@ def _load(force: bool = False) -> dict:
             else:
                 _needs_migration = True
         # legacy: a plaintext auth_token in config.yaml becomes a password hash
-        if cfg.get("auth_token") and not os.environ.get("PUS_AUTH_TOKEN") \
-                and not os.environ.get("PUS_ADMIN_PASSWORD"):
-            from werkzeug.security import generate_password_hash
+        from werkzeug.security import generate_password_hash
+        if cfg.get("auth_token"):
             if not cfg.get("auth_password_hash"):
                 cfg["auth_password_hash"] = generate_password_hash(str(cfg["auth_token"]))
             cfg["auth_token"] = ""
             _needs_migration = True
-        # env overrides (container deployments): PUS_PORTAINER_URL, PUS_LISTEN_HOST, ...
+        # Env vars (PUS_*) are INITIAL DEFAULTS only: they apply while the key
+        # is not yet in config.yaml. Once a value is saved from the web UI,
+        # the UI owns it and the env var is ignored. Exceptions (always env,
+        # read-only in the UI): ENV_ALWAYS.
+        # The admin password from env (PUS_AUTH_TOKEN / PUS_ADMIN_PASSWORD)
+        # becomes the initial password hash; afterwards it is changed in the UI.
+        env_pw = os.environ.get(ENV_PREFIX + "AUTH_TOKEN") or os.environ.get(ENV_PREFIX + "ADMIN_PASSWORD")
+        if env_pw and not cfg.get("auth_password_hash"):
+            cfg["auth_password_hash"] = generate_password_hash(env_pw)
+            _needs_migration = True
+        # YAML coercion ONLY for keys whose type is int/bool/enum - string
         # YAML coercion ONLY for keys whose type is int/bool/enum - string
         # settings (auth_token, api_key, urls, ...) must be taken LITERALLY:
         # yaml.safe_load("no") -> False (silently disabled auth!), keys with
         # '#' were truncated as comments, numeric-looking keys became ints.
         for key in list(cfg.keys()):
-            if key == "repairs":
+            if key in ("repairs", "auth_token", "auth_password_hash", "stack_policies"):
                 continue
             env_val = os.environ.get(ENV_PREFIX + key.upper())
-            if key == "auth_token" and not env_val:
-                env_val = os.environ.get(ENV_PREFIX + "ADMIN_PASSWORD")
             if env_val is None or env_val == "":
                 continue
+            if key not in ENV_ALWAYS and key in user:
+                continue  # the UI already saved its own value
             env_keys.append(key)
             if key in STR_ENUMS:
                 # verbatim: yaml.safe_load("off") would become False
@@ -229,20 +249,32 @@ def _load(force: bool = False) -> dict:
         # repairs_enabled: flat UI/API alias for cfg["repairs"]["enabled"]
         # (the nested dict is config.yaml-only; the UI toggles the flat key)
         env_rep = os.environ.get(ENV_PREFIX + "REPAIRS_ENABLED")
-        if env_rep not in (None, ""):
+        if env_rep not in (None, "") and "repairs_enabled" not in user:
             cfg["repairs"]["enabled"] = str(env_rep).strip().lower() in (
                 "true", "1", "yes", "on")
         elif "repairs_enabled" in user_vars(CONFIG_FILE):
             cfg["repairs"]["enabled"] = bool(user_vars(CONFIG_FILE)["repairs_enabled"])
         # expose the flat alias so /api/settings GET + UI checkbox stay in sync
         cfg["repairs_enabled"] = bool(cfg["repairs"].get("enabled", True))
+        # per-stack policies: drop anything invalid from a hand-edited file
+        try:
+            from .policies import normalize_all
+            cfg["stack_policies"] = normalize_all(cfg.get("stack_policies"))
+        except ValueError:
+            cfg["stack_policies"] = {}
         _env_keys = env_keys
         _cfg = cfg
         return cfg
 
 
 def env_locked(key: str) -> bool:
-    """True if the value comes from a PUS_* env var (UI can't change it)."""
+    """True if the value is pinned by an env var the UI can't change
+    (only ENV_ALWAYS keys - everything else is UI-owned after first save)."""
+    return key in ENV_ALWAYS and key in _env_keys
+
+
+def from_env_default(key: str) -> bool:
+    """True while the value is still the initial default from a PUS_* env var."""
     return key in _env_keys
 
 
@@ -302,7 +334,11 @@ def set(key: str, value) -> None:
         with _lock:
             _cfg["repairs_enabled"] = value
             _cfg["repairs"] = {**_cfg.get("repairs", {}), "enabled": value}
+            if "repairs_enabled" in _env_keys:
+                _env_keys.remove("repairs_enabled")
         return
     validated = validate(key, value)
     with _lock:
         _cfg[key] = validated
+        if key in _env_keys and key not in ENV_ALWAYS:
+            _env_keys.remove(key)  # the UI owns this value from now on

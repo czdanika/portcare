@@ -78,15 +78,21 @@ class TestLogin:
         assert a.get("/api/status").status_code == 200   # this browser stays in
         assert b.get("/api/status").status_code == 401   # the other one is out
 
-    def test_env_password_cannot_be_changed_in_ui(self, api_client):
+    def test_env_password_is_initial_then_ui_owned(self, api_client, monkeypatch):
+        # env seeds the first password; afterwards the UI can change it and
+        # the (unchanged) env var no longer applies
         r = api_client.post("/api/auth/password", json={
             "current": "test-password-123", "new": "something-else"})
-        assert r.status_code == 400
+        assert r.status_code == 200
+        from app import auth, config as cfg
+        cfg.load(force=True)
+        assert auth.check_password("something-else")
+        assert not auth.check_password("test-password-123")
 
     def test_settings_never_expose_secrets(self, api_client):
         body = api_client.get("/api/settings").get_json()
         assert "auth_token" not in body and "auth_password_hash" not in body
-        assert body["password_from_env"] is True
+        assert body["password_from_env"] is False
 
 
 # ---------------------------------------------------------- encryption
@@ -128,7 +134,16 @@ class TestEncryption:
         cfg.save()
         text = cfg.CONFIG_FILE.read_text()
         assert "ptr_from_env" not in text and "env-password" not in text
-        assert cfg.env_locked("portainer_api_key")
+        assert cfg.from_env_default("portainer_api_key")
+        assert not cfg.env_locked("portainer_api_key")
+
+    def test_ui_value_wins_over_env_after_save(self, tmp_state, monkeypatch):
+        from app import config as cfg
+        monkeypatch.setenv("PUS_MAX_PARALLEL_DEPLOYS", "2")
+        assert cfg.load(force=True)["max_parallel_deploys"] == 2   # env = initial default
+        cfg.set("max_parallel_deploys", 5)
+        cfg.save()
+        assert cfg.load(force=True)["max_parallel_deploys"] == 5   # UI owns it now
 
     def test_wrong_key_reports_error(self, tmp_state, monkeypatch):
         from app import config as cfg, crypto

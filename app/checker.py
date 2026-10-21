@@ -42,7 +42,9 @@ def _save_lag(state: dict) -> None:
 def collect_images(client: Portainer, eid, log=None) -> list:
     """Every (stack, service, image) triple deployed on this endpoint."""
     out = []
-    stacks = [s for s in client.stacks() if s.get("EndpointId") == eid]
+    from .policies import ignored
+    stacks = [s for s in client.stacks() if s.get("EndpointId") == eid
+              and not ignored(s.get("Name") or "")]  # 'ignore' policy: no checks
     if log:
         log(f"[INFO] reading {len(stacks)} stack compose files…")
     for stack in stacks:
