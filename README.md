@@ -14,6 +14,7 @@ Ez a [joshmadison/Portainer-Update-Service](https://github.com/joshmadison/Porta
 - **Titkosított titkok**: a Portainer API kulcs és a webhook URL titkosítva kerül a `config.yaml`-ba
 - **TLS-tanúsítvány rögzítése** (pinning): a Portainer saját aláírású tanúsítványával és IP-címmel is működik
 - **Kikapcsolható ütemező**: „csak jelez” mód, a frissítést te indítod
+- **Önálló konténerek is**: a Portainer stacken kívül futó konténereket (docker run, NAS-alkalmazások) is ellenőrzi és frissíti
 - **Stackenkénti frissítési szabály**: alapértelmezett, csak jelez, saját nap/időpont vagy kihagyva
 - **Telefonos app (PWA) és push értesítés**: iPhone-ra és Androidra telepíthető, értesít az új frissítésekről, a frissítés végén és hibánál
 - **Minden a webes felületről állítható**: a stack `PUS_*` változói csak első induláskor adnak alapértéket
@@ -91,6 +92,14 @@ Ha egy konkrét verziót szeretnél használni, a `:latest` helyett írd be a ki
 | Kihagyva | Nem ellenőrzi és nem frissíti. |
 
 Az **„Összes frissítése”** gomb az *Alapértelmezett* és a *Saját időpont* szabályú stackeket frissíti. A *Csak jelez* és a *Kihagyva* szabályú stackek csak a saját *Frissítés* gombjukkal frissülnek.
+
+### Önálló konténerek
+
+A *Stackek* oldal alján külön lista mutatja azokat a konténereket, amelyek nem Portainer stackhez tartoznak (pl. `docker run`-nal indítottak, NAS-alkalmazások, máshol indított compose projektek). A Portainer saját konténere kimarad.
+
+- Ugyanúgy ellenőrzi őket, és ugyanazok a szabályok állíthatók rájuk, de **alapból „Csak jelez”** módban vannak.
+- Frissítéskor letölti az új image-et, és a Portainer **Recreate** funkciójával ugyanazokkal a beállításokkal, kötetekkel és hálózatokkal hozza létre újra a konténert. Régebbi Portainernél ugyanezt maga végzi el a Docker API-n keresztül, és hiba esetén visszaállítja a régi konténert.
+- Automatikus futásban csak akkor nyúl hozzá, ha tényleg van új image.
 
 ### Környezeti változók és a felület
 

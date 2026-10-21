@@ -14,6 +14,7 @@ This is a fork of [joshmadison/Portainer-Update-Service](https://github.com/josh
 - **Encrypted secrets**: the Portainer API key and the webhook URL are stored encrypted in `config.yaml`
 - **TLS certificate pinning**: works with Portainer's self-signed certificate and with IP addresses
 - **Optional scheduler**: "notify only" mode, you start the update yourself
+- **Standalone containers too**: containers outside Portainer stacks (docker run, NAS apps) are checked and updated as well
 - **Per-stack update rules**: default, notify only, own day/time, or ignored
 - **Phone app (PWA) and push notifications**: installable on iPhone and Android, notifies about new updates, finished runs and failures
 - **Everything is set in the web UI**: the stack's `PUS_*` variables only seed the initial defaults
@@ -88,6 +89,14 @@ The image is rebuilt on every change to `main`. PortCare excludes its own stack 
 | Ignored | Not checked, not updated. |
 
 **"Update all"** redeploys stacks with the *Default* and *Own schedule* rules. *Notify only* and *Ignored* stacks are only updated with their own *Update* button.
+
+### Standalone containers
+
+A separate list at the bottom of the *Stacks* page shows containers that are not part of a Portainer stack (started with `docker run`, NAS apps, compose projects started elsewhere). Portainer's own container is left out.
+
+- They are checked the same way and take the same rules, but they are **"Notify only" by default**.
+- An update pulls the new image and recreates the container with Portainer's **Recreate** with the same settings, volumes and networks. On older Portainer versions PortCare does the same itself through the Docker API, and restores the old container if anything fails.
+- Automatic runs only touch them when there really is a new image.
 
 ### Environment variables vs. the UI
 

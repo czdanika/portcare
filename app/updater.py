@@ -1106,6 +1106,30 @@ def post_deployment_repairs(client, eid, log) -> bool:
 
 
 # ----------------------------------------------------------------- orchestrator
+def _containers_to_update(client, eid, stack_filter, log) -> list:
+    """Standalone containers that this run should recreate: selected by the
+    policy filter AND with an update reported by the last check (recreating
+    an unchanged standalone container would only cause downtime)."""
+    if stack_filter is None:
+        return []
+    try:
+        from . import checker, containers as cmod
+        with checker._lock:
+            last = dict(checker._last_result or {})
+        found = (last.get("stacks") or {})
+        out = []
+        for c in cmod.standalone(client, eid):
+            k = cmod.key(c["name"])
+            if not stack_filter(k):
+                continue
+            if any(v.get("update_available") for v in (found.get(k) or {}).values()):
+                out.append(c["name"])
+        return out
+    except Exception as e:  # noqa: BLE001 - containers must never break stack runs
+        log(f"[WARN] standalone containers skipped: {e}")
+        return []
+
+
 def run_full_update(runlog, stack_filter=None, targeted=False) -> bool:
     """Full update run. Caller must hold the job gate (app.jobs.gate).
 
@@ -1151,10 +1175,20 @@ def run_full_update(runlog, stack_filter=None, targeted=False) -> bool:
         if skipped:
             runlog.log(f"[INFO] Skipped by stack policy: {', '.join(sorted(skipped))}")
         runlog.log(f"[INFO] Stacks in this run: {', '.join(sorted(s.get('Name') or '?' for s in stacks)) or '(none)'}")
-        if not stacks:
-            runlog.log("[OK] Nothing to update in this run.")
-            runlog.step("redeploy_stacks", True, "no stacks selected")
-            return True
+
+    # standalone containers with a pending update that this run may touch
+    ct_todo = _containers_to_update(client, eid, stack_filter, runlog.log)
+    if ct_todo:
+        runlog.log(f"[INFO] Standalone containers in this run: {', '.join(ct_todo)}")
+        try:
+            runlog.stacks = sorted(set(getattr(runlog, "stacks", []) or [])
+                                   | {"@" + n for n in ct_todo})
+        except Exception:  # noqa: BLE001
+            pass
+    if stack_filter is not None and not stacks and not ct_todo:
+        runlog.log("[OK] Nothing to update in this run.")
+        runlog.step("redeploy_stacks", True, "no stacks selected")
+        return True
 
     ok_backup = backup_portainer(client, runlog.log, Path(get("backup_dir")))
     runlog.step("backup", ok_backup, "" if ok_backup else "backup failed/skipped - continuing")
@@ -1162,10 +1196,19 @@ def run_full_update(runlog, stack_filter=None, targeted=False) -> bool:
         cleanup_docker(client, eid, runlog.log)
         runlog.step("prune", True)
 
-    ok_stacks, failed, excluded = redeploy_stacks(client, eid, stacks, runlog.log)
-    runlog.step("redeploy_stacks", ok_stacks, f"failed: {', '.join(failed)}" if failed else "")
-    ok_sweep = reconciliation_sweep(client, eid, stacks, runlog.log)
-    runlog.step("reconciliation_sweep", ok_sweep)
+    if stacks:
+        ok_stacks, failed, excluded = redeploy_stacks(client, eid, stacks, runlog.log)
+        runlog.step("redeploy_stacks", ok_stacks, f"failed: {', '.join(failed)}" if failed else "")
+        ok_sweep = reconciliation_sweep(client, eid, stacks, runlog.log)
+        runlog.step("reconciliation_sweep", ok_sweep)
+    else:
+        ok_stacks = ok_sweep = True
+    if ct_todo:
+        from . import containers as cmod
+        ct_failed = [n for n in ct_todo if not cmod.update_container(client, eid, n, runlog.log)]
+        runlog.step("update_containers", not ct_failed,
+                    f"failed: {', '.join(ct_failed)}" if ct_failed else "")
+        ok_stacks = ok_stacks and not ct_failed
     if targeted:
         return ok_stacks and ok_sweep
     ok_repairs = post_deployment_repairs(client, eid, runlog.log)

@@ -18,7 +18,7 @@ from datetime import datetime, timedelta
 MODES = ("default", "notify", "schedule", "ignore")
 KINDS = ("daily", "weekly")
 _TIME_RE = re.compile(r"^([01]\d|2[0-3]):([0-5]\d)$")
-_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$")
+_NAME_RE = re.compile(r"^@?[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$")  # "@name" = standalone container
 
 
 class PolicyError(ValueError):
@@ -63,7 +63,9 @@ def normalize_all(value) -> dict:
         if not _NAME_RE.match(name):
             raise PolicyError(f"invalid stack name: {name!r}")
         p = normalize(pol)
-        if p["mode"] != "default":  # default = no entry
+        # stacks: "default" = no entry. Standalone containers ("@name")
+        # default to "notify", so an explicit "default" must be stored.
+        if p["mode"] != "default" or name.startswith("@"):
             out[name] = p
     return out
 
@@ -79,7 +81,8 @@ def _all() -> dict:
 
 
 def get_policy(name: str) -> dict:
-    return dict(_all().get(name) or {"mode": "default"})
+    fallback = {"mode": "notify"} if str(name).startswith("@") else {"mode": "default"}
+    return dict(_all().get(name) or fallback)
 
 
 def global_auto() -> bool:

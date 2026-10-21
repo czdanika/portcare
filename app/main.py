@@ -578,6 +578,74 @@ def api_notify_test():
                     "devices": devices})
 
 
+# ---------------------------------------------------- standalone containers
+_TTL_CONTAINERS = 10
+_containers_cache: dict = {}
+
+
+@app.route("/api/containers")
+def api_containers():
+    """Standalone containers (not in a Portainer stack) + check results."""
+    from . import containers as cmod
+    client, e = _client_or_error()
+    if e:
+        return e
+    eid = client.endpoint_id
+    cached = _containers_cache.get(eid)
+    if cached and time.time() - cached[0] < _TTL_CONTAINERS:
+        items = cached[1]
+    else:
+        try:
+            items = cmod.standalone(client, eid)
+        except PortainerError as err:
+            return _err(str(err), 502)
+        _containers_cache[eid] = (time.time(), items)
+    check = checker.get_cached()
+    out = []
+    for c in items:
+        k = cmod.key(c["name"])
+        svc = (check.get("stacks") or {}).get(k, {})
+        eff = policies.effective(k)
+        out.append({**c, "key": k, "services": svc,
+                    "updates_available": sum(1 for v in svc.values() if v.get("update_available")),
+                    "policy": policies.get_policy(k), "effective": eff,
+                    "next_run": (scheduler.stack_next.get(k) or {}).get("next") if eff == "own"
+                    else (scheduler.next_full_update if eff == "auto" else None)})
+    return jsonify({"endpoint_id": eid, "checked_at": check.get("checked_at"), "containers": out})
+
+
+@app.route("/api/containers/update", methods=["POST"])
+def api_container_update():
+    """Update ONE standalone container now (pull + recreate)."""
+    from . import containers as cmod
+    body = request.get_json(silent=True) or {}
+    name = str(body.get("name") or "")
+    if not policies.valid_name(name):
+        return _err("valid container name required")
+    if not gate.try_acquire("redeploy"):
+        return _err("another job is running - see /api/runs/current", 409)
+    runlog = None
+    try:
+        client, e = _client_or_error()
+        if e:
+            return e
+        before = cmod.find(client, client.endpoint_id, name)
+        runlog = RunLogger("redeploy", "manual")
+        gate.set_runlog(runlog)
+        ok = cmod.update_container(client, client.endpoint_id, name, runlog.log)
+        runlog.finish(ok)
+        _containers_cache.clear()
+        if ok:
+            checker.recheck_after_update([before["image"]] if before else None)
+        return jsonify({"ok": ok, "run_id": runlog.run_id})
+    except PortainerError as e:
+        if runlog:
+            runlog.finish(False)
+        return _err(str(e), 502)
+    finally:
+        gate.release()
+
+
 @app.route("/api/stacks/policy", methods=["POST"])
 def api_stack_policy():
     """Set one stack's update policy (web UI only).
@@ -592,7 +660,7 @@ def api_stack_policy():
     except policies.PolicyError as e:
         return _err(str(e))
     current = dict(get("stack_policies", {}) or {})
-    if pol["mode"] == "default":
+    if pol["mode"] == "default" and not name.startswith("@"):
         current.pop(name, None)
     else:
         current[name] = pol
@@ -683,6 +751,12 @@ def api_stack_redeploy(stack_id):
         gate.set_runlog(runlog)
         ok = updater.redeploy_single_stack(client, stack, eid, runlog.log)
         runlog.finish(ok)
+        if ok:
+            try:
+                imgs = list(compose_mod.services_images(client.stack_file(stack_id, eid)).values())
+            except Exception:  # noqa: BLE001
+                imgs = None
+            checker.recheck_after_update(imgs)
         return jsonify({"ok": ok, "run_id": runlog.run_id})
     except (PortainerError, KeyError) as e:
         if runlog:

@@ -489,6 +489,11 @@ input:disabled,select:disabled{opacity:.6;cursor:not-allowed}
           <div class="w-sub" id="stackCheckInfo"></div>
           <div id="stackRows"><div class="empty" data-i18n="common.loading"></div></div>
         </div>
+        <div class="widget">
+          <div class="w-head"><div class="wt"><span class="wi"><svg class="i"><use href="#i-box"/></svg></span><span data-i18n="ct.title"></span></div></div>
+          <div class="w-sub" data-i18n="ct.desc"></div>
+          <div id="ctRows"><div class="empty" data-i18n="common.loading"></div></div>
+        </div>
       </div>
 
       <!-- ========================================================= HISTORY -->
@@ -680,7 +685,7 @@ input:disabled,select:disabled{opacity:.6;cursor:not-allowed}
       <div id="mPolicy"></div>
       <div id="mRollback"></div>
       <div id="mBody"></div>
-      <h3 style="margin-top:1.2rem" data-i18n="modal.compose"></h3>
+      <h3 style="margin-top:1.2rem" id="mComposeH" data-i18n="modal.compose"></h3>
       <pre class="log" id="mCompose" style="max-height:18rem;margin-top:.5rem"></pre>
     </div>
   </div>
@@ -710,7 +715,7 @@ input:disabled,select:disabled{opacity:.6;cursor:not-allowed}
 const I18N={
 hu:{
  'app.tagline':'Stackek frissítése','app.credit':'PortCare · <a href="https://github.com/czdanika/portcare" target="_blank" rel="noopener">github.com/czdanika/portcare</a>',
- 'nav.dash':'Áttekintés','app2.title':'Telefonos app és push értesítés','app2.desc':'Telepítsd a PortCare-t a telefonodra appként (App Store nélkül), és kapj értesítést új frissítésekről, illetve a frissítés végén.',
+ 'nav.dash':'Áttekintés','ct.title':'Önálló konténerek','ct.desc':'Portainer stacken kívül futó konténerek (docker run, NAS-alkalmazások, máshol indított compose). Alapból csak jeleznek. Frissítéskor a konténert a friss image-dzsel, ugyanazokkal a beállításokkal, kötetekkel és hálózatokkal hozza létre újra.','ct.none':'Nincs önálló konténer.','ct.update':'Frissítés','ct.running':'fut','ct.badge':'konténer','ct.project':'Compose projekt (Portainer-en kívül)','ct.confirm':'Frissíted a(z) „{n}” konténert?\n\nLetölti az új image-et, és ugyanazokkal a beállításokkal újra létrehozza (rövid leállással).','ct.updated':'„{n}” frissítve','ct.failed':'„{n}” frissítése sikertelen – lásd a naplót','ct.how':'Frissítéskor letölti az image-et, és a Portainer „Recreate” funkciójával ugyanazokkal a beállításokkal újra létrehozza a konténert. Automatikusan csak akkor frissül, ha a szabálya nem „Csak jelez”, és tényleg van új image.','col.state':'Állapot','pol.title_short':'Szabály','app2.title':'Telefonos app és push értesítés','app2.desc':'Telepítsd a PortCare-t a telefonodra appként (App Store nélkül), és kapj értesítést új frissítésekről, illetve a frissítés végén.',
  'app2.install_state':'Ezen az eszközön','app2.public_url':'Nyilvános cím (HTTPS) – honnan érhető el és honnan jön a push','app2.use_origin':'Jelenlegi cím',
  'app2.public_url_hint':'Pl. a Cloudflare domain. Az értesítésre koppintva ez nyílik meg, és ennek a domainnek a nevében mennek a push üzenetek. A telefonon is erről a címről telepítsd az appot.',
  'app2.contact':'Kapcsolattartó a push szolgáltatóknak (e-mail vagy https://domain)','app2.contact_hint':'Az Apple / Google push szolgáltatás ezt látja feladóként. Most érvényes: {c}',
@@ -729,7 +734,7 @@ hu:{
  'app2.g_ios1':'Koppints a <b>Megosztás</b> gombra – Safariban alul középen (iPaden fent a címsor mellett).','app2.g_ios2':'Görgess le, és válaszd a <b>Főképernyőhöz adás</b> pontot.','app2.g_ios3':'Koppints a <b>Hozzáadás</b> gombra, és a főképernyőn lévő ikonról indítsd.',
  'app2.g_and1':'Nyisd meg a böngésző menüjét (<b>⋮</b>).','app2.g_and2':'Válaszd az <b>Alkalmazás telepítése</b> / <b>Hozzáadás a kezdőképernyőhöz</b> pontot.','app2.g_and3':'Erősítsd meg – ikonról, teljes képernyőn indul.',
  'app2.g_note_ios':'Az app a Safaritól külön tárolja az adatait, ezért az első indításkor egyszer újra be kell jelentkezni. Értesítéshez HTTPS cím kell.','app2.g_note':'Ha nincs ilyen menüpont, próbáld Chrome-ban vagy Edge-ben. Értesítéshez HTTPS cím kell.',
- 'app2.d_perm':'engedély','app2.d_sw':'service worker','app2.d_sub':'feliratkozás','app2.d_last':'utolsó küldés','app2.d_recv':'utolsó fogadott értesítés ezen az eszközön','app2.d_never':'ezen az eszközön még nem érkezett értesítés','pol.title':'Frissítési szabály ennél a stacknél','pol.default':'Alapértelmezett','pol.notify':'Csak jelez','pol.own':'Saját időpont','pol.ignore':'Kihagyva',
+ 'app2.d_perm':'engedély','app2.d_sw':'service worker','app2.d_sub':'feliratkozás','app2.d_last':'utolsó küldés','app2.d_recv':'utolsó fogadott értesítés ezen az eszközön','app2.d_never':'ezen az eszközön még nem érkezett értesítés','pol.title':'Frissítési szabály','ct.col_upd':'Frissítés','pol.default':'Alapértelmezett','pol.notify':'Csak jelez','pol.own':'Saját időpont','pol.ignore':'Kihagyva',
  'pol.notify_d':'Nem frissül magától, csak jelzi az új verziót','pol.own_d':'Saját nap / időpont','pol.ignore_d':'Nem ellenőrzi és nem frissíti','pol.daily':'Naponta','pol.weekly':'Hetente',
  'pol.global_off':'kikapcsolva (csak jelez)','pol.every_h':'{h} óránként','pol.save':'Szabály mentése','pol.saved':'„{n}” szabálya mentve','pol.next':'Következő: {t}','pol.edit':'Frissítési szabály módosítása',
  'pol.hint':'Az alapértelmezett ütemezést a Beállításokban állítod.','stacks.ignored_hint':'kihagyva – nem ellenőrzi','nav.env':'Portainer környezet','nav.admin':'Adminisztráció','act.update_all':'Összes frissítése','crumb.dash':'Környezet › Áttekintés','crumb.stacks':'Környezet › Stackek','crumb.history':'Környezet › Előzmények','crumb.settings':'Adminisztráció › Beállítások','col.stack':'Név','col.service':'Service','col.image':'Image','col.mode':'Mód','col.status':'Állapot','col.actions':'Műveletek','col.services':'Service-ek','col.run':'Futás','col.kind':'Típus','col.trigger':'Indító','col.when':'Időpont','col.duration':'Időtartam','col.result':'Eredmény','stacks.n_stacks':'{n} stack · ','nav.stacks':'Stackek','nav.history':'Előzmények','nav.settings':'Beállítások',
@@ -809,7 +814,7 @@ hu:{
 },
 en:{
  'app.tagline':'Keep stacks up to date','app.credit':'PortCare · <a href="https://github.com/czdanika/portcare" target="_blank" rel="noopener">github.com/czdanika/portcare</a>',
- 'nav.dash':'Overview','app2.title':'Phone app & push notifications','app2.desc':'Install PortCare on your phone as an app (no app store) and get notified about new updates and when an update run finishes.',
+ 'nav.dash':'Overview','ct.title':'Standalone containers','ct.desc':'Containers running outside Portainer stacks (docker run, NAS apps, compose started elsewhere). Notify only by default. An update recreates the container with the fresh image and the same settings, volumes and networks.','ct.none':'No standalone containers.','ct.update':'Update','ct.running':'running','ct.badge':'container','ct.project':'Compose project (outside Portainer)','ct.confirm':'Update container “{n}”?\n\nPulls the new image and recreates it with the same settings (short downtime).','ct.updated':'“{n}” updated','ct.failed':'Updating “{n}” failed – see the log','ct.how':'An update pulls the image and recreates the container with Portainer’s “Recreate” with the same settings. It is only updated automatically if its rule is not “Notify only” and there really is a new image.','col.state':'State','pol.title_short':'Rule','app2.title':'Phone app & push notifications','app2.desc':'Install PortCare on your phone as an app (no app store) and get notified about new updates and when an update run finishes.',
  'app2.install_state':'On this device','app2.public_url':'Public address (HTTPS) – where the app lives and where push comes from','app2.use_origin':'Current address',
  'app2.public_url_hint':'e.g. your Cloudflare domain. Tapping a notification opens this address and pushes are sent on behalf of this domain. Install the phone app from this address too.',
  'app2.contact':'Contact for the push services (e-mail or https://domain)','app2.contact_hint':'Apple / Google push services see this as the sender. Currently effective: {c}',
@@ -828,7 +833,7 @@ en:{
  'app2.g_ios1':'Tap <b>Share</b> – at the bottom in Safari (top right on iPad).','app2.g_ios2':'Scroll down and choose <b>Add to Home Screen</b>.','app2.g_ios3':'Tap <b>Add</b>, then start it from the Home Screen icon.',
  'app2.g_and1':'Open the browser menu (<b>⋮</b>).','app2.g_and2':'Choose <b>Install app</b> / <b>Add to Home screen</b>.','app2.g_and3':'Confirm – it opens full screen from its icon.',
  'app2.g_note_ios':'The app keeps its data separate from Safari, so sign in once more on first start. Notifications need an HTTPS address.','app2.g_note':'If the menu item is missing, try Chrome or Edge. Notifications need an HTTPS address.',
- 'app2.d_perm':'permission','app2.d_sw':'service worker','app2.d_sub':'subscription','app2.d_last':'last send','app2.d_recv':'last notification received on this device','app2.d_never':'no notification received on this device yet','pol.title':'Update rule for this stack','pol.default':'Default','pol.notify':'Notify only','pol.own':'Own schedule','pol.ignore':'Ignored',
+ 'app2.d_perm':'permission','app2.d_sw':'service worker','app2.d_sub':'subscription','app2.d_last':'last send','app2.d_recv':'last notification received on this device','app2.d_never':'no notification received on this device yet','pol.title':'Update rule','ct.col_upd':'Update','pol.default':'Default','pol.notify':'Notify only','pol.own':'Own schedule','pol.ignore':'Ignored',
  'pol.notify_d':'Never updated automatically, only flagged','pol.own_d':'Its own day / time','pol.ignore_d':'Not checked, not updated','pol.daily':'Daily','pol.weekly':'Weekly',
  'pol.global_off':'off (notify only)','pol.every_h':'every {h}h','pol.save':'Save rule','pol.saved':'Rule for “{n}” saved','pol.next':'Next: {t}','pol.edit':'Change update rule',
  'pol.hint':'The default schedule is set in Settings.','stacks.ignored_hint':'ignored – not checked','nav.env':'Portainer environment','nav.admin':'Administration','act.update_all':'Update all','crumb.dash':'Environment › Overview','crumb.stacks':'Environment › Stacks','crumb.history':'Environment › History','crumb.settings':'Administration › Settings','col.stack':'Name','col.service':'Service','col.image':'Image','col.mode':'Mode','col.status':'Status','col.actions':'Actions','col.services':'Services','col.run':'Run','col.kind':'Type','col.trigger':'Trigger','col.when':'Time','col.duration':'Duration','col.result':'Result','stacks.n_stacks':'{n} stacks · ','nav.stacks':'Stacks','nav.history':'History','nav.settings':'Settings',
@@ -1094,7 +1099,7 @@ async function refresh(){
  $('cSecSub').textContent=t('dash.sec_sub',{m:t('tls.'+tm)});
  $('hTotal').textContent=s.runs_total??'–';
  if(currentTab==='dash')renderDashStacks(s.stacks||{});
- if(currentTab==='stacks'&&stacksData)renderStacks();
+ if(currentTab==='stacks'&&stacksData){renderStacks();renderContainers()}
  gateBusy=!!busy;setBusyUI(gateBusy);if(busy)ensureBannerTimer();
 }
 
@@ -1137,9 +1142,9 @@ function renderDashStacks(stacks){
    .sort((a,b)=>b.upd-a.upd||a.n.localeCompare(b.n)).slice(0,12);
   const badge=r=>r.upd?`<span class="badge b-warn">${esc(t('dash.n_upd',{n:r.upd}))}</span>`:`<span class="badge b-ok">${esc(t('dash.uptodate'))}</span>`;
   html=`<table class="dt table-d"><thead><tr><th>${esc(t('col.stack'))}</th><th class="num">${esc(t('col.services'))}</th><th>${esc(t('col.image'))}</th><th>${esc(t('col.status'))}</th></tr></thead><tbody>`+
-   rows.map(r=>`<tr><td><a href="#" data-st="${esc(r.n)}">${esc(r.n)}</a></td><td class="num">${r.imgs.length}</td><td class="mono" title="${esc(r.imgs.map(i=>i.image).join(', '))}">${esc(r.imgs.map(i=>i.image).slice(0,2).join(' · '))}</td><td>${badge(r)}</td></tr>`).join('')+
+   rows.map(r=>`<tr><td><a href="#" data-st="${esc(r.n)}">${esc(r.n.replace(/^@/,''))}</a>${r.n.startsWith('@')?` <span class="badge b-mut">${esc(t('ct.badge'))}</span>`:''}</td><td class="num">${r.imgs.length}</td><td class="mono" title="${esc(r.imgs.map(i=>i.image).join(', '))}">${esc(r.imgs.map(i=>i.image).slice(0,2).join(' · '))}</td><td>${badge(r)}</td></tr>`).join('')+
    `</tbody></table><div class="cards-m">`+
-   rows.map(r=>`<div class="li click" data-st="${esc(r.n)}" tabindex="0" role="button"><div class="grow"><div class="t" style="color:var(--link)">${esc(r.n)}</div><div class="s mono">${esc(r.imgs.map(i=>i.image).slice(0,2).join(' · '))}</div></div>${badge(r)}</div>`).join('')+`</div>`;
+   rows.map(r=>`<div class="li click" data-st="${esc(r.n)}" tabindex="0" role="button"><div class="grow"><div class="t" style="color:var(--link)">${esc(r.n.replace(/^@/,''))}${r.n.startsWith('@')?` <span class="badge b-mut">${esc(t('ct.badge'))}</span>`:''}</div><div class="s mono">${esc(r.imgs.map(i=>i.image).slice(0,2).join(' · '))}</div></div>${badge(r)}</div>`).join('')+`</div>`;
  }
  if(html===lastDashHtml)return;lastDashHtml=html;
  const box=$('dashStacks');box.innerHTML=html;
@@ -1162,8 +1167,58 @@ cardAction($('cLastCard'),()=>{if(lastFailedRun)showRunLog(lastFailedRun);else s
 /* ================================================================= stacks */
 let stacksData=null,lastStacksHtml=null,stackFilter='all';
 async function loadStacks(){
+ loadContainers();
  try{stacksData=await api('/api/stacks');renderStacks()}
  catch(e){if(!(e instanceof AuthError))$('stackRows').innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
+/* ---------------------------------------------------- standalone containers */
+let ctData=null,lastCtHtml=null;
+async function loadContainers(){
+ try{ctData=await api('/api/containers');renderContainers()}
+ catch(e){if(!(e instanceof AuthError))$('ctRows').innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
+function ctPolBadge(c){return `<button class="badge ${polCls(c.effective)}" data-act="ctpolicy" data-nm="${esc(c.name)}" title="${esc(t('pol.edit'))}"><svg class="i"><use href="#i-cal"/></svg>${esc(polText(c.policy,c.effective))}</button>`}
+function ctStateBadge(c){return c.state==='running'?`<span class="badge b-ok" title="${esc(c.status)}">${esc(t('ct.running'))}</span>`:`<span class="badge b-mut" title="${esc(c.status)}">${esc(c.state||'?')}</span>`}
+function renderContainers(){
+ const d=ctData;if(!d)return;
+ const q=$('stackSearch').value.trim().toLowerCase();
+ let list=d.containers.slice().sort((a,b)=>(b.updates_available||0)-(a.updates_available||0)||a.name.localeCompare(b.name));
+ if(stackFilter==='upd')list=list.filter(c=>c.updates_available>0);
+ if(q)list=list.filter(c=>c.name.toLowerCase().includes(q)||(c.image||'').toLowerCase().includes(q));
+ let html;
+ if(!d.containers.length)html=`<div class="empty">${esc(t('ct.none'))}</div>`;
+ else if(!list.length)html=`<div class="empty">${esc(t('stacks.no_match'))}</div>`;
+ else{
+  const upd=c=>{const v=Object.values(c.services||{})[0];return v?svcBadge(v):(c.effective==='ignore'?`<span class="badge b-mut">${esc(t('pol.ignore'))}</span>`:'<span class="muted small">–</span>')};
+  const btn=c=>`<button class="btn ${c.updates_available?'':'sec '}sm" data-act="ctupdate" data-nm="${esc(c.name)}"><svg class="i"><use href="#i-download"/></svg>${esc(t('ct.update'))}</button>`;
+  html=`<table class="dt table-d"><thead><tr><th>${esc(t('col.stack'))}</th><th>${esc(t('col.image'))}</th><th>${esc(t('col.state'))}</th><th>${esc(t('ct.col_upd'))}</th><th>${esc(t('pol.title_short'))}</th><th>${esc(t('col.actions'))}</th></tr></thead><tbody>`+
+   list.map(c=>`<tr><td><a href="#" data-act="ctopen" data-nm="${esc(c.name)}">${esc(c.name)}</a>${c.project?` <span class="badge b-mut" title="${esc(t('ct.project'))}">${esc(c.project)}</span>`:''}</td>
+    <td class="mono" title="${esc(c.image)}">${esc(c.image)}</td><td>${ctStateBadge(c)}</td><td>${upd(c)}</td><td>${ctPolBadge(c)}</td><td>${btn(c)}</td></tr>`).join('')+
+   `</tbody></table><div class="cards-m">`+
+   list.map(c=>`<div class="stack"><div class="stack-head"><div class="grow"><a href="#" class="name" data-act="ctopen" data-nm="${esc(c.name)}">${esc(c.name)}</a>${ctStateBadge(c)}</div>${btn(c)}</div>
+    <div class="pol-line">${ctPolBadge(c)}</div><div class="svc"><div class="img">${esc(c.image)}</div><div class="tags">${upd(c)}</div></div></div>`).join('')+`</div>`;
+ }
+ if(html!==lastCtHtml){lastCtHtml=html;$('ctRows').innerHTML=html}
+}
+async function updateContainer(name,btn){
+ if(!confirm(t('ct.confirm',{n:name})))return;
+ const run=async()=>{const r=await api('/api/containers/update',{method:'POST',body:JSON.stringify({name})});
+  toast(r.ok?t('ct.updated',{n:name}):t('ct.failed',{n:name}),r.ok?'ok':'err',!r.ok);refresh();loadContainers()};
+ try{btn?await withBusy(btn,run):await run()}catch(e){if(!(e instanceof AuthError))toast(e.message,'err')}}
+async function openContainer(name,focusPolicy){
+ if(!ctData)await loadContainers();
+ const c=(ctData&&ctData.containers||[]).find(x=>x.name===name);
+ openModal();$('mTitle').textContent=name;$('mRollback').innerHTML='';$('mCompose').textContent='';
+ $('mCompose').classList.add('hidden');$('mComposeH').classList.add('hidden');
+ if(!c){$('mPolicy').innerHTML='';$('mBody').innerHTML=`<div class="empty">${esc(t('stacks.no_match'))}</div>`;return}
+ $('mRedeploy').onclick=()=>updateContainer(name,$('mRedeploy'));
+ renderPolicyBox({name:c.key,policy:c.policy,effective:c.effective,next_run:c.next_run},focusPolicy);
+ const v=Object.values(c.services||{})[0];
+ $('mBody').innerHTML=`<div class="svc-edit"><div class="kv">
+   <div class="k">${esc(t('col.image'))}</div><div class="v mono">${esc(c.image)}</div>
+   <div class="k">${esc(t('col.state'))}</div><div class="v">${ctStateBadge(c)} <span class="muted small">${esc(c.status)}</span></div>
+   ${c.project?`<div class="k">${esc(t('ct.project'))}</div><div class="v">${esc(c.project)}</div>`:''}
+   <div class="k">${esc(t('ct.col_upd'))}</div><div class="v">${v?svcBadge(v):'–'}</div></div>
+   <div class="hint small muted" style="margin-top:.6rem">${esc(t('ct.how'))}</div></div>`;
+}
 function modeTxt(m){return m==='digest'?t('stacks.mode_digest'):m==='semver'?t('stacks.mode_semver'):m==='pinned-digest'?t('stacks.mode_pdigest'):t('stacks.mode_unknown')}
 const DAYS_SHORT={hu:['H','K','Sze','Cs','P','Szo','V'],en:['Mon','Tue','Wed','Thu','Fri','Sat','Sun']};
 function schedTxt(kind,day,tm){return kind==='weekly'?`${t('days')[day||0]} ${tm}`:`${t('pol.daily')} ${tm}`}
@@ -1208,13 +1263,16 @@ function renderStacks(){
  }
  if(html!==lastStacksHtml){lastStacksHtml=html;$('stackRows').innerHTML=html}
 }
-$('stackSearch').oninput=()=>renderStacks();
+$('stackSearch').oninput=()=>{renderStacks();renderContainers()};
 $('stackFilter').querySelectorAll('button').forEach(b=>b.onclick=()=>{stackFilter=b.dataset.f;
- $('stackFilter').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));renderStacks()});
+ $('stackFilter').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));renderStacks();renderContainers()});
 document.addEventListener('click',e=>{const el=e.target.closest('[data-act]');if(!el)return;e.preventDefault();
  const a=el.dataset.act;
  if(a==='open')openStack(el.dataset.nm);
  if(a==='policy')openStack(el.dataset.nm,null,null,true);
+ if(a==='ctopen')openContainer(el.dataset.nm);
+ if(a==='ctpolicy')openContainer(el.dataset.nm,true);
+ if(a==='ctupdate')updateContainer(el.dataset.nm,el);
  if(a==='pin')openStack(null,+el.dataset.id,el.dataset.svc);
  if(a==='redeploy')redeployStack(+el.dataset.st,el.dataset.nm,el)});
 async function redeployStack(id,name,btn){
@@ -1239,6 +1297,8 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
   z.addEventListener('touchend',()=>{if(y0==null)return;m.style.transition='';y0=null;if(dy>110)closeModal();else m.style.transform=''})})})();
 
 async function openStack(name,id,focusSvc,focusPolicy){
+ if(name&&name.startsWith('@'))return openContainer(name.slice(1),focusPolicy);
+ $('mCompose').classList.remove('hidden');$('mComposeH').classList.remove('hidden');
  openModal();$('mTitle').textContent=name||'Stack';$('mRollback').innerHTML='';$('mPolicy').innerHTML='';
  $('mBody').innerHTML=`<div class="empty">${esc(t('common.loading'))}</div>`;$('mCompose').textContent='';
  try{
@@ -1307,7 +1367,7 @@ function renderPolicyBox(d,focus){
   const body={name:d.name,mode:box.querySelector('input[name=polMode]:checked').value,kind:$('polKind').value,day:+$('polDay').value,time:$('polTime').value||'04:00'};
   try{const r=await api('/api/stacks/policy',{method:'POST',body:JSON.stringify(body)});
    toast(t('pol.saved',{n:d.name}),'ok');showNext(r.effective==='own'?r.next_run:null);d.policy=r.policy;d.effective=r.effective;
-   lastStacksHtml=null;loadStacks()}catch(e){if(!(e instanceof AuthError))toast(e.message,'err')}});
+   lastStacksHtml=null;lastCtHtml=null;loadStacks()}catch(e){if(!(e instanceof AuthError))toast(e.message,'err')}});
  if(focus)setTimeout(()=>box.scrollIntoView({block:'start'}),60);
 }
 async function loadRollbackStrip(stackId){

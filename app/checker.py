@@ -62,6 +62,23 @@ def collect_images(client: Portainer, eid, log=None) -> list:
                 "service": svc, "image": image,
                 "env": stack.get("Env") or [],
             })
+    # standalone containers (not part of a Portainer stack): "@<name>"
+    try:
+        from . import containers as cmod
+        all_stacks = [s for s in client.stacks() if s.get("EndpointId") == eid]
+        n_ct = 0
+        for c in cmod.standalone(client, eid, all_stacks):
+            k = cmod.key(c["name"])
+            if ignored(k):
+                continue
+            out.append({"stack_id": None, "stack": k, "service": c["name"],
+                        "image": c["image"], "env": []})
+            n_ct += 1
+        if log and n_ct:
+            log(f"[INFO] + {n_ct} standalone container(s)")
+    except PortainerError as e:
+        if log:
+            log(f"[WARN] standalone containers unavailable ({e})")
     if log:
         log(f"[INFO] found {len(out)} service image(s) across {len(stacks)} stack(s)")
     return out
@@ -212,6 +229,26 @@ def get_cached(force_refresh=None) -> dict:
     if res is None:
         return {"checked_at": None, "stacks": {}, "running": False}
     return res
+
+
+def recheck_after_update(images=None) -> None:
+    """After an update the cached 'update available' answers for the touched
+    images are stale (the local digest changed). Drop those cache entries and
+    re-run the check in the background - other images stay cached, so this
+    costs only a few registry calls."""
+    try:
+        with dockerhub._cache_lock:
+            if images:
+                for img in images:
+                    reg, repo, tag = dockerhub.parse_image(img)
+                    if repo:
+                        dockerhub._cache.pop(f"upd:{reg}/{repo}:{tag}", None)
+            else:
+                for k in [k for k in dockerhub._cache if k.startswith("upd:")]:
+                    dockerhub._cache.pop(k, None)
+    except Exception:  # noqa: BLE001
+        pass
+    threading.Thread(target=_bg_refresh, daemon=True).start()
 
 
 def _bg_refresh(force=False):

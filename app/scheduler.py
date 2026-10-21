@@ -333,13 +333,19 @@ class Scheduler:
             })
 
     def _notify_run(self, runlog, ok):
-        """Push after an update run: success (which stacks) or failure."""
+        """Push after an update run: success (which stacks) or failure.
+        Also refreshes the update check so the UI stops showing what was
+        just updated."""
+        try:
+            checker.recheck_after_update(None)
+        except Exception:  # noqa: BLE001
+            pass
         stacks = getattr(runlog, "stacks", None) or []
         if ok:
             if not stacks:
                 return  # nothing was selected - no noise
             push.send_async("update_done", "PortCare: frissítés kész",
-                            f"{len(stacks)} stack frissítve: " + ", ".join(stacks[:6])
+                            f"{len(stacks)} frissítve: " + ", ".join(x.lstrip("@") for x in stacks[:6])
                             + (" …" if len(stacks) > 6 else ""), url=push.app_url("#history"), tag="run")
         else:
             failed = [st["name"] for st in runlog.steps if not st.get("ok")]

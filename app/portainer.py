@@ -223,6 +223,46 @@ class Portainer:
         ref = quote(image_ref, safe=":@")
         return self._docker("GET", f"/images/{ref}/json", eid).json()
 
+    # ------------------------------------------------- standalone containers
+    def recreate_container(self, cid, eid=None, pull=True):
+        """Portainer's own Recreate (UI: Container > Recreate > Pull image).
+        404/405 on Portainer versions without this API -> caller falls back."""
+        eid = eid or self.endpoint_id
+        return self._req("POST", f"/api/docker/{eid}/containers/{cid}/recreate",
+                         json={"PullImage": bool(pull)}, timeout=600)
+
+    def pull_image(self, image_ref, eid=None):
+        ref = image_ref.split("@")[0]
+        repo, _, tag = ref.rpartition(":") if ":" in ref.rsplit("/", 1)[-1] else (ref, "", "latest")
+        r = self._docker("POST", f"/images/create?fromImage={quote(repo, safe='')}&tag={quote(tag or 'latest', safe='')}",
+                         eid, timeout=900)
+        # the pull streams JSON lines; an error is reported INSIDE the stream
+        for line in (r.text or "").splitlines():
+            try:
+                msg = json.loads(line)
+            except ValueError:
+                continue
+            if msg.get("error"):
+                raise PortainerError(f"pull {image_ref}: {msg['error']}")
+        return True
+
+    def container_action(self, cid, action, eid=None, params=""):
+        q = f"?{params}" if params else ""
+        r = self._docker("POST", f"/containers/{cid}/{action}{q}", eid, timeout=120)
+        return r
+
+    def create_container(self, name, body, eid=None):
+        r = self._docker("POST", f"/containers/create?name={quote(name, safe='')}", eid,
+                         json=body, timeout=60)
+        return r.json().get("Id")
+
+    def connect_network(self, net, cid, endpoint_config, eid=None):
+        return self._docker("POST", f"/networks/{quote(net, safe='')}/connect", eid,
+                            json={"Container": cid, "EndpointConfig": endpoint_config or {}})
+
+    def remove_container(self, cid, eid=None):
+        return self._docker("DELETE", f"/containers/{cid}?force=1&v=0", eid)
+
     # ---------------------------------------------------------- prune/backup
     def prune_images(self, eid=None):
         """Portainer admin-only: prune ALL unused images (dangling=false)."""
