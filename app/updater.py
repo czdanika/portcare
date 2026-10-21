@@ -365,6 +365,11 @@ def redeploy_single_stack(client, stack, eid, log) -> bool:
     except Exception as e:  # noqa: BLE001 - snapshotting must never kill the run
         log(f"[WARN] {name}: rollback snapshot failed ({e}) - continuing.")
 
+    # Take the reference time BEFORE the PUT: Portainer answers only after
+    # `compose up` has finished, so containers recreated by this deploy have
+    # a Created timestamp BEFORE the HTTP 200 (measuring after the PUT made
+    # every real redeploy look like "0/N new containers" until the timeout).
+    redeploy_started = time.time() - 2
     try:
         if stack.get("GitConfig"):
             # git-based stack: the StackFileContent PUT would DETACH it from
@@ -381,18 +386,28 @@ def redeploy_single_stack(client, stack, eid, log) -> bool:
     # Only containers created AFTER this moment count as "the redeploy's"
     # containers - the old set would otherwise satisfy the wait instantly
     # (that made runs look "done" in 1s while the pull was still going).
-    redeploy_started = time.time()
     log(f"[INFO] {name}: HTTP 200, verifying containers...")
     deadline = time.time() + int(get("deploy_wait_time", 300))
     interval = 5
     expected = n_services
     last_report = 0.0
+    put_done = time.time()
     while time.time() < deadline:
         ready, total = _containers_ready(client, project, eid, log,
                                          created_after=redeploy_started)
         if ready >= expected and ready > 0:
             log(f"[OK] {name}: all {expected} services ready.")
             return True
+        # compose only recreates services whose image/config changed: when
+        # nothing (or only part) was recreated, the untouched containers are
+        # still the current ones. After a short grace period accept the
+        # whole project if every expected service is up and ready.
+        if time.time() - put_done >= 20:
+            all_ready, all_total = _containers_ready(client, project, eid, log)
+            if all_ready >= expected and all_ready > 0:
+                log(f"[OK] {name}: all {expected} services ready "
+                    f"({ready} recreated, {all_ready - ready} unchanged).")
+                return True
         if log and time.time() - last_report >= 30:
             last_report = time.time()
             log(f"[INFO] {name}: waiting... {ready}/{expected} new container(s) ready so far")

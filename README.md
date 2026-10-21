@@ -1,5 +1,7 @@
 # PortCare – Portainer Update Service, magyarul és biztonságosabban
 
+**Magyar** · [English](README.en.md)
+
 Webes felület a Portainer stackek frissítéséhez. Megmutatja, melyik image-hez jelent meg újabb verzió, és ütemezve vagy kézzel frissít. Minden futás előtt lementi a Portainert, egy service verzióját egy kattintással rögzítheted, egy elromlott frissítés után pedig visszaállhatsz.
 
 Ez a [joshmadison/Portainer-Update-Service](https://github.com/joshmadison/Portainer-Update-Service) (MIT) forkja. Ami benne új:
@@ -19,13 +21,16 @@ Ez a [joshmadison/Portainer-Update-Service](https://github.com/joshmadison/Porta
 - **Előre megépített image** amd64-re és arm64-re (GHCR), a NAS-on nem kell semmit buildelni
 
 <p align="center">
-  <img src="docs/screenshots/hu-dashboard-light.png" alt="Áttekintés, világos téma" width="68%">
-  <img src="docs/screenshots/hu-mobile-stacks.png" alt="Stackek mobilon" width="24%">
+  <img src="docs/screenshots/hu-dashboard.png" alt="Áttekintés, világos téma" width="100%">
 </p>
-<p align="center">
-  <img src="docs/screenshots/en-dashboard-dark.png" alt="Overview, dark theme" width="68%">
-  <img src="docs/screenshots/hu-mobile-sheet.png" alt="Verzióváltás mobilon" width="24%">
-</p>
+
+| Stackek és frissítési szabályok | Szabály egy stackre |
+|---|---|
+| <img src="docs/screenshots/hu-stacks-dark.png" alt="Stackek" width="100%"> | <img src="docs/screenshots/hu-policy-dark.png" alt="Frissítési szabály" width="100%"> |
+
+| Mobil: stackek | Mobil: app és push | Mobil: telepítés | Belépés |
+|---|---|---|---|
+| <img src="docs/screenshots/hu-mobile-stacks.png" width="100%"> | <img src="docs/screenshots/hu-mobile-push.png" width="100%"> | <img src="docs/screenshots/hu-mobile-install.png" width="100%"> | <img src="docs/screenshots/hu-login.png" width="100%"> |
 
 ---
 
@@ -43,7 +48,7 @@ services:
       - "8742:8090"            # NAS-port : konténer-port
     environment:
       TZ: "Europe/Budapest"
-      # Opcionális: fix admin jelszó. Ha kihagyod, első indításkor a felületen kell megadni.
+      # Opcionális: az első admin jelszó. Ha kihagyod, első indításkor a felületen adod meg.
       # PUS_AUTH_TOKEN: "egy-hosszu-jelszo"
     volumes:
       - pus-data:/app/data     # állapot, előzmények, mentések, titkosító kulcs
@@ -55,9 +60,9 @@ volumes:
 ```
 
 2. **Deploy the stack**, majd nyisd meg a `http://<nas-ip>:8742` címet.
-3. Első indításkor **admin jelszót** kell létrehozni (legalább 8 karakter).
+3. Első indításkor **admin jelszót** kell létrehozni (legalább 8 karakter), vagy ha megadtad a `PUS_AUTH_TOKEN`-t, azzal lépsz be.
 4. **Beállítások → Portainer kapcsolat**:
-   - URL: `https://<nas-ip>:9443`
+   - URL: `https://<nas-ip>:9443`, vagy amin a Portainert a böngészőben megnyitod (pl. `http://<nas-ip>:8181/portainer`)
    - API kulcs: Portainer → *My account* → *Access tokens* → *Add access token*. Admin felhasználóval kell létrehozni.
 5. **Beállítások → TLS tanúsítvány**: válaszd a *Tanúsítvány rögzítése* módot, nyomd meg a *Tanúsítvány lekérése* gombot, aztán az *Ezt rögzítem* gombot.
 6. **Ütemezés**: az alapbeállítás *Kikapcsolva – csak jelez*. Ha automatikus frissítést szeretnél, válassz napot és időpontot. Előtte a törékeny service-eket (adatbázisok, Immich stb.) rögzítsd a *Verzió* gombbal.
@@ -110,7 +115,7 @@ Push értesítés (szabványos Web Push, VAPID): **Beállítások → Telefonos 
 A *Próbaértesítés* 5 másodperc múlva érkezik, közben be lehet zárni az appot.
 
 > **Fontos:** a böngészők csak **HTTPS** kapcsolaton engedik a push értesítést és a service workert. A helyi `http://192.168.x.x:8742` cím ehhez nem elég. Két lehetőség:
-> - **Cloudflare Tunnel**: például `https://portcare.example.hu` → `http://<nas-ip>:8742`. A belépés kötelező, ezért ez is biztonságos, de érdemes Cloudflare Access-szel is védeni.
+> - **Cloudflare Tunnel**: például `https://portcare.example.com` → `http://<nas-ip>:8742`. A belépés kötelező, ezért ez is biztonságos, de érdemes Cloudflare Access-szel is védeni.
 > - **Tailscale HTTPS**: `tailscale serve --bg 8742` a NAS-on, majd `https://<nas>.<tailnet>.ts.net`.
 >
 > iPhone-on az értesítés csak a főképernyőre telepített appban működik (iOS 16.4 vagy újabb).

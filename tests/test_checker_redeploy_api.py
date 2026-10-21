@@ -136,3 +136,44 @@ class TestApiSmoke:
     def test_run_log_path_traversal_blocked(self, client):
         r = client.get("/api/runs/..%2f..%2fetc%2fpasswd/log")
         assert r.status_code in (400, 404)  # never 200
+
+class TestRedeployReadinessTiming:
+    """Regression: Portainer's PUT returns only AFTER compose up, so the
+    recreated containers are older than the HTTP 200. They must count."""
+
+    def _stack(self):
+        return {"Id": 46, "Name": "immich", "EndpointId": 3, "Env": [], "GitConfig": None}
+
+    def test_containers_created_during_put_count(self, fake_client, tmp_state, monkeypatch):
+        import time as _t
+        from app.updater import redeploy_single_stack
+        compose = "services:\n  a:\n    image: x:1\n  b:\n    image: y:1\n"
+        c = fake_client(stacks=[self._stack()], stack_files={46: compose},
+                        containers=[{"Id": "old", "State": "running", "Status": "Up 3 days",
+                                     "Labels": {"com.docker.compose.project": "immich"}, "Created": 1}])
+
+        def put(stack_id, eid, content, env):
+            now = _t.time()
+            c.containers = [{"Id": n, "State": "running", "Status": "Up 1 second",
+                             "Labels": {"com.docker.compose.project": "immich"}, "Created": now}
+                            for n in ("a", "b")]
+            _t.sleep(0.5)  # PUT returns a bit after compose up
+        c.update_stack = put
+        c.inspect_container = lambda cid, eid=None: {"State": {"Status": "running"}}
+        start = _t.time()
+        assert redeploy_single_stack(c, self._stack(), 3, lambda m: None) is True
+        assert _t.time() - start < 5
+
+    def test_unchanged_containers_accepted_after_grace(self, fake_client, tmp_state, monkeypatch):
+        import app.updater as up
+        compose = "services:\n  a:\n    image: x:1\n"
+        c = fake_client(stacks=[self._stack()], stack_files={46: compose},
+                        containers=[{"Id": "a", "State": "running", "Status": "Up 3 days",
+                                     "Labels": {"com.docker.compose.project": "immich"}, "Created": 1}])
+        c.inspect_container = lambda cid, eid=None: {"State": {"Status": "running"}}
+        clock = {"t": 1_000_000.0}
+        monkeypatch.setattr(up.time, "time", lambda: clock["t"])
+        monkeypatch.setattr(up.time, "sleep", lambda s: clock.__setitem__("t", clock["t"] + s))
+        logs = []
+        assert up.redeploy_single_stack(c, self._stack(), 3, logs.append) is True
+        assert any("unchanged" in l for l in logs)
