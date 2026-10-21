@@ -1105,6 +1105,11 @@ def run_full_update(runlog, stack_filter=None, targeted=False) -> bool:
     except PortainerError as e:
         runlog.log(f"[ERROR] Could not fetch stacks: {e}")
         return False
+    try:
+        runlog.stacks = sorted(s.get("Name") or "?" for s in stacks
+                               if stack_filter is None or stack_filter(s.get("Name") or ""))
+    except Exception:  # noqa: BLE001 - informational only (notifications)
+        pass
     if stack_filter is not None:
         skipped = [s.get("Name") for s in stacks if not stack_filter(s.get("Name") or "")]
         stacks = [s for s in stacks if stack_filter(s.get("Name") or "")]

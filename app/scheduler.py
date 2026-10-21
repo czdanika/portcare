@@ -13,7 +13,7 @@ import time
 import traceback
 from datetime import datetime, timedelta
 
-from . import checker, policies, updater
+from . import checker, policies, push, updater
 from .config import DATA_DIR, get, load
 from .history import RunLogger
 from .jobs import gate
@@ -168,6 +168,7 @@ class Scheduler:
             ok = updater.run_full_update(runlog, stack_filter=lambda n: n in wanted,
                                          targeted=True)
             runlog.finish(ok)
+            self._notify_run(runlog, ok)
             if not ok:
                 self._notify_failure(runlog)
         except Exception:
@@ -296,8 +297,7 @@ class Scheduler:
     def _notify_updates(self, result):
         """POST to the webhook when the set of available updates CHANGED
         (opt-in: notify_on_updates). Nothing is sent twice for the same set."""
-        url = get("notify_webhook", "")
-        if not url or not get("notify_on_updates", False) or not result:
+        if not result:
             return
         found = []
         for stack, svcs in sorted((result.get("stacks") or {}).items()):
@@ -317,13 +317,35 @@ class Scheduler:
         state_file.write_text(key, encoding="utf-8")
         if not found:
             return
-        import requests
-        requests.post(url, timeout=10, json={
-            "title": f"{len(found)} container update(s) available",
-            "event": "updates_available",
-            "count": len(found),
-            "updates": found,
-        })
+        # push (phone / browser) - text in Hungarian, the UI's default language
+        names = sorted({f["stack"] for f in found})
+        push.send_async("updates_available", f"PortCare: {len(found)} új frissítés",
+                        ", ".join(names[:6]) + (" …" if len(names) > 6 else ""),
+                        url="./#stacks", tag="updates")
+        url = get("notify_webhook", "")
+        if url and get("notify_on_updates", False):
+            import requests
+            requests.post(url, timeout=10, json={
+                "title": f"{len(found)} container update(s) available",
+                "event": "updates_available",
+                "count": len(found),
+                "updates": found,
+            })
+
+    def _notify_run(self, runlog, ok):
+        """Push after an update run: success (which stacks) or failure."""
+        stacks = getattr(runlog, "stacks", None) or []
+        if ok:
+            if not stacks:
+                return  # nothing was selected - no noise
+            push.send_async("update_done", "PortCare: frissítés kész",
+                            f"{len(stacks)} stack frissítve: " + ", ".join(stacks[:6])
+                            + (" …" if len(stacks) > 6 else ""), url="./#history", tag="run")
+        else:
+            failed = [st["name"] for st in runlog.steps if not st.get("ok")]
+            push.send_async("update_failed", "PortCare: a frissítés HIBÁVAL zárult",
+                            "Hibás lépés: " + (", ".join(failed) or "ismeretlen")
+                            + " – nézd meg a naplót.", url="./#history", tag="run")
 
     def _run_update(self, trigger: str):
         if not gate.try_acquire("update"):
@@ -334,6 +356,7 @@ class Scheduler:
             gate.set_runlog(runlog)  # attach logger to the lock we already hold
             ok = updater.run_full_update(runlog, stack_filter=policies.in_global_run)
             runlog.finish(ok)
+            self._notify_run(runlog, ok)
             if ok:
                 self.consecutive_failures = 0
             else:
@@ -409,6 +432,7 @@ class Scheduler:
         try:
             ok = updater.run_full_update(runlog, stack_filter=policies.in_manual_all)
             runlog.finish(ok)
+            self._notify_run(runlog, ok)
             if ok:
                 self.consecutive_failures = 0
             else:

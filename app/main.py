@@ -15,7 +15,7 @@ from pathlib import Path
 from flask import Flask, jsonify, request, send_from_directory, session
 from flask.sessions import SecureCookieSessionInterface
 
-from . import auth, checker, compose as compose_mod, crypto, dockerhub, history, policies, updater
+from . import auth, checker, compose as compose_mod, crypto, dockerhub, history, policies, push, updater
 from . import config as config_mod
 from .config import get, load, set as cfg_set, save as cfg_save, ConfigError, env_locked
 from .history import RunLogger
@@ -223,9 +223,22 @@ def index():
     return send_from_directory(UI_DIR, "index.html")
 
 
+@app.route("/sw.js")
+def service_worker():
+    """Service worker must come from the site root (scope "/") and must not
+    be cached, otherwise app updates would not reach installed phones."""
+    resp = send_from_directory(UI_DIR, "sw.js", mimetype="application/javascript")
+    resp.headers["Cache-Control"] = "no-cache"
+    resp.headers["Service-Worker-Allowed"] = "/"
+    return resp
+
+
 @app.route("/<path:filename>")
 def static_files(filename):
-    return send_from_directory(UI_DIR, filename)
+    resp = send_from_directory(UI_DIR, filename)
+    if filename.endswith(".webmanifest"):
+        resp.headers["Content-Type"] = "application/manifest+json"
+    return resp
 
 
 # ------------------------------------------------------------------- status
@@ -475,6 +488,64 @@ def api_stacks():
                     "checked_at": check.get("checked_at"),
                     "check_running": bool(check.get("running")),
                     "stacks": out})
+
+
+# ------------------------------------------------------------- push notify
+def _push_public(data: dict, endpoint: str = "") -> dict:
+    subs = data.get("subscriptions") or []
+    return {"events": data.get("events", {}), "devices": len(subs),
+            "this_device": bool(endpoint and any(s.get("endpoint") == endpoint for s in subs)),
+            "last_send": data.get("last_send")}
+
+
+@app.route("/api/notify/config")
+def api_notify_config():
+    return jsonify({**_push_public(push.load(), request.args.get("endpoint", "")),
+                    "vapid_public_key": push.vapid_public_key()})
+
+
+@app.route("/api/notify/events", methods=["PUT", "POST"])
+def api_notify_events():
+    body = request.get_json(silent=True) or {}
+    return jsonify(_push_public(push.set_events(body.get("events") or {})))
+
+
+@app.route("/api/notify/subscribe", methods=["POST"])
+def api_notify_subscribe():
+    body = request.get_json(silent=True) or {}
+    sub = body.get("subscription") or {}
+    try:
+        data = push.subscribe(sub, request.headers.get("User-Agent", ""))
+    except ValueError as e:
+        return _err(str(e))
+    return jsonify(_push_public(data, sub.get("endpoint", "")))
+
+
+@app.route("/api/notify/unsubscribe", methods=["POST"])
+def api_notify_unsubscribe():
+    body = request.get_json(silent=True) or {}
+    return jsonify(_push_public(push.unsubscribe(str(body.get("endpoint") or ""))))
+
+
+@app.route("/api/notify/test", methods=["POST"])
+def api_notify_test():
+    """Test push. `delay` (s, max 30) lets you close the app before it arrives."""
+    body = request.get_json(silent=True) or {}
+    try:
+        delay = max(0, min(30, int(body.get("delay", 0))))
+    except (TypeError, ValueError):
+        delay = 0
+    devices = len(push.load().get("subscriptions") or [])
+    title, text = "PortCare – próbaértesítés", "Ha ezt látod, az értesítések működnek."
+
+    def _later():
+        time.sleep(delay)
+        push._safe_send("test", title, text, url="./#settings", force=True)
+    if delay:
+        threading.Thread(target=_later, daemon=True).start()
+        return jsonify({"scheduled": True, "delay": delay, "devices": devices})
+    return jsonify({"sent": push.send("test", title, text, url="./#settings", force=True),
+                    "devices": devices})
 
 
 @app.route("/api/stacks/policy", methods=["POST"])

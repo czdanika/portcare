@@ -13,6 +13,7 @@ Ez a [joshmadison/Portainer-Update-Service](https://github.com/joshmadison/Porta
 - **TLS-tanúsítvány rögzítése** (pinning): a Portainer saját aláírású tanúsítványával és IP-címmel is működik
 - **Kikapcsolható ütemező**: „csak jelez” mód, a frissítést te indítod
 - **Stackenkénti frissítési szabály**: alapértelmezett, csak jelez, saját nap/időpont vagy kihagyva
+- **Telefonos app (PWA) és push értesítés**: iPhone-ra és Androidra telepíthető, értesít az új frissítésekről, a frissítés végén és hibánál
 - **Minden a webes felületről állítható**: a stack `PUS_*` változói csak első induláskor adnak alapértéket
 - **Értesítés új frissítésekről**, nem csak hibáról (pl. Home Assistant webhookra)
 - **Előre megépített image** amd64-re és arm64-re (GHCR), a NAS-on nem kell semmit buildelni
@@ -89,6 +90,32 @@ Az **„Összes frissítése”** gomb az *Alapértelmezett* és a *Saját időp
 ### Környezeti változók és a felület
 
 A stackben megadott `PUS_*` értékek **csak első induláskor** számítanak alapértéknek. Amint egy beállítást a felületen elmentesz, onnantól a mentett érték az irányadó. A `PUS_AUTH_TOKEN` az első admin jelszó lesz, utána a jelszót a felületen lehet megváltoztatni. Kivétel a `PUS_LISTEN_HOST` és a `PUS_LISTEN_PORT`: ezek mindig a stackből jönnek.
+
+---
+
+## Telefonos app és push értesítés
+
+A PortCare telepíthető appként (PWA), App Store vagy Play Áruház nélkül:
+
+- **iPhone / iPad (Safari):** *Megosztás* → *Főképernyőhöz adás* → *Hozzáadás*.
+- **Android (Chrome):** a felület felajánlja a *Telepítés* gombot, vagy menü (⋮) → *Alkalmazás telepítése*.
+- A felületen: **Beállítások → Telefonos app és push értesítés → Telepítés appként**.
+
+Push értesítés (szabványos Web Push, VAPID): **Beállítások → Telefonos app és push értesítés → Engedélyezés**, eszközönként. Három esemény kapcsolható:
+
+- új frissítés érhető el (ütemezett ellenőrzéskor, ugyanarról csak egyszer),
+- a frissítés lefutott (a frissített stackek listájával),
+- a frissítés sikertelen.
+
+A *Próbaértesítés* 5 másodperc múlva érkezik, közben be lehet zárni az appot.
+
+> **Fontos:** a böngészők csak **HTTPS** kapcsolaton engedik a push értesítést és a service workert. A helyi `http://192.168.x.x:8742` cím ehhez nem elég. Két lehetőség:
+> - **Cloudflare Tunnel**: például `https://portcare.example.hu` → `http://<nas-ip>:8742`. A belépés kötelező, ezért ez is biztonságos, de érdemes Cloudflare Access-szel is védeni.
+> - **Tailscale HTTPS**: `tailscale serve --bg 8742` a NAS-on, majd `https://<nas>.<tailnet>.ts.net`.
+>
+> iPhone-on az értesítés csak a főképernyőre telepített appban működik (iOS 16.4 vagy újabb).
+
+A VAPID kulcs első használatkor jön létre a `pus-data` kötetben (`keys/vapid_private.pem`). A feliratkozások a `push.json` fájlban vannak. A `PUS_NOTIFY_CONTACT` változóval saját kapcsolattartó (`mailto:`) adható meg a push szolgáltatóknak.
 
 ---
 

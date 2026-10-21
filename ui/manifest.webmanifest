@@ -1,9 +1,19 @@
 {
+  "id": "./",
   "name": "PortCare",
   "short_name": "PortCare",
-  "start_url": "./",
+  "description": "Portainer stackek frissítése – ellenőrzés, ütemezés, értesítés.",
+  "lang": "hu",
+  "start_url": "./?source=pwa",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#0e1116",
-  "theme_color": "#0d9488",
-  "icons": [{"src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}]
+  "orientation": "any",
+  "background_color": "#181818",
+  "theme_color": "#0b2240",
+  "categories": ["utilities", "productivity"],
+  "icons": [
+    {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
 }

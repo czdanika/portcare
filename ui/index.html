@@ -9,8 +9,11 @@
 <title>PortCare – Portainer Update Service</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230086c9'/%3E%3Cpath d='M16 7v10m0 0l-4.5-4.5M16 17l4.5-4.5M9 21.5h14' stroke='white' stroke-width='2.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="PortCare">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
 /* ======================================================================
    Look & feel modelled on the Portainer 2.x UI (light + dark theme):
@@ -214,6 +217,9 @@ pre.log{background:var(--log-bg);color:var(--log-txt);border-radius:var(--r-sm);
 pre.log.tail{max-height:4.2rem;margin-top:.45rem;font-size:.72rem;padding:.45rem .7rem}
 .empty{color:var(--mut);text-align:center;padding:1.8rem 1rem;font-size:.86rem}
 .cards-m{display:none}
+.install-banner{position:fixed;left:.75rem;right:.75rem;bottom:calc(4.9rem + var(--safe-b));z-index:16;display:flex;align-items:center;gap:.65rem;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:.6rem .7rem;box-shadow:var(--shadow-2)}
+.install-banner img{border-radius:10px;flex:none}
+.ib-text{flex:1;min-width:0}.ib-text b{display:block;font-size:.88rem}.ib-text span{display:block;font-size:.76rem;color:var(--mut)}
 button.badge{cursor:pointer;font-family:inherit}
 button.badge:hover{filter:brightness(.95);text-decoration:underline}
 .pol-line{padding:.1rem 1rem .55rem;background:var(--surface-2)}
@@ -258,7 +264,7 @@ input[type=text],input[type=password],input[type=number],input[type=url],input[t
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-soft)}
 input:disabled,select:disabled{opacity:.6;cursor:not-allowed}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
-.check{display:flex;gap:.55rem;align-items:flex-start;margin-top:.8rem;cursor:pointer}
+.check,.field>label.check{display:flex;gap:.55rem;align-items:flex-start;margin-top:.8rem;cursor:pointer;font-weight:400}
 .check input{width:1rem;height:1rem;margin-top:.15rem;accent-color:var(--acc);flex:none}
 .check b{font-size:.86rem;font-weight:600}
 .check span{display:block;color:var(--mut);font-size:.76rem}
@@ -372,6 +378,8 @@ input:disabled,select:disabled{opacity:.6;cursor:not-allowed}
   <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
   <symbol id="i-box" viewBox="0 0 24 24"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 3v12M8 7l4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></symbol>
   <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
   <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
   <symbol id="i-server" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="7" rx="1.5"/><rect x="3" y="13" width="18" height="7" rx="1.5"/><path d="M7 7.5h.01M7 16.5h.01"/></symbol>
@@ -585,6 +593,28 @@ input:disabled,select:disabled{opacity:.6;cursor:not-allowed}
             <label class="check"><input type="checkbox" id="sRep"><div><b data-i18n="set.repairs"></b><span data-i18n="set.repairs_hint"></span></div></label>
           </div>
 
+          <div class="fs" id="fsApp">
+            <h2><svg class="i"><use href="#i-phone"/></svg><span data-i18n="app2.title"></span></h2>
+            <div class="desc" data-i18n="app2.desc"></div>
+            <div class="kv"><div class="k" data-i18n="app2.install_state"></div><div class="v" id="appInstallState">–</div></div>
+            <div class="row" style="margin-top:.6rem"><button class="btn sec sm" id="btnInstall"><svg class="i"><use href="#i-download"/></svg><span data-i18n="app2.install_btn"></span></button></div>
+            <div class="field"><label data-i18n="app2.push_this"></label>
+              <div class="row"><span id="pushStatus" class="small">–</span></div>
+              <div class="row" style="margin-top:.5rem">
+                <button class="btn sm hidden" id="btnPushOn"><svg class="i"><use href="#i-bell"/></svg><span data-i18n="app2.enable"></span></button>
+                <button class="btn sec sm hidden" id="btnPushOff" data-i18n="app2.disable"></button>
+                <button class="btn sec sm" id="btnPushTest" data-i18n="app2.test"></button>
+              </div>
+              <div class="hint" id="pushNote" style="white-space:pre-line"></div>
+              <div class="hint" id="pushDevices"></div></div>
+            <div class="field"><label data-i18n="app2.events"></label>
+              <label class="check" style="margin-top:.3rem"><input type="checkbox" data-push-ev="updates_available"><div><b data-i18n="app2.ev_updates"></b><span data-i18n="app2.ev_updates_d"></span></div></label>
+              <label class="check"><input type="checkbox" data-push-ev="update_done"><div><b data-i18n="app2.ev_done"></b><span data-i18n="app2.ev_done_d"></span></div></label>
+              <label class="check"><input type="checkbox" data-push-ev="update_failed"><div><b data-i18n="app2.ev_failed"></b><span data-i18n="app2.ev_failed_d"></span></div></label>
+            </div>
+            <pre class="log tail" id="pushDiag" style="max-height:6rem;margin-top:.8rem"></pre>
+          </div>
+
           <div class="fs">
             <h2><svg class="i"><use href="#i-bell"/></svg><span data-i18n="set.notify"></span></h2>
             <div class="field"><label><span data-i18n="set.webhook"></span> <span class="env-lock hidden" data-lock="notify_webhook"><svg class="i"><use href="#i-lock"/></svg>env</span></label>
@@ -647,6 +677,23 @@ input:disabled,select:disabled{opacity:.6;cursor:not-allowed}
   </div>
 </div>
 
+<div class="modal-bg" id="guideBg" role="dialog" aria-modal="true">
+  <div class="modal" style="width:min(30rem,100%)">
+    <div class="grabber"></div>
+    <div class="m-head"><h3><img src="icons/icon-192.png" alt="" width="32" height="32" style="border-radius:7px"><span id="guideTitle"></span></h3>
+      <button class="btn ghost icon" id="guideClose" aria-label="close"><svg class="i"><use href="#i-x"/></svg></button></div>
+    <div class="m-body"><p class="small muted" id="guideSub"></p><ol id="guideSteps" style="margin:.8rem 0 0 1.2rem;display:grid;gap:.6rem;font-size:.9rem"></ol>
+      <p class="small muted" id="guideNote" style="margin-top:.9rem"></p>
+      <button class="btn" id="guideOk" style="width:100%;margin-top:1rem" data-i18n="app2.ok"></button></div>
+  </div>
+</div>
+<div class="install-banner hidden" id="installBanner" role="dialog">
+  <img src="icons/apple-touch-icon.png" alt="" width="42" height="42">
+  <div class="ib-text"><b data-i18n="app2.banner_t"></b><span data-i18n="app2.banner_s"></span></div>
+  <button class="btn sm" id="ibInstall" data-i18n="app2.install_short"></button>
+  <button class="btn ghost icon" id="ibLater" aria-label="later"><svg class="i"><use href="#i-x"/></svg></button>
+</div>
+
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
@@ -654,7 +701,23 @@ input:disabled,select:disabled{opacity:.6;cursor:not-allowed}
 const I18N={
 hu:{
  'app.tagline':'Stackek frissítése','app.credit':'PortCare – az eredeti <a href="https://github.com/joshmadison/Portainer-Update-Service" target="_blank" rel="noopener">Portainer Update Service</a> (Josh Madison, MIT) magyarított, biztonságosabb változata.',
- 'nav.dash':'Áttekintés','pol.title':'Frissítési szabály ennél a stacknél','pol.default':'Alapértelmezett','pol.notify':'Csak jelez','pol.own':'Saját időpont','pol.ignore':'Kihagyva',
+ 'nav.dash':'Áttekintés','app2.title':'Telefonos app és push értesítés','app2.desc':'Telepítsd a PortCare-t a telefonodra appként (App Store nélkül), és kapj értesítést új frissítésekről, illetve a frissítés végén.',
+ 'app2.install_state':'Ezen az eszközön','app2.installed':'telepített appként fut ✓','app2.in_browser':'böngészőben fut','app2.install_btn':'Telepítés appként','app2.install_short':'Telepítés',
+ 'app2.push_this':'Push értesítés ezen az eszközön','app2.enable':'Engedélyezés','app2.disable':'Kikapcsolás','app2.test':'Próbaértesítés (5 mp)','app2.events':'Mikor küldjön értesítést (minden eszközre)',
+ 'app2.ev_updates':'Új frissítés érhető el','app2.ev_updates_d':'Ütemezett ellenőrzéskor, ha új verzió jelent meg (ugyanarról csak egyszer).','app2.ev_done':'Frissítés kész','app2.ev_done_d':'Automatikus vagy „Összes frissítése” futás után, a frissített stackekkel.',
+ 'app2.ev_failed':'Frissítés sikertelen','app2.ev_failed_d':'Ha egy futás hibával zárul.',
+ 'app2.st_on':'Bekapcsolva ✓','app2.st_off':'Kikapcsolva','app2.st_granted':'Engedély megvan, de nincs feliratkozva – koppints az Engedélyezésre','app2.st_na':'Nem elérhető','app2.st_ios':'Először telepítsd appként','app2.st_denied':'Letiltva a böngészőben / rendszerben','app2.st_unsupported':'Ez a böngésző nem támogatja',
+ 'app2.n_https':'Push értesítéshez HTTPS kapcsolat kell (pl. Cloudflare Tunnel vagy Tailscale HTTPS címen át). A helyi http://192.168.… címen a böngészők nem engedik.',
+ 'app2.n_ios':'iPhone-on és iPaden az értesítés csak a főképernyőre telepített appban működik: Safari → Megosztás → Főképernyőhöz adás, majd az ikonról indítva kapcsold be itt.',
+ 'app2.n_denied_ios':'Kapcsold vissza: iPhone Beállítások → Értesítések → PortCare.','app2.n_denied':'Kapcsold vissza a böngésző webhely-beállításaiban (lakat ikon a címsor mellett).',
+ 'app2.devices':'{n} eszköz kap értesítést','app2.no_devices':'Még egy eszköz sem kap értesítést.','app2.enabled':'Értesítések bekapcsolva ezen az eszközön','app2.disabled':'Értesítések kikapcsolva ezen az eszközön',
+ 'app2.fail':'Nem sikerült bekapcsolni ({s}): {m}','app2.test_none':'Nincs feliratkozott eszköz – előbb kapcsold be az értesítést.','app2.test_count':'{n} mp – zárd be az appot','app2.test_sent':'Elküldve ✓',
+ 'app2.banner_t':'Telepítsd appként','app2.banner_s':'Ikonról, teljes képernyőn indul, és tud értesítést küldeni.','app2.ok':'Rendben',
+ 'app2.g_title':'PortCare telepítése','app2.g_sub_ios':'iPhone-ra / iPadre – App Store nélkül, ingyen','app2.g_sub':'a készülékre – áruház nélkül, ingyen',
+ 'app2.g_ios1':'Koppints a <b>Megosztás</b> gombra – Safariban alul középen (iPaden fent a címsor mellett).','app2.g_ios2':'Görgess le, és válaszd a <b>Főképernyőhöz adás</b> pontot.','app2.g_ios3':'Koppints a <b>Hozzáadás</b> gombra, és a főképernyőn lévő ikonról indítsd.',
+ 'app2.g_and1':'Nyisd meg a böngésző menüjét (<b>⋮</b>).','app2.g_and2':'Válaszd az <b>Alkalmazás telepítése</b> / <b>Hozzáadás a kezdőképernyőhöz</b> pontot.','app2.g_and3':'Erősítsd meg – ikonról, teljes képernyőn indul.',
+ 'app2.g_note_ios':'Az app a Safaritól külön tárolja az adatait, ezért az első indításkor egyszer újra be kell jelentkezni. Értesítéshez HTTPS cím kell.','app2.g_note':'Ha nincs ilyen menüpont, próbáld Chrome-ban vagy Edge-ben. Értesítéshez HTTPS cím kell.',
+ 'app2.d_perm':'engedély','app2.d_sw':'service worker','app2.d_sub':'feliratkozás','app2.d_last':'utolsó küldés','app2.d_recv':'utolsó fogadott értesítés ezen az eszközön','app2.d_never':'ezen az eszközön még nem érkezett értesítés','pol.title':'Frissítési szabály ennél a stacknél','pol.default':'Alapértelmezett','pol.notify':'Csak jelez','pol.own':'Saját időpont','pol.ignore':'Kihagyva',
  'pol.notify_d':'Nem frissül magától, csak jelzi az új verziót','pol.own_d':'Saját nap / időpont','pol.ignore_d':'Nem ellenőrzi és nem frissíti','pol.daily':'Naponta','pol.weekly':'Hetente',
  'pol.global_off':'kikapcsolva (csak jelez)','pol.every_h':'{h} óránként','pol.save':'Szabály mentése','pol.saved':'„{n}” szabálya mentve','pol.next':'Következő: {t}','pol.edit':'Frissítési szabály módosítása',
  'pol.hint':'Az alapértelmezett ütemezést a Beállításokban állítod.','stacks.ignored_hint':'kihagyva – nem ellenőrzi','nav.env':'Portainer környezet','nav.admin':'Adminisztráció','act.update_all':'Összes frissítése','crumb.dash':'Környezet › Áttekintés','crumb.stacks':'Környezet › Stackek','crumb.history':'Környezet › Előzmények','crumb.settings':'Adminisztráció › Beállítások','col.stack':'Név','col.service':'Service','col.image':'Image','col.mode':'Mód','col.status':'Állapot','col.actions':'Műveletek','col.services':'Service-ek','col.run':'Futás','col.kind':'Típus','col.trigger':'Indító','col.when':'Időpont','col.duration':'Időtartam','col.result':'Eredmény','stacks.n_stacks':'{n} stack · ','nav.stacks':'Stackek','nav.history':'Előzmények','nav.settings':'Beállítások',
@@ -734,7 +797,23 @@ hu:{
 },
 en:{
  'app.tagline':'Keep stacks up to date','app.credit':'PortCare – a localized, hardened fork of <a href="https://github.com/joshmadison/Portainer-Update-Service" target="_blank" rel="noopener">Portainer Update Service</a> by Josh Madison (MIT).',
- 'nav.dash':'Overview','pol.title':'Update rule for this stack','pol.default':'Default','pol.notify':'Notify only','pol.own':'Own schedule','pol.ignore':'Ignored',
+ 'nav.dash':'Overview','app2.title':'Phone app & push notifications','app2.desc':'Install PortCare on your phone as an app (no app store) and get notified about new updates and when an update run finishes.',
+ 'app2.install_state':'On this device','app2.installed':'running as installed app ✓','app2.in_browser':'running in the browser','app2.install_btn':'Install as app','app2.install_short':'Install',
+ 'app2.push_this':'Push notifications on this device','app2.enable':'Enable','app2.disable':'Disable','app2.test':'Test notification (5 s)','app2.events':'When to notify (all devices)',
+ 'app2.ev_updates':'New update available','app2.ev_updates_d':'On a scheduled check when a new version appears (each set only once).','app2.ev_done':'Update finished','app2.ev_done_d':'After an automatic or “Update all” run, listing the updated stacks.',
+ 'app2.ev_failed':'Update failed','app2.ev_failed_d':'When a run ends with an error.',
+ 'app2.st_on':'Enabled ✓','app2.st_off':'Disabled','app2.st_granted':'Permission granted but not subscribed – tap Enable','app2.st_na':'Not available','app2.st_ios':'Install as an app first','app2.st_denied':'Blocked in the browser / system','app2.st_unsupported':'Not supported by this browser',
+ 'app2.n_https':'Push needs an HTTPS connection (e.g. via Cloudflare Tunnel or a Tailscale HTTPS address). Browsers do not allow it on the local http://192.168.… address.',
+ 'app2.n_ios':'On iPhone and iPad notifications only work in the Home-Screen app: Safari → Share → Add to Home Screen, then open it from the icon and enable here.',
+ 'app2.n_denied_ios':'Re-enable it: iPhone Settings → Notifications → PortCare.','app2.n_denied':'Re-enable it in the browser’s site settings (lock icon next to the address).',
+ 'app2.devices':'{n} device(s) receive notifications','app2.no_devices':'No device receives notifications yet.','app2.enabled':'Notifications enabled on this device','app2.disabled':'Notifications disabled on this device',
+ 'app2.fail':'Could not enable ({s}): {m}','app2.test_none':'No subscribed device – enable notifications first.','app2.test_count':'{n} s – close the app','app2.test_sent':'Sent ✓',
+ 'app2.banner_t':'Install as an app','app2.banner_s':'Opens full screen from an icon and can send notifications.','app2.ok':'OK',
+ 'app2.g_title':'Install PortCare','app2.g_sub_ios':'on iPhone / iPad – no App Store, free','app2.g_sub':'on this device – no store, free',
+ 'app2.g_ios1':'Tap <b>Share</b> – at the bottom in Safari (top right on iPad).','app2.g_ios2':'Scroll down and choose <b>Add to Home Screen</b>.','app2.g_ios3':'Tap <b>Add</b>, then start it from the Home Screen icon.',
+ 'app2.g_and1':'Open the browser menu (<b>⋮</b>).','app2.g_and2':'Choose <b>Install app</b> / <b>Add to Home screen</b>.','app2.g_and3':'Confirm – it opens full screen from its icon.',
+ 'app2.g_note_ios':'The app keeps its data separate from Safari, so sign in once more on first start. Notifications need an HTTPS address.','app2.g_note':'If the menu item is missing, try Chrome or Edge. Notifications need an HTTPS address.',
+ 'app2.d_perm':'permission','app2.d_sw':'service worker','app2.d_sub':'subscription','app2.d_last':'last send','app2.d_recv':'last notification received on this device','app2.d_never':'no notification received on this device yet','pol.title':'Update rule for this stack','pol.default':'Default','pol.notify':'Notify only','pol.own':'Own schedule','pol.ignore':'Ignored',
  'pol.notify_d':'Never updated automatically, only flagged','pol.own_d':'Its own day / time','pol.ignore_d':'Not checked, not updated','pol.daily':'Daily','pol.weekly':'Weekly',
  'pol.global_off':'off (notify only)','pol.every_h':'every {h}h','pol.save':'Save rule','pol.saved':'Rule for “{n}” saved','pol.next':'Next: {t}','pol.edit':'Change update rule',
  'pol.hint':'The default schedule is set in Settings.','stacks.ignored_hint':'ignored – not checked','nav.env':'Portainer environment','nav.admin':'Administration','act.update_all':'Update all','crumb.dash':'Environment › Overview','crumb.stacks':'Environment › Stacks','crumb.history':'Environment › History','crumb.settings':'Administration › Settings','col.stack':'Name','col.service':'Service','col.image':'Image','col.mode':'Mode','col.status':'Status','col.actions':'Actions','col.services':'Services','col.run':'Run','col.kind':'Type','col.trigger':'Trigger','col.when':'Time','col.duration':'Duration','col.result':'Result','stacks.n_stacks':'{n} stacks · ','nav.stacks':'Stacks','nav.history':'History','nav.settings':'Settings',
@@ -918,6 +997,7 @@ function enterApp(){
  const tab=(location.hash||'').replace('#','');
  showTab(['dash','stacks','history','settings'].includes(tab)?tab:'dash',true);
  refresh();startPolling();
+ setTimeout(maybeInstallBanner,isIOS()?2500:500);
 }
 function startPolling(){stopPolling();pollTimer=setInterval(()=>{if(!document.hidden)refresh()},15000)}
 function stopPolling(){if(pollTimer){clearInterval(pollTimer);pollTimer=null}if(bannerTimer){clearInterval(bannerTimer);bannerTimer=null}stopLiveLog()}
@@ -1272,7 +1352,7 @@ async function loadSettings(){
   $('secKv').innerHTML=`<div class="k">${esc(t('set.sec_login'))}</div><div class="v">✓ ${esc(t('set.sec_login_v'))}</div>
    <div class="k">${esc(t('set.sec_secrets'))}</div><div class="v">✓ ${esc(t('set.sec_secrets_v'))}</div>
    <div class="k">${esc(t('set.sec_tls'))}</div><div class="v">${esc(t('tls.'+(s.tls_mode||'off')))}</div>`;
-  toggleScheduleMode();updateTlsHint();$('mountCheckResult').textContent='';$('testResult').textContent='';$('certInfo').classList.add('hidden');
+  toggleScheduleMode();updateTlsHint();refreshPush();$('mountCheckResult').textContent='';$('testResult').textContent='';$('certInfo').classList.add('hidden');
   if(lastStatus&&lastStatus.scheduler){$('sServerTime').textContent=dayLoc(lastStatus.scheduler.server_time_local)||'–';$('sServerTz').textContent=lastStatus.scheduler.server_tz||''}
  }catch(e){if(!(e instanceof AuthError))toast(e.message,'err')}}
 function toggleScheduleMode(){const m=$('sMode').value;
@@ -1349,12 +1429,104 @@ $('btnCheck').onclick=()=>doCheck($('btnCheck'));$('btnRecheck').onclick=()=>doC
 $('btnUpdate').onclick=()=>doUpdate($('btnUpdate'));
 $('btnReload').onclick=()=>{refresh();if(currentTab==='stacks')loadStacks();if(currentTab==='history')loadHistory();if(currentTab==='settings')loadSettings()};
 
+/* ====================================================== app install + push */
+const isStandalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+const isIOS=()=>{const ua=navigator.userAgent||'';return /iPad|iPhone|iPod/.test(ua)||(/Macintosh/.test(ua)&&navigator.maxTouchPoints>1)};
+const isTouch=()=>matchMedia('(pointer: coarse)').matches;
+let deferredInstall=null;
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e;maybeInstallBanner();updateAppSection()});
+addEventListener('appinstalled',()=>{deferredInstall=null;$('installBanner').classList.add('hidden');updateAppSection()});
+function registerSW(){if(!('serviceWorker' in navigator)||!window.isSecureContext)return;
+ navigator.serviceWorker.register('./sw.js').catch(err=>console.warn('service worker:',err))}
+function maybeInstallBanner(){
+ if(isStandalone()||!isTouch()||$('appScreen').classList.contains('hidden'))return;
+ if(!isIOS()&&!deferredInstall)return;
+ const t0=Number(store.get('pus_install_dismissed')||0);if(t0&&Date.now()-t0<30*864e5)return;
+ $('installBanner').classList.remove('hidden')}
+$('ibLater').onclick=()=>{$('installBanner').classList.add('hidden');store.set('pus_install_dismissed',String(Date.now()))};
+$('ibInstall').onclick=()=>{$('installBanner').classList.add('hidden');startInstall()};
+async function startInstall(){
+ if(deferredInstall){const ev=deferredInstall;deferredInstall=null;ev.prompt();
+  try{const {outcome}=await ev.userChoice;if(outcome!=='accepted')store.set('pus_install_dismissed',String(Date.now()))}catch(_){}
+  updateAppSection();return}
+ const ios=isIOS();
+ $('guideTitle').textContent=t('app2.g_title');$('guideSub').textContent=t(ios?'app2.g_sub_ios':'app2.g_sub');
+ $('guideSteps').innerHTML=(ios?['app2.g_ios1','app2.g_ios2','app2.g_ios3']:['app2.g_and1','app2.g_and2','app2.g_and3']).map(k=>`<li>${t(k)}</li>`).join('');
+ $('guideNote').textContent=t(ios?'app2.g_note_ios':'app2.g_note');
+ $('guideBg').classList.add('open')}
+$('guideClose').onclick=$('guideOk').onclick=()=>$('guideBg').classList.remove('open');
+$('guideBg').onclick=e=>{if(e.target.id==='guideBg')$('guideBg').classList.remove('open')};
+$('btnInstall').onclick=()=>startInstall();
+
+const pushSupported=()=>window.isSecureContext&&'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;
+const b64urlToU8=b=>{const raw=atob((b+'='.repeat((4-b.length%4)%4)).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from(raw,c=>c.charCodeAt(0))};
+const withTimeout=(p,ms,msg)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error(msg)),ms))]);
+let pushCfg=null;
+async function currentSub(){if(!pushSupported())return null;const reg=await navigator.serviceWorker.getRegistration();return reg?reg.pushManager.getSubscription():null}
+function updateAppSection(){if(!$('appInstallState'))return;
+ $('appInstallState').textContent=t(isStandalone()?'app2.installed':'app2.in_browser');
+ $('btnInstall').classList.toggle('hidden',isStandalone())}
+async function refreshPush(){
+ updateAppSection();
+ const st=$('pushStatus'),note=$('pushNote'),on=$('btnPushOn'),off=$('btnPushOff');
+ const sub=await currentSub().catch(()=>null);
+ try{pushCfg=await api('/api/notify/config?endpoint='+encodeURIComponent(sub?sub.endpoint:''))}catch(e){if(!(e instanceof AuthError))st.textContent=e.message;return}
+ document.querySelectorAll('[data-push-ev]').forEach(c=>c.checked=!!pushCfg.events[c.dataset.pushEv]);
+ $('pushDevices').textContent=pushCfg.devices?t('app2.devices',{n:pushCfg.devices}):t('app2.no_devices');
+ on.classList.add('hidden');off.classList.add('hidden');note.textContent='';
+ if(!window.isSecureContext){st.textContent=t('app2.st_na');note.textContent=t('app2.n_https')}
+ else if(isIOS()&&!isStandalone()){st.textContent=t('app2.st_ios');note.textContent=t('app2.n_ios')}
+ else if(!pushSupported()){st.textContent=t('app2.st_unsupported')}
+ else if(Notification.permission==='denied'){st.textContent=t('app2.st_denied');note.textContent=t(isIOS()?'app2.n_denied_ios':'app2.n_denied')}
+ else if(sub&&pushCfg.this_device){st.textContent=t('app2.st_on');off.classList.remove('hidden')}
+ else{st.textContent=Notification.permission==='granted'?t('app2.st_granted'):t('app2.st_off');on.classList.remove('hidden')}
+ $('pushDiag').textContent=await pushDiagnostics(sub)}
+async function pushDiagnostics(sub){
+ const parts=[];
+ try{parts.push(t('app2.d_perm')+': '+Notification.permission)}catch(_){parts.push(t('app2.d_perm')+': –')}
+ try{const reg=await navigator.serviceWorker.getRegistration();parts.push(t('app2.d_sw')+': '+(reg&&reg.active?'active':reg?'installing':'none'))}catch(_){parts.push(t('app2.d_sw')+': –')}
+ parts.push(t('app2.d_sub')+': '+(sub?(pushCfg&&pushCfg.this_device?'ok':'device only'):'none'));
+ parts.push(window.isSecureContext?'https':'http');
+ const lines=[parts.join(' · ')];
+ const ls=pushCfg&&pushCfg.last_send;
+ if(ls)lines.push(`${t('app2.d_last')} ${new Date(ls.at).toLocaleString(loc())} → `+((ls.results||[]).map(r=>`${r.host}: ${r.ok?r.status+' OK':(r.status??'err')+' '+(r.reason||'')}`).join(', ')||'–'));
+ try{const hit=await (await caches.open('portcare-meta')).match('/__last_push');
+  lines.push(hit?`${t('app2.d_recv')}: ${new Date(Number(await hit.text())).toLocaleString(loc())}`:t('app2.d_never'))}catch(_){}
+ return lines.join('\n')}
+$('btnPushOn').onclick=async()=>{const btn=$('btnPushOn');let step='permission';
+ try{btn.dataset.busy='1';
+  const perm=Notification.permission==='granted'?'granted':await Notification.requestPermission();
+  if(perm!=='granted')throw new Error('permission not granted');
+  step='service worker';let reg=await navigator.serviceWorker.getRegistration();if(!reg)reg=await navigator.serviceWorker.register('./sw.js');
+  reg=await withTimeout(navigator.serviceWorker.ready,10000,'service worker did not start');
+  step='key';const key=b64urlToU8((pushCfg&&pushCfg.vapid_public_key)||(await api('/api/notify/config')).vapid_public_key);
+  step='subscribe';let sub=await reg.pushManager.getSubscription();
+  if(sub&&sub.options&&sub.options.applicationServerKey){const a=new Uint8Array(sub.options.applicationServerKey);
+   if(a.length!==key.length||!a.every((v,i)=>v===key[i])){await sub.unsubscribe().catch(()=>{});sub=null}}
+  if(!sub)sub=await withTimeout(reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:key}),15000,'no answer from the system');
+  step='save';await api('/api/notify/subscribe',{method:'POST',body:JSON.stringify({subscription:sub.toJSON()})});
+  toast(t('app2.enabled'),'ok')}
+ catch(e){if(!(e instanceof AuthError))toast(t('app2.fail',{s:step,m:e.message||e}),'err',true)}
+ finally{delete btn.dataset.busy;refreshPush()}};
+$('btnPushOff').onclick=async()=>{try{const sub=await currentSub();if(sub){await api('/api/notify/unsubscribe',{method:'POST',body:JSON.stringify({endpoint:sub.endpoint})});await sub.unsubscribe()}
+ toast(t('app2.disabled'),'ok')}catch(e){if(!(e instanceof AuthError))toast(e.message,'err')}refreshPush()};
+$('btnPushTest').onclick=async()=>{const btn=$('btnPushTest');
+ try{const r=await api('/api/notify/test',{method:'POST',body:JSON.stringify({delay:5})});
+  if(!r.devices){toast(t('app2.test_none'),'err');return}
+  btn.disabled=true;for(let i=5;i>0;i--){btn.textContent=t('app2.test_count',{n:i});await new Promise(r=>setTimeout(r,1000))}
+  btn.textContent=t('app2.test_sent');setTimeout(()=>{btn.textContent=t('app2.test');btn.disabled=false;refreshPush()},3000)}
+ catch(e){btn.disabled=false;btn.textContent=t('app2.test');if(!(e instanceof AuthError))toast(e.message,'err')}};
+document.querySelectorAll('[data-push-ev]').forEach(c=>c.onchange=async()=>{
+ try{pushCfg={...pushCfg,...await api('/api/notify/events',{method:'PUT',body:JSON.stringify({events:{[c.dataset.pushEv]:c.checked}})})};toast(t('toast.saved'),'ok')}
+ catch(e){c.checked=!c.checked;if(!(e instanceof AuthError))toast(e.message,'err')}});
+
 /* =================================================================== boot */
 document.querySelectorAll('[data-lang]').forEach(b=>b.onclick=()=>setLang(b.dataset.lang));
 document.querySelectorAll('[data-theme-v]').forEach(b=>b.onclick=()=>setTheme(b.dataset.themeV));
 LANG=store.get('pus_lang')||'hu';
 setTheme(store.get('pus_theme')||'auto');
 applyI18n();
+registerSW();
 boot();
 </script>
 </body>
