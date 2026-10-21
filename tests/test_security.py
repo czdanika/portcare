@@ -255,3 +255,18 @@ class TestTls:
     def test_inspect_endpoint(self, api_client, https_server):
         r = api_client.post("/api/tls/inspect", json={"portainer_url": https_server})
         assert r.status_code == 200 and len(r.get_json()["fingerprint"]) == 64
+
+
+class TestPasswordRecovery:
+    def test_reset_flag_replaces_saved_password(self, tmp_state, monkeypatch):
+        from app import auth, config as cfg
+        cfg.load(force=True)
+        auth.set_password("forgotten-one")
+        monkeypatch.setenv("PUS_AUTH_TOKEN", "new-secret-123")
+        cfg.load(force=True)
+        assert auth.check_password("forgotten-one")          # env alone does not override
+        monkeypatch.setenv("PUS_RESET_PASSWORD", "true")
+        cfg.load(force=True)
+        assert auth.check_password("new-secret-123")
+        assert auth.check_password("  new-secret-123\n")     # pasted whitespace ignored
+        assert not auth.check_password("forgotten-one")

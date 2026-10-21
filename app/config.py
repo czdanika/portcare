@@ -231,9 +231,15 @@ def _load(force: bool = False) -> dict:
         # The admin password from env (PUS_AUTH_TOKEN / PUS_ADMIN_PASSWORD)
         # becomes the initial password hash; afterwards it is changed in the UI.
         env_pw = os.environ.get(ENV_PREFIX + "AUTH_TOKEN") or os.environ.get(ENV_PREFIX + "ADMIN_PASSWORD")
-        if env_pw and not cfg.get("auth_password_hash"):
-            cfg["auth_password_hash"] = generate_password_hash(env_pw)
-            _needs_migration = True
+        env_pw = (env_pw or "").strip()
+        reset = str(os.environ.get(ENV_PREFIX + "RESET_PASSWORD", "")).strip().lower() in ("1", "true", "yes", "on")
+        if env_pw and (reset or not cfg.get("auth_password_hash")):
+            # PUS_RESET_PASSWORD=true: forgotten password -> the env password
+            # replaces the saved one on this start (remove the flag afterwards)
+            from werkzeug.security import check_password_hash
+            if not (cfg.get("auth_password_hash") and check_password_hash(cfg["auth_password_hash"], env_pw)):
+                cfg["auth_password_hash"] = generate_password_hash(env_pw)
+                _needs_migration = True
         # YAML coercion ONLY for keys whose type is int/bool/enum - string
         # YAML coercion ONLY for keys whose type is int/bool/enum - string
         # settings (auth_token, api_key, urls, ...) must be taken LITERALLY:

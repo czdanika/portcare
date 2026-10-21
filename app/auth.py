@@ -35,6 +35,8 @@ def password_from_env() -> bool:
 
 
 def check_password(pw: str) -> bool:
+    # leading/trailing whitespace from copy & paste is ignored
+    pw = (pw or "").strip()
     h = get("auth_password_hash", "")
     return bool(pw) and bool(h) and check_password_hash(h, pw)
 
@@ -46,7 +48,8 @@ def password_version() -> str:
 
 
 def set_password(new_pw: str) -> None:
-    if len(new_pw or "") < MIN_PASSWORD_LEN:
+    new_pw = (new_pw or "").strip()
+    if len(new_pw) < MIN_PASSWORD_LEN:
         raise _config.ConfigError(f"password must be at least {MIN_PASSWORD_LEN} characters")
     cfg_set("auth_password_hash", generate_password_hash(new_pw))
     cfg_save()

@@ -149,6 +149,7 @@ Alapból az első induláskor jön létre a `/app/data/keys/secret.key` fájlban
 | Változó | Alapérték | Leírás |
 |---|---|---|
 | `PUS_AUTH_TOKEN` / `PUS_ADMIN_PASSWORD` | – | Az első admin jelszó. Utána a felületen módosítható. |
+| `PUS_RESET_PASSWORD` | – | Elfelejtett jelszó esetén `true`: induláskor a `PUS_AUTH_TOKEN` lesz az új jelszó. Utána vedd ki a sort. |
 | `PUS_SECRET_KEY` | automatikus | A titkosító kulcs (tetszőleges szöveg). |
 | `PUS_PORTAINER_URL` | – | Portainer címe (a felületen is megadható). |
 | `PUS_PORTAINER_API_KEY` | – | Portainer API kulcs (a felületen is megadható). |
