@@ -1,4 +1,4 @@
-"""Flask app: REST API + static frontend for the Portainer update service.
+"""PortCare Flask app: REST API + static frontend.
 
 Hardened: mandatory login (session cookie or Bearer), CSRF guard, shared job
 gate for all mutating routes, input validation, encrypted secrets at rest,
@@ -15,6 +15,7 @@ from pathlib import Path
 from flask import Flask, jsonify, request, send_from_directory, session
 from flask.sessions import SecureCookieSessionInterface
 
+from . import __version__
 from . import auth, checker, compose as compose_mod, crypto, dockerhub, history, policies, push, updater
 from . import config as config_mod
 from .config import get, load, set as cfg_set, save as cfg_save, ConfigError, env_locked
@@ -290,6 +291,7 @@ def api_status():
     snap["schedule_off"] = get("update_schedule_mode", "interval") == "off"
     snap["tls_mode"] = _tls_mode_now()
     snap["decrypt_error"] = config_mod.decrypt_error
+    snap["version"] = __version__
     from . import changes
     recent = sorted(changes.load().items(), key=lambda kv: -(kv[1].get("ts") or 0))[:10]
     snap["recent_changes"] = [{"name": n, "ts": v.get("ts"), "services": v.get("services", [])}
@@ -929,7 +931,7 @@ def api_update():
 
 @app.route("/api/self_update", methods=["POST"])
 def api_self_update():
-    """'Update PUS' button: deliberately redeploy this app's own stack.
+    """'Update PortCare' button: deliberately redeploy this app's own stack.
 
     Runs in a thread - the redeploy replaces this container mid-request,
     so the response may never reach the browser (expected!). The run is
@@ -1083,7 +1085,7 @@ def main():
     # workers (e.g. gunicorn -w 4) would race concurrent full-updates and
     # corrupt state. Threads>1 is fine; workers>1 is not.
     from waitress import serve
-    print(f"[update-service] listening on http://{host}:{port}")
+    print(f"[portcare] PortCare {__version__} listening on http://{host}:{port}")
     serve(app, host=host, port=port, threads=8)
 
 

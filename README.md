@@ -1,10 +1,10 @@
-# PortCare – Portainer Update Service, magyarul és biztonságosabban
+# PortCare – frissítéskezelő Portainerhez
 
 **Magyar** · [English](README.en.md)
 
-Webes felület a Portainer stackek frissítéséhez. Megmutatja, melyik image-hez jelent meg újabb verzió, és ütemezve vagy kézzel frissít. Minden futás előtt lementi a Portainert, egy service verzióját egy kattintással rögzítheted, egy elromlott frissítés után pedig visszaállhatsz.
+Webes felület a Portainer stackek és konténerek frissítéséhez. Megmutatja, melyik image-hez jelent meg újabb verzió, és ütemezve vagy kézzel frissít. Minden futás előtt lementi a Portainert, egy service verzióját egy kattintással rögzítheted, egy elromlott frissítés után pedig visszaállhatsz. Telefonra is telepíthető, és push értesítést küld.
 
-Ez a [joshmadison/Portainer-Update-Service](https://github.com/joshmadison/Portainer-Update-Service) (MIT) forkja. Ami benne új:
+Főbb tudnivalók:
 
 - **Magyar és angol felület**, egy kattintással váltható (alapból magyar)
 - **Portainer-szerű kinézet**: sötét oldalsáv környezet-blokkal, „widget” panelek, táblázatok – világos és sötét témában
@@ -43,9 +43,9 @@ Ez a [joshmadison/Portainer-Update-Service](https://github.com/joshmadison/Porta
 
 ```yaml
 services:
-  update-service:
+  portcare:
     image: ghcr.io/czdanika/portcare:latest
-    container_name: portainer-update-service
+    container_name: portcare
     restart: unless-stopped
     ports:
       - "8742:8090"            # NAS-port : konténer-port
@@ -150,7 +150,7 @@ A VAPID kulcs első használatkor jön létre a `pus-data` kötetben (`keys/vapi
 | CSRF | A módosító kéréseknél kötelező az azonos eredetű `Origin` és az `X-PUS-Request` fejléc. |
 | Titkok | A `portainer_api_key` és a `notify_webhook` titkosítva tárolódik (`enc:v1:…`, Fernet/AES). A kulcs **másik kötetben** van (`/app/data/keys`), mint a `config.yaml` (`/app/config`). A régi, sima szöveges értékeket első mentéskor automatikusan titkosítja. A `config.yaml` jogosultsága `0600`. |
 | Környezeti változók | A `PUS_*` értékek csak kezdő alapértékek. Amíg a felületen nem változtatod meg őket, nem íródnak a `config.yaml`-ba. |
-| TLS | A tanúsítvány rögzítése (SHA-256 ujjlenyomat) saját aláírású tanúsítvánnyal és IP-címmel is működik. Ha a tanúsítvány megváltozik, a kapcsolat megszakad, és a felület jelzi. Az eredeti kódban volt egy hiba: `tls_verify: true` CA nélkül valójában *nem* ellenőrzött. Ez javítva van. |
+| TLS | A tanúsítvány rögzítése (SHA-256 ujjlenyomat) saját aláírású tanúsítvánnyal és IP-címmel is működik. Ha a tanúsítvány megváltozik, a kapcsolat megszakad, és a felület jelzi. `tls_verify: true` CA-fájl nélkül a rendszer CA-listájával ellenőriz. |
 
 További ajánlás: a felületet ne tedd ki az internetre. Elég belső hálón vagy VPN-en (pl. Tailscale) keresztül elérni.
 
@@ -210,4 +210,10 @@ PUS_LISTEN_HOST=127.0.0.1 python run.py   # http://127.0.0.1:8090
 
 ## Licenc
 
-MIT. Az eredeti szerző: Josh Madison ([upstream README](docs/UPSTREAM_README.md)). A módosítások ugyanezen licenc alatt érhetők el.
+MIT – lásd [LICENSE](LICENSE).
+
+## Eredet
+
+A PortCare ötlete és kiinduló kódja a [joshmadison/Portainer-Update-Service](https://github.com/joshmadison/Portainer-Update-Service) projektből (MIT) származik. Azóta önálló projektként fejlődik: új felület, magyar nyelv, mobil app és push, stackenkénti szabályok, önálló konténerek, biztonsági megerősítések. Köszönet az eredeti szerzőnek az alapokért.
+
+> A környezeti változók `PUS_` előtagja és az `X-PUS-Request` fejléc az eredetből maradt meg; a meglévő telepítések kompatibilitása miatt nem változik.

@@ -7,7 +7,7 @@ Sections:
                              stopped stacks are preserved - they mark user intent)
   redeploy_stacks()       -> parallel redeploy with verification + sequential retry
                              (excludes this app's own stack - see self_update_run())
-  self_update_run()       -> deliberate 'Update PUS' redeploy of this app's stack
+  self_update_run()       -> deliberate 'Update PortCare' redeploy of this app's stack
   update_portainer()      -> compose pull/up of Portainer itself (LAST step)
   reconciliation_sweep()  -> post-run re-verify of all stacks
   post_deployment_repairs()-> network/gateway repairs (config-toggled)
@@ -477,7 +477,7 @@ def redeploy_stacks(client, eid, stacks, log, max_parallel=None) -> tuple:
     excluded = [s.get("Name", "") for s in stacks if (s.get("Name") or "").lower() in self_names]
     if excluded:
         log(f"[INFO] Excluding this app's own stack from the run "
-            f"(use 'Update PUS' in Settings): {', '.join(excluded)}")
+            f"(use 'Update PortCare' in Settings): {', '.join(excluded)}")
     log(f"Found {len(stacks)} stacks. Deploying {len(parallel)} now "
         f"(max {max_parallel} parallel)...")
 

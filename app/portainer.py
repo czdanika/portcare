@@ -100,7 +100,7 @@ class Portainer:
         #  - system: tls_verify only -> verify against the system CA store
         #  - off:    accept any certificate (Portainer's self-signed default)
         # NOTE: requests treats verify=None as "no verification" - so the
-        # verify=True case must be explicit (upstream passed None here).
+        # verify=True case must be explicit (passing None would disable it).
         if tls_fingerprint:
             self.session.verify = False
             self.session.mount("https://", _FingerprintAdapter(tls_fingerprint))

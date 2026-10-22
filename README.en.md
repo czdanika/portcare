@@ -1,10 +1,10 @@
-# PortCare – Portainer Update Service, localized and hardened
+# PortCare – update manager for Portainer
 
 [Magyar](README.md) · **English**
 
 A web UI that keeps your Portainer stacks up to date. It shows which images have a newer version and updates them on a schedule or by hand. Every run backs up Portainer first, a service can be pinned to a version in one click, and a broken update can be rolled back.
 
-This is a fork of [joshmadison/Portainer-Update-Service](https://github.com/joshmadison/Portainer-Update-Service) (MIT). What's new:
+Highlights:
 
 - **Hungarian and English UI**, switchable in one click
 - **Portainer-style look**: dark sidebar with an environment box, widget panels and tables, in a light and a dark theme
@@ -42,9 +42,9 @@ This is a fork of [joshmadison/Portainer-Update-Service](https://github.com/josh
 
 ```yaml
 services:
-  update-service:
+  portcare:
     image: ghcr.io/czdanika/portcare:latest
-    container_name: portainer-update-service
+    container_name: portcare
     restart: unless-stopped
     ports:
       - "8742:8090"            # host port : container port
@@ -147,7 +147,7 @@ The VAPID key is created on first use in the `pus-data` volume (`keys/vapid_priv
 | CSRF | State-changing requests need a same-origin `Origin` and the `X-PUS-Request` header. |
 | Secrets | `portainer_api_key` and `notify_webhook` are stored encrypted (`enc:v1:…`, Fernet/AES). The key lives in **another volume** (`/app/data/keys`) than `config.yaml` (`/app/config`). Old plain-text values are encrypted on the next save. `config.yaml` is `0600`. |
 | Environment variables | `PUS_*` values are initial defaults only. They are not written to `config.yaml` until you change them in the UI. |
-| TLS | Certificate pinning (SHA-256 fingerprint) works with self-signed certificates and IP addresses. If the certificate changes, the connection fails and the UI says so. Upstream bug fixed: `tls_verify: true` without a CA did *not* actually verify. |
+| TLS | Certificate pinning (SHA-256 fingerprint) works with self-signed certificates and IP addresses. If the certificate changes, the connection fails and the UI says so. `tls_verify: true` without a CA file verifies against the system CA list. |
 
 Recommendation: don't expose the UI to the internet without extra protection. A LAN or VPN (e.g. Tailscale) is enough.
 
@@ -207,4 +207,10 @@ PUS_LISTEN_HOST=127.0.0.1 python run.py   # http://127.0.0.1:8090
 
 ## License
 
-MIT. Original author: Josh Madison ([upstream README](docs/UPSTREAM_README.md)). Changes are released under the same license.
+MIT – see [LICENSE](LICENSE).
+
+## Origin
+
+The idea and the initial code of PortCare come from [joshmadison/Portainer-Update-Service](https://github.com/joshmadison/Portainer-Update-Service) (MIT). It has since grown into a project of its own: a new UI, Hungarian language, phone app and push, per-stack rules, standalone containers and security hardening. Thanks to the original author for the foundation.
+
+> The `PUS_` prefix of the environment variables and the `X-PUS-Request` header are kept from the origin for compatibility with existing installs.

@@ -1,9 +1,9 @@
-# Portainer Update Service – helyi build (Portainer "Repository" stack vagy docker compose).
+# PortCare – helyi build (Portainer "Repository" stack vagy docker compose).
 # Előre megépített image-hez lásd a README-t (ghcr.io/...).
 services:
-  update-service:
+  portcare:
     build: .
-    container_name: portainer-update-service
+    container_name: portcare
     restart: unless-stopped
     ports:
       - "8742:8090"

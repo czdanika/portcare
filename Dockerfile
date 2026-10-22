@@ -1,8 +1,11 @@
-# Portainer Update Service - container image.
+# PortCare - container image.
 # Includes the docker CLI (mounted socket) so prune / Portainer backup /
 # Portainer self-update work inside the container.
 FROM python:3.12-slim
-LABEL org.opencontainers.image.description="PortCare - Portainer Update Service, magyar, biztonságosabb fork" \
+LABEL org.opencontainers.image.title="PortCare" \
+      org.opencontainers.image.description="PortCare - update manager for Portainer stacks and containers (HU/EN)" \
+      org.opencontainers.image.source="https://github.com/czdanika/portcare" \
+      org.opencontainers.image.url="https://github.com/czdanika/portcare" \
       org.opencontainers.image.licenses="MIT"
 WORKDIR /app
 

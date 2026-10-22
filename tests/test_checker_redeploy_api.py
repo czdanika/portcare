@@ -100,7 +100,7 @@ class TestApiSmoke:
     def test_index_served(self, client):
         r = client.get("/")
         assert r.status_code == 200
-        assert b"Portainer Update Service" in r.data
+        assert b"PortCare" in r.data
 
     def test_status_shape(self, client):
         r = client.get("/api/status")

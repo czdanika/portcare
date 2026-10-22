@@ -17,7 +17,8 @@ import requests
 
 from .config import get
 
-UA = "portainer-update-service/1.1"
+from . import __version__
+UA = f"portcare/{__version__} (+https://github.com/czdanika/portcare)"
 HEADERS_ACCEPT = ", ".join([
     "application/vnd.oci.image.index.v1+json",
     "application/vnd.docker.distribution.manifest.list.v2+json",
@@ -116,7 +117,7 @@ def _is_prerelease(pre: str) -> bool:
     """'rc1', 'beta.2', 'alpha', 'b3', 'dev' -> True.
     Variant names that merely START with those letters ('bookworm',
     'bullseye', 'alpine3.20', 'apache', 'debian') are NOT prereleases -
-    upstream matched a bare 'b'/'a' prefix and treated them as such."""
+    a naive check matched a bare 'b'/'a' prefix and treated them as such."""
     return bool(re.match(r"^(rc|pre|preview|beta|alpha|dev|snapshot|nightly|canary|test)(\d|[.\-_]|$)"
                          r"|^[ab]\d", pre, re.I))
 

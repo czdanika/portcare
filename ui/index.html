@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#f2f4f7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#181818" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="light dark">
-<title>PortCare – Portainer Update Service</title>
+<title>PortCare</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230086c9'/%3E%3Cpath d='M16 7v10m0 0l-4.5-4.5M16 17l4.5-4.5M9 21.5h14' stroke='white' stroke-width='2.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -398,7 +398,7 @@ input:disabled,select:disabled{opacity:.6;cursor:not-allowed}
 <!-- =============================================================== AUTH -->
 <div class="auth hidden" id="authScreen">
   <form class="auth-card" id="authForm" autocomplete="on">
-    <div class="auth-brand"><div class="wordmark">PortCare</div><div class="wordmark-sub">Portainer Update Service</div></div>
+    <div class="auth-brand"><div class="wordmark">PortCare</div><div class="wordmark-sub" data-i18n="app.sub"></div></div>
     <h1 id="authTitle" data-i18n="auth.login_title"></h1>
     <p id="authSub" data-i18n="auth.login_sub"></p>
     <input type="text" name="username" value="admin" autocomplete="username" class="hidden" aria-hidden="true" tabindex="-1">
@@ -418,7 +418,7 @@ input:disabled,select:disabled{opacity:.6;cursor:not-allowed}
 <!-- ================================================================ APP -->
 <div class="app hidden" id="appScreen">
   <aside class="sidebar">
-    <div class="brand"><div><div class="wordmark">PortCare</div><div class="wordmark-sub">Portainer Update Service</div></div></div>
+    <div class="brand"><div><div class="wordmark">PortCare</div><div class="wordmark-sub" data-i18n="app.sub"></div></div></div>
     <div class="env-box">
       <div class="env-head"><span class="env-dot"><svg class="i"><use href="#i-server"/></svg></span><div><span data-i18n="nav.env"></span><small id="envName">Portainer</small></div></div>
       <nav class="nav" id="sideNav">
@@ -739,7 +739,7 @@ input:disabled,select:disabled{opacity:.6;cursor:not-allowed}
 /* ================================================================== i18n */
 const I18N={
 hu:{
- 'app.tagline':'Stackek frissítése','app.credit':'PortCare · <a href="https://github.com/czdanika/portcare" target="_blank" rel="noopener">github.com/czdanika/portcare</a>',
+ 'app.sub':'Frissítéskezelő Portainerhez','app.tagline':'Stackek frissítése','app.credit':'PortCare {v} · <a href="https://github.com/czdanika/portcare" target="_blank" rel="noopener">github.com/czdanika/portcare</a>',
  'nav.dash':'Áttekintés','nav.containers':'Önálló konténerek','nav.containers_short':'Konténerek','crumb.containers':'Környezet › Önálló konténerek','ct.search':'Keresés konténer vagy image névre…','ct.title':'Önálló konténerek','ct.desc':'Portainer stacken kívül futó konténerek (docker run, NAS-alkalmazások, máshol indított compose). Alapból csak jeleznek. Frissítéskor a konténert a friss image-dzsel, ugyanazokkal a beállításokkal, kötetekkel és hálózatokkal hozza létre újra.','ct.none':'Nincs önálló konténer.','ct.update':'Frissítés','ct.running':'fut','ct.badge':'konténer','ct.project':'Compose projekt (Portainer-en kívül)','ct.confirm':'Frissíted a(z) „{n}” konténert?\n\nLetölti az új image-et, és ugyanazokkal a beállításokkal újra létrehozza (rövid leállással).','ct.updated':'„{n}” frissítve','ct.failed':'„{n}” frissítése sikertelen – lásd a naplót','ct.how':'Frissítéskor letölti az image-et, és a Portainer „Recreate” funkciójával ugyanazokkal a beállításokkal újra létrehozza a konténert. Automatikusan csak akkor frissül, ha a szabálya nem „Csak jelez”, és tényleg van új image.','col.state':'Állapot','pol.title_short':'Szabály','app2.title':'Telefonos app és push értesítés','app2.desc':'Telepítsd a PortCare-t a telefonodra appként (App Store nélkül), és kapj értesítést új frissítésekről, illetve a frissítés végén.',
  'app2.install_state':'Ezen az eszközön','app2.public_url':'Nyilvános cím (HTTPS) – honnan érhető el és honnan jön a push','app2.use_origin':'Jelenlegi cím',
  'app2.public_url_hint':'Pl. a Cloudflare domain. Az értesítésre koppintva ez nyílik meg, és ennek a domainnek a nevében mennek a push üzenetek. A telefonon is erről a címről telepítsd az appot.',
@@ -842,7 +842,7 @@ hu:{
  'act.working':'dolgozik…'
 },
 en:{
- 'app.tagline':'Keep stacks up to date','app.credit':'PortCare · <a href="https://github.com/czdanika/portcare" target="_blank" rel="noopener">github.com/czdanika/portcare</a>',
+ 'app.sub':'Update manager for Portainer','app.tagline':'Keep stacks up to date','app.credit':'PortCare {v} · <a href="https://github.com/czdanika/portcare" target="_blank" rel="noopener">github.com/czdanika/portcare</a>',
  'nav.dash':'Overview','nav.containers':'Standalone containers','nav.containers_short':'Containers','crumb.containers':'Environment › Standalone containers','ct.search':'Search container or image…','ct.title':'Standalone containers','ct.desc':'Containers running outside Portainer stacks (docker run, NAS apps, compose started elsewhere). Notify only by default. An update recreates the container with the fresh image and the same settings, volumes and networks.','ct.none':'No standalone containers.','ct.update':'Update','ct.running':'running','ct.badge':'container','ct.project':'Compose project (outside Portainer)','ct.confirm':'Update container “{n}”?\n\nPulls the new image and recreates it with the same settings (short downtime).','ct.updated':'“{n}” updated','ct.failed':'Updating “{n}” failed – see the log','ct.how':'An update pulls the image and recreates the container with Portainer’s “Recreate” with the same settings. It is only updated automatically if its rule is not “Notify only” and there really is a new image.','col.state':'State','pol.title_short':'Rule','app2.title':'Phone app & push notifications','app2.desc':'Install PortCare on your phone as an app (no app store) and get notified about new updates and when an update run finishes.',
  'app2.install_state':'On this device','app2.public_url':'Public address (HTTPS) – where the app lives and where push comes from','app2.use_origin':'Current address',
  'app2.public_url_hint':'e.g. your Cloudflare domain. Tapping a notification opens this address and pushes are sent on behalf of this domain. Install the phone app from this address too.',
@@ -946,12 +946,13 @@ en:{
 }};
 let LANG='hu';
 const store={get(k){try{return localStorage.getItem(k)}catch(_){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(_){}}};
+let APP_VERSION='';
 function t(key,p){let s=(I18N[LANG]&&I18N[LANG][key])??I18N.en[key]??key;
  if(p&&typeof s==='string')s=s.replace(/\{(\w+)\}/g,(_,k)=>p[k]??'');return s}
 function applyI18n(){
  document.documentElement.lang=LANG;
  document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=t(el.dataset.i18n));
- document.querySelectorAll('[data-i18n-html]').forEach(el=>el.innerHTML=t(el.dataset.i18nHtml));
+ document.querySelectorAll('[data-i18n-html]').forEach(el=>el.innerHTML=t(el.dataset.i18nHtml,{v:APP_VERSION?'v'+esc(APP_VERSION):''}));
  document.querySelectorAll('[data-i18n-ph]').forEach(el=>el.placeholder=t(el.dataset.i18nPh));
  document.querySelectorAll('[data-lang]').forEach(b=>b.classList.toggle('on',b.dataset.lang===LANG));
  const days=t('days');const sel=$('sDay');const cur=sel.value;
@@ -1088,6 +1089,7 @@ async function refresh(){
  try{[s,inv,hh]=await Promise.all([api('/api/status'),api('/api/inventory').catch(()=>null),api('/api/history').catch(()=>null)])}
  catch(e){if(!(e instanceof AuthError))$('hdrText').textContent=e.message;return}
  lastStatus=s;
+ if(s.version&&s.version!==APP_VERSION){APP_VERSION=s.version;document.querySelectorAll('[data-i18n-html]').forEach(el=>el.innerHTML=t(el.dataset.i18nHtml,{v:'v'+esc(APP_VERSION)}))}
  const busy=s.scheduler&&s.scheduler.busy;
  $('hdrDot').className='dot '+(busy?'run':!s.configured?'':s.state==='success'?'ok':s.state==='failed'?'err':'');
  $('hdrText').textContent=busy?t('status.running'):!s.configured?t('status.not_configured'):s.state==='success'?t('status.ok'):s.state==='failed'?t('status.failed'):t('status.idle');
