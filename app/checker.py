@@ -9,7 +9,7 @@ import threading
 import time
 
 from . import compose as compose_mod
-from . import dockerhub
+from . import dockerhub, links
 from .config import DATA_DIR, get
 from .history import current_status
 from .portainer import Portainer, PortainerError
@@ -100,9 +100,24 @@ def local_digests(client: Portainer, eid) -> dict:
         try:
             insp = client.image_inspect(img, eid)
             digests[img] = insp.get("RepoDigests") or []
+            _labels[img] = ((insp.get("Config") or {}).get("Labels") or {})
         except PortainerError:
             continue
     return digests
+
+
+_labels: dict = {}   # container image ref -> OCI labels of the local image
+
+
+def _match_labels(image_resolved) -> dict | None:
+    _reg, repo, _tag = dockerhub.parse_image(image_resolved)
+    if repo is None:
+        return None
+    for container_img, labels in list(_labels.items()):
+        _r, c_repo, _ = dockerhub.parse_image(container_img.split("@")[0])
+        if c_repo == repo:
+            return labels
+    return None
 
 
 def _match_local_digest(image_resolved, digests) -> str | None:
@@ -180,6 +195,7 @@ def run_check(client: Portainer, eid, force=False, log=None) -> dict:
                 "update_available": res["update_available"],
                 "note": res["note"],
                 "lag_days": lag_days,
+                "release_url": links.release_url(image_resolved, _match_labels(image_resolved)),
             }
         # prune lag state for images that disappeared from all stacks
         for gone in set(lag) - seen_lag_keys:

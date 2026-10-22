@@ -290,6 +290,10 @@ def api_status():
     snap["schedule_off"] = get("update_schedule_mode", "interval") == "off"
     snap["tls_mode"] = _tls_mode_now()
     snap["decrypt_error"] = config_mod.decrypt_error
+    from . import changes
+    recent = sorted(changes.load().items(), key=lambda kv: -(kv[1].get("ts") or 0))[:10]
+    snap["recent_changes"] = [{"name": n, "ts": v.get("ts"), "services": v.get("services", [])}
+                              for n, v in recent]
     return jsonify(snap)
 
 
@@ -498,6 +502,8 @@ def api_stacks():
             stacks.append({"Id": s["Id"], "Name": s.get("Name"),
                            "EndpointId": eid, "Status": s.get("Status")})
         _stacks_cache[eid] = (time.time(), stacks)
+    from . import changes
+    upd = changes.load()
     out = []
     for s in stacks:
         name = s["Name"]
@@ -510,6 +516,7 @@ def api_stacks():
                                      if v.get("update_available")),
             "policy": policies.get_policy(name),
             "effective": policies.effective(name),
+            "last_updated": (upd.get(name) or {}).get("ts"),
             "next_run": nxt if policies.effective(name) == "own" else
                         (scheduler.next_full_update if policies.effective(name) == "auto" else None),
         })
@@ -601,12 +608,14 @@ def api_containers():
             return _err(str(err), 502)
         _containers_cache[eid] = (time.time(), items)
     check = checker.get_cached()
+    from . import changes
+    upd = changes.load()
     out = []
     for c in items:
         k = cmod.key(c["name"])
         svc = (check.get("stacks") or {}).get(k, {})
         eff = policies.effective(k)
-        out.append({**c, "key": k, "services": svc,
+        out.append({**c, "key": k, "services": svc, "last_updated": (upd.get(k) or {}).get("ts"),
                     "updates_available": sum(1 for v in svc.values() if v.get("update_available")),
                     "policy": policies.get_policy(k), "effective": eff,
                     "next_run": (scheduler.stack_next.get(k) or {}).get("next") if eff == "own"
@@ -633,6 +642,8 @@ def api_container_update():
         runlog = RunLogger("redeploy", "manual")
         gate.set_runlog(runlog)
         ok = cmod.update_container(client, client.endpoint_id, name, runlog.log)
+        if not ok:
+            runlog.failed.append("@" + name)
         runlog.finish(ok)
         _containers_cache.clear()
         if ok:
@@ -751,6 +762,8 @@ def api_stack_redeploy(stack_id):
         runlog = RunLogger("redeploy", "manual")
         gate.set_runlog(runlog)
         ok = updater.redeploy_single_stack(client, stack, eid, runlog.log)
+        if not ok:
+            runlog.failed.append(stack.get("Name") or str(stack_id))
         runlog.finish(ok)
         if ok:
             try:

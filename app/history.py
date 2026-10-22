@@ -190,6 +190,8 @@ class RunLogger:
         self.path = RUNS_DIR / f"{self.run_id}.log"
         self._fh = open(self.path, "w", encoding="utf-8")
         self.steps: list = []
+        self.changes: list = []   # [{"name", "services"}] - real image changes
+        self.failed: list = []    # stack / "@container" names that failed
         mark_running(self.run_id, kind)
 
     def log(self, msg: str) -> None:
@@ -266,6 +268,8 @@ class RunLogger:
             "duration_s": round(time.time() - self.started, 1),
             "success": ok,
             "steps": self.steps,
+            "changes": list(self.changes),
+            "failed": sorted(set(self.failed)),
         }
         self._entry = entry
         with _lock:

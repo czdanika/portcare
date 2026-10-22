@@ -59,7 +59,7 @@ class FakeDocker:
                                 "State": "created", "Labels": {}})
         return "new1"
 
-    def connect_network(self, net, cid, cfg, eid=None):
+    def connect_network(self, net, cid, eid=None, endpoint_config=None):
         self.calls.append(("connect", net, cid))
 
     def remove_container(self, cid, eid=None):

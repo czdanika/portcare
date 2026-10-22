@@ -14,6 +14,8 @@ This is a fork of [joshmadison/Portainer-Update-Service](https://github.com/josh
 - **Encrypted secrets**: the Portainer API key and the webhook URL are stored encrypted in `config.yaml`
 - **TLS certificate pinning**: works with Portainer's self-signed certificate and with IP addresses
 - **Optional scheduler**: "notify only" mode, you start the update yourself
+- **Readable history**: every run shows what really got a new image, what was already current and what failed (with a hint); "Last updated" per stack, recent updates on the overview
+- **"What's new" link**: one click from an update to the project's release notes (GitHub releases / Docker Hub)
 - **Standalone containers too**: containers outside Portainer stacks (docker run, NAS apps) are checked and updated as well
 - **Per-stack update rules**: default, notify only, own day/time, or ignored
 - **Phone app (PWA) and push notifications**: installable on iPhone and Android, notifies about new updates, finished runs and failures

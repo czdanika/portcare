@@ -362,18 +362,27 @@ class Scheduler:
                 None, names=(getattr(runlog, "stacks", None) or []) if ok else None)
         except Exception:  # noqa: BLE001
             pass
-        stacks = getattr(runlog, "stacks", None) or []
-        if ok:
-            if not stacks:
-                return  # nothing was selected - no noise
-            push.send_async("update_done", "PortCare: frissítés kész",
-                            f"{len(stacks)} frissítve: " + ", ".join(x.lstrip("@") for x in stacks[:6])
-                            + (" …" if len(stacks) > 6 else ""), url=push.app_url("#history"), tag="run")
-        else:
+        changed = getattr(runlog, "changes", None) or []
+        failed_names = getattr(runlog, "failed", None) or []
+
+        def fmt(c):
+            n = c["name"].lstrip("@")
+            svcs = [x for x in c.get("services", []) if x != n]
+            return f"{n} ({', '.join(svcs[:3])})" if svcs and len(svcs) <= 3 else n
+        if changed:
+            body = "Új image: " + ", ".join(fmt(c) for c in changed[:6]) + (" …" if len(changed) > 6 else "")
+            if failed_names:
+                body += " · Hiba: " + ", ".join(x.lstrip("@") for x in failed_names[:4])
+            push.send_async("update_done" if ok else "update_failed",
+                            f"PortCare: {len(changed)} frissítve" + ("" if ok else " (hibával)"),
+                            body, url=push.app_url("#history"), tag="run")
+        elif not ok:
             failed = [st["name"] for st in runlog.steps if not st.get("ok")]
+            what = ", ".join(x.lstrip("@") for x in failed_names) or ", ".join(failed) or "ismeretlen"
             push.send_async("update_failed", "PortCare: a frissítés HIBÁVAL zárult",
-                            "Hibás lépés: " + (", ".join(failed) or "ismeretlen")
-                            + " – nézd meg a naplót.", url=push.app_url("#history"), tag="run")
+                            "Hiba: " + what + " – nézd meg a naplót.",
+                            url=push.app_url("#history"), tag="run")
+        # ok and nothing changed: everything was already current - no push
 
     def _run_update(self, trigger: str):
         if not gate.try_acquire("update"):

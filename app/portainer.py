@@ -256,9 +256,11 @@ class Portainer:
                          json=body, timeout=60)
         return r.json().get("Id")
 
-    def connect_network(self, net, cid, endpoint_config, eid=None):
-        return self._docker("POST", f"/networks/{quote(net, safe='')}/connect", eid,
-                            json={"Container": cid, "EndpointConfig": endpoint_config or {}})
+    def connect_network(self, net, cid, eid=None, endpoint_config=None):
+        body = {"Container": cid}
+        if endpoint_config:
+            body["EndpointConfig"] = endpoint_config
+        return self._docker("POST", f"/networks/{quote(net, safe='')}/connect", eid, json=body)
 
     def remove_container(self, cid, eid=None):
         return self._docker("DELETE", f"/containers/{cid}?force=1&v=0", eid)
@@ -283,10 +285,6 @@ class Portainer:
         return self._docker("GET",
                             f"/networks/{quote(name_or_id, safe='')}",
                             eid).json()
-
-    def connect_network(self, network_id, container_id, eid=None):
-        return self._docker("POST", f"/networks/{network_id}/connect", eid,
-                            json={"Container": container_id})
 
     def restart_container(self, cid, eid=None, timeout_s=30):
         return self._docker("POST", f"/containers/{cid}/restart?t={timeout_s}", eid)

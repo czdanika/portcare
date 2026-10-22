@@ -14,6 +14,8 @@ Ez a [joshmadison/Portainer-Update-Service](https://github.com/joshmadison/Porta
 - **Titkosított titkok**: a Portainer API kulcs és a webhook URL titkosítva kerül a `config.yaml`-ba
 - **TLS-tanúsítvány rögzítése** (pinning): a Portainer saját aláírású tanúsítványával és IP-címmel is működik
 - **Kikapcsolható ütemező**: „csak jelez” mód, a frissítést te indítod
+- **Érthető előzmények**: minden futásnál látszik, mi kapott ténylegesen új image-et, mi volt már naprakész és mi hibázott (tippel együtt); stackenként „Utoljára frissítve”, az áttekintőn a legutóbbi frissítések
+- **„Újdonságok” link**: frissítésnél egy kattintással a projekt kiadási jegyzeteihez (GitHub releases / Docker Hub)
 - **Önálló konténerek is**: a Portainer stacken kívül futó konténereket (docker run, NAS-alkalmazások) is ellenőrzi és frissíti
 - **Stackenkénti frissítési szabály**: alapértelmezett, csak jelez, saját nap/időpont vagy kihagyva
 - **Telefonos app (PWA) és push értesítés**: iPhone-ra és Androidra telepíthető, értesít az új frissítésekről, a frissítés végén és hibánál

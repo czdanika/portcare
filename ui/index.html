@@ -244,6 +244,14 @@ button.badge:hover{filter:brightness(.95);text-decoration:underline}
 .svc .acts{grid-column:1/-1;display:flex;gap:.4rem;margin:.1rem 0 -.2rem -.4rem}
 .li{display:flex;align-items:center;gap:.75rem;padding:.65rem 1rem;border-top:1px solid var(--line)}
 .li.click{cursor:pointer}
+a.rel{display:inline-flex;align-items:center;gap:.2rem;font-size:.74rem;font-weight:600;white-space:nowrap;margin-left:.35rem;text-decoration:none}
+a.rel:hover{text-decoration:underline}a.rel svg.i{width:.85rem;height:.85rem}
+.lu{font-size:.74rem;color:var(--mut);margin-top:.3rem}
+.sum{padding:.2rem 1rem .8rem}.sum .row-s{display:flex;gap:.5rem;align-items:flex-start;padding:.3rem 0;border-top:1px solid var(--line);font-size:.86rem}
+.sum .row-s:first-child{border-top:0}.sum .k{min-width:7.5rem;font-weight:600}.sum .v{flex:1;min-width:0;overflow-wrap:anywhere}
+.sum .hintl{color:var(--mut);font-size:.8rem;margin-top:.15rem}
+details.rawlog>summary{cursor:pointer;padding:.4rem 1rem;color:var(--link);font-size:.85rem}
+.hsum{font-size:.82rem;max-width:28rem;white-space:normal}
 .li.click:hover{background:var(--surface-2)}
 .li .grow{flex:1;min-width:0}
 .li .t{font-weight:600;font-size:.88rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -379,6 +387,7 @@ input:disabled,select:disabled{opacity:.6;cursor:not-allowed}
   <symbol id="i-box" viewBox="0 0 24 24"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></symbol>
   <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></symbol>
+  <symbol id="i-ext" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></symbol>
   <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 3v12M8 7l4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></symbol>
   <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
   <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
@@ -472,6 +481,12 @@ input:disabled,select:disabled{opacity:.6;cursor:not-allowed}
             <div class="tt"><div class="val sm" id="cSec">–</div><div class="lbl" data-i18n="dash.security"></div><div class="sub" id="cSecSub"></div></div></div>
         </div>
         <div class="widget">
+          <div class="w-head"><div class="wt"><span class="wi"><svg class="i"><use href="#i-history"/></svg></span><span data-i18n="dash.recent"></span></div></div>
+          <div class="w-sub" id="dashRecentSub"></div>
+          <div id="dashRecent"><div class="empty" data-i18n="common.loading"></div></div>
+          <div class="w-foot"><a href="#" data-goto="history" data-i18n="dash.all_history"></a></div>
+        </div>
+        <div class="widget">
           <div class="w-head"><div class="wt"><span class="wi"><svg class="i"><use href="#i-layers"/></svg></span><span data-i18n="dash.stacks"></span></div>
             <button class="btn sec sm" id="btnCheck"><svg class="i"><use href="#i-refresh"/></svg><span data-i18n="act.check"></span></button>
             <button class="btn sm" id="btnUpdate"><svg class="i"><use href="#i-download"/></svg><span data-i18n="act.update_all"></span></button></div>
@@ -518,7 +533,8 @@ input:disabled,select:disabled{opacity:.6;cursor:not-allowed}
         <div class="widget hidden" id="runLogWrap">
           <div class="w-head"><div class="wt"><span class="wi"><svg class="i"><use href="#i-info"/></svg></span><span id="runLogTitle"></span></div>
             <button class="btn sec sm" id="runLogClose"><svg class="i"><use href="#i-x"/></svg></button></div>
-          <div class="w-body"><pre class="log" id="runLog"></pre></div>
+          <div class="sum" id="runSum"></div>
+          <details class="rawlog" id="runRaw"><summary data-i18n="hist.raw"></summary><div class="w-body"><pre class="log" id="runLog"></pre></div></details>
         </div>
       </div>
 
@@ -783,7 +799,11 @@ hu:{
  'toast.self_started':'Önfrissítés elindítva','toast.deployed':'{s} → {i} telepítve','toast.invalid_image':'Érvénytelen image hivatkozás','toast.rollback_started':'Visszaállítás elindítva',
  'toast.cert_pinned':'Ujjlenyomat beírva – mentsd a beállításokat!',
  'hist.rate':'Sikerességi arány','hist.rate_sub':'utolsó 200 futás','hist.avg':'Átlagos időtartam','hist.avg_sub':'teljes frissítések','hist.all_time':'összesen','hist.runs':'Futások',
- 'hist.none':'Még nem volt futás.','hist.log':'Napló','hist.log_title':'Napló: {id}',
+ 'hist.none':'Még nem volt futás.','hist.raw':'Teljes napló (technikai részletek)','hist.what':'Mi történt',
+ 'sum.changed':'Frissült (új image)','sum.same':'Nem volt új image','sum.failed':'Hiba','sum.skipped':'Kihagyva','sum.done':'Újratelepítve','sum.nothing':'Nem történt frissítés.','sum.running':'Fut… (a lista menet közben bővül)',
+ 'sum.no_new':'nem volt új image','sum.check_only':'Csak ellenőrzés: {n} frissítés érhető el.',
+ 'dash.recent':'Legutóbbi frissítések','dash.all_history':'Összes futás','dash.recent_none':'Még nem volt olyan frissítés, ami új image-et hozott.',
+ 'dash.recent_sub':'Utoljára ellenőrizve: {c} · Utolsó futás: {r}','lu.updated':'Utoljára frissítve: {t}','rel.link':'Újdonságok','rel.title':'Kiadási jegyzetek / changelog a projekt oldalán','hist.log':'Napló','hist.log_title':'Napló: {id}',
  'set.security':'Biztonság','set.security_desc':'A felület minden része jelszóval védett. A Portainer API kulcs titkosítva kerül a config.yaml-ba.',
  'set.sec_login':'Bejelentkezés','set.sec_login_v':'kötelező (munkamenet süti)','set.sec_secrets':'Titkok tárolása','set.sec_secrets_v':'titkosítva (Fernet / AES)',
  'set.sec_tls':'Portainer kapcsolat','set.sec_pw':'Jelszó forrása','set.sec_pw_env':'környezeti változó (stack)','set.sec_pw_ui':'felületen beállítva',
@@ -882,7 +902,11 @@ en:{
  'toast.self_started':'Self-update started','toast.deployed':'{s} → {i} deployed','toast.invalid_image':'Invalid image reference','toast.rollback_started':'Rollback started',
  'toast.cert_pinned':'Fingerprint filled in – save the settings!',
  'hist.rate':'Success rate','hist.rate_sub':'last 200 runs','hist.avg':'Average duration','hist.avg_sub':'full updates','hist.all_time':'all time','hist.runs':'Runs',
- 'hist.none':'No runs yet.','hist.log':'Log','hist.log_title':'Log: {id}',
+ 'hist.none':'No runs yet.','hist.raw':'Full log (technical details)','hist.what':'What happened',
+ 'sum.changed':'Updated (new image)','sum.same':'No new image','sum.failed':'Failed','sum.skipped':'Skipped','sum.done':'Redeployed','sum.nothing':'Nothing was updated.','sum.running':'Running… (the list grows as it goes)',
+ 'sum.no_new':'no new image','sum.check_only':'Check only: {n} update(s) available.',
+ 'dash.recent':'Recent updates','dash.all_history':'All runs','dash.recent_none':'No update has brought a new image yet.',
+ 'dash.recent_sub':'Last checked: {c} · Last run: {r}','lu.updated':'Last updated: {t}','rel.link':"What's new",'rel.title':'Release notes / changelog on the project page','hist.log':'Log','hist.log_title':'Log: {id}',
  'set.security':'Security','set.security_desc':'Every part of the UI requires the password. The Portainer API key is stored encrypted in config.yaml.',
  'set.sec_login':'Login','set.sec_login_v':'required (session cookie)','set.sec_secrets':'Secret storage','set.sec_secrets_v':'encrypted (Fernet / AES)',
  'set.sec_tls':'Portainer connection','set.sec_pw':'Password source','set.sec_pw_env':'environment variable (stack)','set.sec_pw_ui':'set in the UI',
@@ -1043,7 +1067,7 @@ function showTab(name,noScroll){
  setTitle();
  if(history.replaceState)history.replaceState(null,'','#'+name);
  if(!noScroll)window.scrollTo({top:0});
- if(name==='dash'&&lastStatus)renderDashStacks(lastStatus.stacks||{});
+ if(name==='dash'&&lastStatus){renderDashStacks(lastStatus.stacks||{});renderRecent(lastStatus)}
  if(name==='stacks')loadStacks();if(name==='containers')loadContainers();if(name==='history')loadHistory();if(name==='settings')loadSettings();
 }
 document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
@@ -1116,7 +1140,7 @@ async function refresh(){
  $('cSec').textContent=t((tm==='off'||tm==='http')?'dash.sec_partial':'dash.sec_ok');$('cSecIcon').className='ti '+((tm==='off'||tm==='http')?'warn':'ok');
  $('cSecSub').textContent=t('dash.sec_sub',{m:t('tls.'+tm)});
  $('hTotal').textContent=s.runs_total??'–';
- if(currentTab==='dash')renderDashStacks(s.stacks||{});
+ if(currentTab==='dash'){renderDashStacks(s.stacks||{});renderRecent(s)}
  // a (background) re-check finished since the lists were loaded -> reload them
  const ca=s.check&&s.check.checked_at;
  if(ca&&lastCheckAt&&ca!==lastCheckAt){if(currentTab==='stacks')loadStacks();if(currentTab==='containers')loadContainers();
@@ -1157,6 +1181,19 @@ function ensureBannerTimer(){if(bannerTimer)return;
 function setBusyUI(b){['btnCheck','btnUpdate','btnRecheck2','btnPrune','btnRecheck','btnSelfUpdate'].forEach(id=>{if($(id))$(id).disabled=b})}
 
 /* ============================================================== dashboard */
+function chgTxt(c){const n=c.name.replace(/^@/,'');const sv=(c.services||[]).filter(x=>x!==n);
+ return sv.length&&sv.length<=3?`${n} (${sv.join(', ')})`:n}
+let lastRecentHtml=null;
+function renderRecent(s){
+ const lr=s.last_run;
+ $('dashRecentSub').textContent=t('dash.recent_sub',{c:s.check&&s.check.checked_at?ago(s.check.checked_at):'–',r:lr?ago(lr.finished):'–'});
+ const list=s.recent_changes||[];let html;
+ if(!list.length)html=`<div class="empty">${esc(t('dash.recent_none'))}</div>`;
+ else html=list.map(c=>{const sv=(c.services||[]).filter(x=>x!==c.name.replace(/^@/,''));
+  return `<div class="li click" data-st="${esc(c.name)}" tabindex="0" role="button"><div class="grow"><div class="t">${esc(c.name.replace(/^@/,''))}${c.name.startsWith('@')?` <span class="badge b-mut">${esc(t('ct.badge'))}</span>`:''}</div>
+   ${sv.length?`<div class="s">${esc(sv.join(', '))}</div>`:''}</div><span class="muted small" style="text-align:right">${esc(fmt(c.ts))}<br>${esc(ago(c.ts))}</span></div>`}).join('');
+ if(html!==lastRecentHtml){lastRecentHtml=html;$('dashRecent').innerHTML=html}
+}
 function renderDashStacks(stacks){
  const names=Object.keys(stacks);let html;
  if(!names.length)html=`<div class="empty">${esc(t('dash.no_stack_data'))}</div>`;
@@ -1213,10 +1250,10 @@ function renderContainers(){
   const btn=c=>`<button class="btn ${c.updates_available?'':'sec '}sm" data-act="ctupdate" data-nm="${esc(c.name)}"><svg class="i"><use href="#i-download"/></svg>${esc(t('ct.update'))}</button>`;
   html=`<table class="dt table-d"><thead><tr><th>${esc(t('col.stack'))}</th><th>${esc(t('col.image'))}</th><th>${esc(t('col.state'))}</th><th>${esc(t('ct.col_upd'))}</th><th>${esc(t('pol.title_short'))}</th><th>${esc(t('col.actions'))}</th></tr></thead><tbody>`+
    list.map(c=>`<tr><td><a href="#" data-act="ctopen" data-nm="${esc(c.name)}">${esc(c.name)}</a>${c.project?` <span class="badge b-mut" title="${esc(t('ct.project'))}">${esc(c.project)}</span>`:''}</td>
-    <td class="mono" title="${esc(c.image)}">${esc(c.image)}</td><td>${ctStateBadge(c)}</td><td>${upd(c)}</td><td>${ctPolBadge(c)}</td><td>${btn(c)}</td></tr>`).join('')+
+    <td class="mono" title="${esc(c.image)}">${esc(c.image)}${luLine(c.last_updated)}</td><td>${ctStateBadge(c)}</td><td>${upd(c)}</td><td>${ctPolBadge(c)}</td><td>${btn(c)}</td></tr>`).join('')+
    `</tbody></table><div class="cards-m">`+
    list.map(c=>`<div class="stack"><div class="stack-head"><div class="grow"><a href="#" class="name" data-act="ctopen" data-nm="${esc(c.name)}">${esc(c.name)}</a>${ctStateBadge(c)}</div>${btn(c)}</div>
-    <div class="pol-line">${ctPolBadge(c)}</div><div class="svc"><div class="img">${esc(c.image)}</div><div class="tags">${upd(c)}</div></div></div>`).join('')+`</div>`;
+    <div class="pol-line">${ctPolBadge(c)}</div>${luLine(c.last_updated)}<div class="svc"><div class="img">${esc(c.image)}</div><div class="tags">${upd(c)}</div></div></div>`).join('')+`</div>`;
  }
  if(html!==lastCtHtml){lastCtHtml=html;$('ctRows').innerHTML=html}
 }
@@ -1238,7 +1275,7 @@ async function openContainer(name,focusPolicy){
    <div class="k">${esc(t('col.image'))}</div><div class="v mono">${esc(c.image)}</div>
    <div class="k">${esc(t('col.state'))}</div><div class="v">${ctStateBadge(c)} <span class="muted small">${esc(c.status)}</span></div>
    ${c.project?`<div class="k">${esc(t('ct.project'))}</div><div class="v">${esc(c.project)}</div>`:''}
-   <div class="k">${esc(t('ct.col_upd'))}</div><div class="v">${v?svcBadge(v):'–'}</div></div>
+   <div class="k">${esc(t('ct.col_upd'))}</div><div class="v">${v?svcBadge0(v)+relLink(v,true):'–'}</div></div>
    <div class="hint small muted" style="margin-top:.6rem">${esc(t('ct.how'))}</div></div>`;
 }
 function modeTxt(m){return m==='digest'?t('stacks.mode_digest'):m==='semver'?t('stacks.mode_semver'):m==='pinned-digest'?t('stacks.mode_pdigest'):t('stacks.mode_unknown')}
@@ -1253,7 +1290,11 @@ function polText(p,eff){p=p||{mode:'default'};
  return t('pol.default')+' · '+globalSchedTxt()}
 function polCls(eff){return eff==='auto'||eff==='own'?'b-info':eff==='ignore'?'b-mut':'b-warn'}
 function polBadge(st){return `<button class="badge ${polCls(st.effective)}" data-act="policy" data-nm="${esc(st.name)}" title="${esc(t('pol.edit'))}"><svg class="i"><use href="#i-cal"/></svg>${esc(polText(st.policy,st.effective))}</button>`}
-function svcBadge(v){if(v.update_available&&v.mode==='semver'){const maj=v.upgrade==='major';
+function relLink(v,always){const u=v&&v.release_url;if(!u||!/^https:\/\//.test(u)||(!always&&!v.update_available))return'';
+ return `<a class="rel" href="${esc(u)}" target="_blank" rel="noopener noreferrer" title="${esc(t('rel.title'))}"><svg class="i"><use href="#i-ext"/></svg>${esc(t('rel.link'))}</a>`}
+function luLine(ts){return ts?`<div class="lu" title="${esc(fmt(ts))}">${esc(t('lu.updated',{t:ago(ts)}))}</div>`:''}
+function svcBadge(v){return svcBadge0(v)+relLink(v)}
+function svcBadge0(v){if(v.update_available&&v.mode==='semver'){const maj=v.upgrade==='major';
   return `<span class="badge ${maj?'b-err':'b-warn'}" title="${esc(t('stacks.tag_hint'))}">${esc(t(maj?'stacks.major_to':'stacks.ver_to',{t:v.latest_tag}))}</span>`}
  return v.update_available?`<span class="badge b-warn" title="${esc(t('stacks.build_hint'))}">${esc(t('stacks.build_new'))}</span>`
   :v.note?`<span class="badge b-mut" title="${esc(v.note)}">${esc(t('stacks.not_verified'))}</span>`:`<span class="badge b-ok">${esc(t('stacks.current'))}</span>`}
@@ -1273,12 +1314,12 @@ function renderStacks(){
   let rows='';
   list.forEach(st=>{const svcs=Object.entries(st.services||{});
    if(!svcs.length){rows+=`<tr class="sep"><td><a href="#" data-act="open" data-nm="${esc(st.name)}">${esc(st.name)}</a><div style="margin-top:.35rem">${polBadge(st)}</div></td><td colspan="4" class="muted">${esc(t(st.effective==='ignore'?'stacks.ignored_hint':'stacks.no_images'))}</td><td>${stackBtns(st)}</td></tr>`;return}
-   svcs.forEach(([svc,v],i)=>{rows+=`<tr${i===0?' class="sep"':''}>${i===0?`<td rowspan="${svcs.length}" style="vertical-align:top"><a href="#" data-act="open" data-nm="${esc(st.name)}">${esc(st.name)}</a>${st.updates_available?` <span class="badge b-warn">${st.updates_available}</span>`:''}<div style="margin-top:.35rem">${polBadge(st)}</div><div style="margin-top:.45rem">${stackBtns(st)}</div></td>`:''}
+   svcs.forEach(([svc,v],i)=>{rows+=`<tr${i===0?' class="sep"':''}>${i===0?`<td rowspan="${svcs.length}" style="vertical-align:top"><a href="#" data-act="open" data-nm="${esc(st.name)}">${esc(st.name)}</a>${st.updates_available?` <span class="badge b-warn">${st.updates_available}</span>`:''}<div style="margin-top:.35rem">${polBadge(st)}</div>${luLine(st.last_updated)}<div style="margin-top:.45rem">${stackBtns(st)}</div></td>`:''}
     <td>${esc(svc)}</td><td class="mono" title="${esc(v.image)}">${esc(v.image)}</td><td><span class="badge b-mut">${esc(modeTxt(v.mode))}</span></td><td>${svcBadge(v)}</td>
     <td><button class="btn sec sm" data-act="pin" data-id="${st.id}" data-svc="${esc(svc)}">${esc(t('stacks.version'))}</button></td></tr>`})});
   html=`<table class="dt table-d"><thead><tr><th>${esc(t('col.stack'))}</th><th>${esc(t('col.service'))}</th><th>${esc(t('col.image'))}</th><th>${esc(t('col.mode'))}</th><th>${esc(t('col.status'))}</th><th>${esc(t('col.actions'))}</th></tr></thead><tbody>${rows}</tbody></table>`;
   html+=`<div class="cards-m">`+list.map(st=>{const svcs=Object.entries(st.services||{});
-   const head=`<div class="stack-head"><div class="grow"><a href="#" class="name" data-act="open" data-nm="${esc(st.name)}">${esc(st.name)}</a>${st.updates_available?`<span class="badge b-warn">${st.updates_available}</span>`:''}</div>${stackBtns(st)}</div><div class="pol-line">${polBadge(st)}</div>`;
+   const head=`<div class="stack-head"><div class="grow"><a href="#" class="name" data-act="open" data-nm="${esc(st.name)}">${esc(st.name)}</a>${st.updates_available?`<span class="badge b-warn">${st.updates_available}</span>`:''}</div>${stackBtns(st)}</div><div class="pol-line">${polBadge(st)}</div>${luLine(st.last_updated)}`;
    if(!svcs.length)return `<div class="stack">${head}<div class="svc"><div class="muted small">${esc(t('stacks.no_images'))}</div></div></div>`;
    return `<div class="stack">${head}${svcs.map(([svc,v])=>`<div class="svc"><div class="sn">${esc(svc)}</div><div class="tags">${svcBadge(v)}</div>
     <div class="img">${esc(v.image)}</div><div class="acts"><button class="btn ghost sm" data-act="pin" data-id="${st.id}" data-svc="${esc(svc)}">${esc(t('stacks.version'))}</button></div></div>`).join('')}</div>`}).join('')+`</div>`;
@@ -1341,7 +1382,7 @@ async function openStack(name,id,focusSvc,focusPolicy){
   entries.forEach(([svc,img])=>{
    const box=document.createElement('div');box.className='svc-edit'+(focusSvc===svc?' focus':'');
    const chk=(d.checks||{})[svc]||{};
-   box.innerHTML=`<div class="spread"><b>${esc(svc)}</b>${chk.update_available?`<span class="badge b-warn">${esc(t('stacks.upd_to',{t:chk.latest_tag||'digest'}))}</span>`:''}</div>
+   box.innerHTML=`<div class="spread"><b>${esc(svc)}</b><span>${chk.update_available?`<span class="badge b-warn">${esc(t('stacks.upd_to',{t:chk.latest_tag||'digest'}))}</span>`:''}${relLink(chk,true)}</span></div>
     <div class="mono muted" style="margin-top:.2rem;overflow-wrap:anywhere">${esc(img)}</div>
     <div class="row" style="margin-top:.6rem"><input type="text" style="flex:1;min-width:12rem"><button class="btn sm" data-apply>${esc(t('modal.apply'))}</button><button class="btn sec sm" data-tags>${esc(t('modal.tags'))}</button></div>
     <div class="hint small muted" style="margin-top:.3rem">${esc(t('modal.edit_hint'))}</div><div class="tag-sel"></div>`;
@@ -1425,24 +1466,69 @@ async function loadHistory(){
   if(!h.length){box.innerHTML=`<div class="empty">${esc(t('hist.none'))}</div>`;return}
   const res=r=>r.success==null?`<span class="badge b-mut">${esc(t('run.restarted'))}</span>`:r.success?`<span class="badge b-ok">${esc(t('run.ok'))}</span>`:`<span class="badge b-err">${esc(t('run.failed'))}</span>`;
   const rows=[...h].reverse();
-  box.innerHTML=`<table class="dt table-d"><thead><tr><th>${esc(t('col.run'))}</th><th>${esc(t('col.kind'))}</th><th>${esc(t('col.trigger'))}</th><th>${esc(t('col.when'))}</th><th class="num">${esc(t('col.duration'))}</th><th>${esc(t('col.result'))}</th><th></th></tr></thead><tbody>`+
-   rows.map(r=>`<tr><td><a href="#" class="mono" data-run="${esc(r.run_id)}">${esc(r.run_id)}</a></td><td>${esc(kindTxt(r.kind))}</td><td>${esc(trigTxt(r.trigger))}</td><td>${esc(fmt(r.finished))}</td><td class="num">${dur(r.duration_s)}</td><td>${res(r)}</td><td><button class="btn sec sm" data-run="${esc(r.run_id)}">${esc(t('hist.log'))}</button></td></tr>`).join('')+
+  box.innerHTML=`<table class="dt table-d"><thead><tr><th>${esc(t('hist.what'))}</th><th>${esc(t('col.kind'))}</th><th>${esc(t('col.trigger'))}</th><th>${esc(t('col.when'))}</th><th class="num">${esc(t('col.duration'))}</th><th>${esc(t('col.result'))}</th><th></th></tr></thead><tbody>`+
+   rows.map(r=>`<tr><td class="hsum"><a href="#" data-run="${esc(r.run_id)}" title="${esc(r.run_id)}">${esc(runSummary(r))}</a></td><td>${esc(kindTxt(r.kind))}</td><td>${esc(trigTxt(r.trigger))}</td><td>${esc(fmt(r.finished))}</td><td class="num">${dur(r.duration_s)}</td><td>${res(r)}</td><td><button class="btn sec sm" data-run="${esc(r.run_id)}">${esc(t('hist.log'))}</button></td></tr>`).join('')+
    `</tbody></table><div class="cards-m">`+
    rows.map(r=>`<div class="li click" data-run="${esc(r.run_id)}" tabindex="0" role="button"><div class="grow"><div class="t">${esc(kindTxt(r.kind))} <span class="muted small">· ${esc(trigTxt(r.trigger))}</span></div>
-    <div class="s">${esc(fmt(r.finished))} · ${dur(r.duration_s)}</div></div>${res(r)}</div>`).join('')+`</div>`;
+    <div class="s">${esc(fmt(r.finished))} · ${dur(r.duration_s)}</div><div class="s" style="white-space:normal">${esc(runSummary(r))}</div></div>${res(r)}</div>`).join('')+`</div>`;
   box.querySelectorAll('[data-run]').forEach(el=>{el.onclick=e=>{e.preventDefault();showRunLog(el.dataset.run)};
    el.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();showRunLog(el.dataset.run)}}});
  }catch(e){if(!(e instanceof AuthError))box.innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
+function runSummary(r){
+ const ch=r.changes,fl=(r.failed||[]).map(x=>x.replace(/^@/,''));const parts=[];
+ if(ch&&ch.length)parts.push(t('sum.changed')+': '+ch.map(chgTxt).join(', '));
+ if(fl.length)parts.push(t('sum.failed')+': '+fl.join(', '));
+ if(!parts.length){
+  if(ch&&r.success&&['full','redeploy','targeted','stack'].some(k=>(r.kind||'').includes(k)))return t('sum.nothing');
+  const bad=(r.steps||[]).filter(x=>!x.ok).map(x=>x.name+(x.detail?' ('+x.detail+')':''));
+  if(bad.length)return t('sum.failed')+': '+bad.join(', ');
+  return kindTxt(r.kind)}
+ return parts.join(' · ')}
+/* readable summary of a run log: per stack / container what happened */
+function parseRunLog(txt){
+ const st=new Map();const get=n=>{if(!st.has(n))st.set(n,{name:n,state:null,svcs:'',err:[],hint:[]});return st.get(n)};
+ const other=[];let checkLine=null;
+ for(const raw of (txt||'').split('\n')){const l=raw.replace(/^\[\d\d:\d\d:\d\d\]\s*/,'');let m;
+  if((m=l.match(/^\[CHANGED\] ([^:]+): new image(?: for)? ?(.*)$/))){const e=get(m[1]);e.state='changed';e.svcs=m[2].replace(/^\((.*)\)$/,'$1')}
+  else if((m=l.match(/^\[INFO\] ([^:]+): no new image/))){const e=get(m[1]);if(e.state!=='changed')e.state='same'}
+  else if((m=l.match(/^\[OK\] ([A-Za-z0-9_.-]+): (all \d+ services ready|running|recreated)/))){const e=get(m[1]);if(!e.state)e.state='done'}
+  else if((m=l.match(/^\[INFO\] ([^:]+): .*(intentionally stopped|inactive, skipping)/))){const e=get(m[1]);if(!e.state)e.state='skipped'}
+  else if((m=l.match(/^\[HINT\] ([^:]+): (.*)$/))){get(m[1]).hint.push(m[2])}
+  else if((m=l.match(/^\[ERROR\] (.*)$/))){
+   const mm=m[1].match(/^(?:Failed to redeploy |stack )?([A-Za-z0-9_.-]+)(?::| crashed:)\s*(.*)$/);
+   if(mm&&!/^(redeploy_stacks|update_containers|backup|prune|preflight|reconciliation_sweep|post_deployment_repairs|update_portainer)$/.test(mm[1])&&st.has(mm[1])){const e=get(mm[1]);e.state='failed';e.err.push(mm[2])}
+   else if(!/^(redeploy_stacks|update_containers)\b/.test(m[1]))other.push(m[1])}
+  else if((m=l.match(/Processing (?:stack|container): ([A-Za-z0-9_.-]+)/)))get(m[1]);
+  else if((m=l.match(/Update check done: (\d+) update/)))checkLine=+m[1];
+  else if((m=l.match(/Stacks failed permanently: (.*)$/)))m[1].split(', ').forEach(n=>{const e=get(n.trim());e.state='failed'});
+ }
+ for(const e of st.values())if(!e.state)e.state=e.err.length?'failed':'pending';
+ return {items:[...st.values()],other,checkLine}}
+function renderRunSummary(txt,running){
+ const p=parseRunLog(txt);const g=k=>p.items.filter(x=>x.state===k);
+ const row=(k,v)=>`<div class="row-s"><div class="k">${esc(k)}</div><div class="v">${v}</div></div>`;
+ let html='';
+ const ch=g('changed');if(ch.length)html+=row('✓ '+t('sum.changed'),ch.map(e=>`<b>${esc(e.name)}</b>${e.svcs&&e.svcs!==e.name?` <span class="muted">(${esc(e.svcs)})</span>`:''}`).join(', '));
+ const fl=g('failed');if(fl.length)html+=row('✗ '+t('sum.failed'),fl.map(e=>`<div><b>${esc(e.name)}</b>${e.err.length?` – ${esc(e.err[e.err.length-1].slice(0,220))}`:''}${e.hint.map(h=>`<div class="hintl">💡 ${esc(h)}</div>`).join('')}</div>`).join(''));
+ if(p.other.length)html+=row('⚠ '+t('sum.failed'),p.other.slice(-4).map(x=>`<div>${esc(x.slice(0,220))}</div>`).join(''));
+ const same=g('same');if(same.length)html+=row('= '+t('sum.same'),`<span class="muted">${same.map(e=>esc(e.name)).join(', ')}</span>`);
+ const dn=g('done');if(dn.length)html+=row('✓ '+t('sum.done'),`<span class="muted">${dn.map(e=>esc(e.name)).join(', ')}</span>`);
+ const sk=g('skipped');if(sk.length)html+=row('– '+t('sum.skipped'),`<span class="muted">${sk.map(e=>esc(e.name)).join(', ')}</span>`);
+ const pe=g('pending');if(pe.length&&running)html+=row('… ',`<span class="muted">${pe.map(e=>esc(e.name)).join(', ')}</span>`);
+ if(!html)html=p.checkLine!=null?`<div class="muted">${esc(t('sum.check_only',{n:p.checkLine}))}</div>`:`<div class="muted">${esc(running?t('sum.running'):t('sum.nothing'))}</div>`;
+ else if(running)html=`<div class="muted small" style="margin-bottom:.3rem">${esc(t('sum.running'))}</div>`+html;
+ $('runSum').innerHTML=html}
 let liveLogTimer=null;
 function stopLiveLog(){if(liveLogTimer){clearInterval(liveLogTimer);liveLogTimer=null}}
 async function showRunLog(id,live){
  if(currentTab!=='history')showTab('history',true);
  const wrap=$('runLogWrap'),p=$('runLog');wrap.classList.remove('hidden');$('runLogTitle').textContent=t('hist.log_title',{id});
- p.textContent=t('common.loading');stopLiveLog();
- const load=async()=>{try{const txt=await apiText('/api/runs/'+encodeURIComponent(id)+'/log');const atBottom=p.scrollHeight-p.scrollTop-p.clientHeight<40;
-  p.textContent=txt;if(atBottom||live)p.scrollTop=p.scrollHeight}catch(e){if(!(e instanceof AuthError))p.textContent=e.message}};
- await load();setTimeout(()=>wrap.scrollIntoView({behavior:'smooth',block:'start'}),50);
- if(live)liveLogTimer=setInterval(async()=>{await load();try{const c=await api('/api/runs/current');if(!c.active||c.run_id!==id)stopLiveLog()}catch(_){stopLiveLog()}},3000);
+ p.textContent=t('common.loading');$('runSum').innerHTML=`<div class="muted">${esc(t('common.loading'))}</div>`;stopLiveLog();
+ const load=async(running)=>{try{const txt=await apiText('/api/runs/'+encodeURIComponent(id)+'/log');const atBottom=p.scrollHeight-p.scrollTop-p.clientHeight<40;
+  p.textContent=txt;renderRunSummary(txt,running);if(atBottom||running)p.scrollTop=p.scrollHeight}catch(e){if(!(e instanceof AuthError))p.textContent=e.message}};
+ await load(!!live);setTimeout(()=>wrap.scrollIntoView({behavior:'smooth',block:'start'}),50);
+ if(live)liveLogTimer=setInterval(async()=>{let active=false;try{const c=await api('/api/runs/current');active=c.active&&c.run_id===id}catch(_){}
+  if(!active){stopLiveLog();await load(false)}else await load(true)},3000);
 }
 $('runLogClose').onclick=()=>{$('runLogWrap').classList.add('hidden');stopLiveLog()};
 

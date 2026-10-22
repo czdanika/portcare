@@ -57,6 +57,7 @@ def standalone(client, eid, stacks=None) -> list:
             continue
         out.append({
             "id": c.get("Id"), "name": _name(c), "image": image,
+            "image_id": c.get("ImageID") or "",
             "state": c.get("State", ""), "status": c.get("Status", ""),
             "project": project or None, "created": c.get("Created"),
         })
@@ -69,6 +70,24 @@ def find(client, eid, name) -> dict | None:
 
 # ------------------------------------------------------------------ update
 def update_container(client, eid, name, log) -> bool:
+    """Recreate with a freshly pulled image; records a real image change."""
+    before = find(client, eid, name)
+    ok = _update_container(client, eid, name, log)
+    if ok and before:
+        try:
+            after = find(client, eid, name)
+            if after and after.get("image_id") and after["image_id"] != before.get("image_id"):
+                from . import changes
+                log(f"[CHANGED] {name}: new image ({after['image']})")
+                changes.record(key(name), {name: after["image"]}, log)
+            else:
+                log(f"[INFO] {name}: no new image (already up to date).")
+        except Exception as e:  # noqa: BLE001 - informational only
+            log(f"[WARN] {name}: could not compare images ({e}).")
+    return ok
+
+
+def _update_container(client, eid, name, log) -> bool:
     c = find(client, eid, name)
     if not c:
         log(f"[ERROR] container '{name}' not found (or it belongs to a stack).")
@@ -177,7 +196,7 @@ def _manual_recreate(client, eid, c, log) -> bool:
         new_id = client.create_container(name, body, eid)
         for n in nets:
             if n != first and not shared:
-                client.connect_network(n, new_id, ep(n), eid)
+                client.connect_network(n, new_id, eid, endpoint_config=ep(n))
         if was_running:
             client.container_action(new_id, "start", eid)
     except PortainerError as e:

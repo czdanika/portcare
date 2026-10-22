@@ -330,6 +330,27 @@ def _self_stack_names(client, eid) -> list:
 
 
 def redeploy_single_stack(client, stack, eid, log) -> bool:
+    """Redeploy + verify one stack, and record which services really got a
+    new image (changes.py) - the history and the UI show that."""
+    from . import changes
+    name = stack.get("Name", f"stack-{stack.get('Id')}")
+    project = _project_name(name)
+    before = changes.project_image_ids(client, project, eid)
+    ok = _redeploy_single_stack(client, stack, eid, log)
+    if ok:
+        try:
+            changed = changes.diff(before, changes.project_image_ids(client, project, eid))
+            if changed:
+                log(f"[CHANGED] {name}: new image for {', '.join(sorted(changed))}")
+                changes.record(name, changed, log)
+            elif before:
+                log(f"[INFO] {name}: no new image (already up to date).")
+        except Exception as e:  # noqa: BLE001 - informational only
+            log(f"[WARN] {name}: could not compare images ({e}).")
+    return ok
+
+
+def _redeploy_single_stack(client, stack, eid, log) -> bool:
     sid = stack["Id"]
     name = stack.get("Name", f"stack-{sid}")
     project = _project_name(name)
@@ -1199,6 +1220,7 @@ def run_full_update(runlog, stack_filter=None, targeted=False) -> bool:
     if stacks:
         ok_stacks, failed, excluded = redeploy_stacks(client, eid, stacks, runlog.log)
         runlog.step("redeploy_stacks", ok_stacks, f"failed: {', '.join(failed)}" if failed else "")
+        runlog.failed = list(getattr(runlog, "failed", []) or []) + list(failed)
         ok_sweep = reconciliation_sweep(client, eid, stacks, runlog.log)
         runlog.step("reconciliation_sweep", ok_sweep)
     else:
@@ -1206,6 +1228,7 @@ def run_full_update(runlog, stack_filter=None, targeted=False) -> bool:
     if ct_todo:
         from . import containers as cmod
         ct_failed = [n for n in ct_todo if not cmod.update_container(client, eid, n, runlog.log)]
+        runlog.failed = list(getattr(runlog, "failed", []) or []) + ["@" + n for n in ct_failed]
         runlog.step("update_containers", not ct_failed,
                     f"failed: {', '.join(ct_failed)}" if ct_failed else "")
         ok_stacks = ok_stacks and not ct_failed
