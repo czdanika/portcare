@@ -98,3 +98,33 @@ class TestScheduler:
         s = sch.Scheduler()
         s._run_update("scheduled")
         assert seen == [["web"]]
+
+
+class TestInstant:
+    def test_instant_policy_and_queue(self, tmp_state, monkeypatch):
+        from app import config as cfg, policies
+        cfg.load(force=True)
+        cfg.set("stack_policies", {"imm": {"mode": "instant"}, "db": {"mode": "notify"}})
+        assert policies.effective("imm") == "instant" and policies.instant("imm")
+        assert not policies.instant("web")                     # default + global off
+        cfg.set("update_schedule_mode", "instant")
+        assert policies.effective("web") == "instant" and policies.instant("web")
+        assert not policies.in_global_run("web")               # no clock-driven run
+        assert policies.in_manual_all("imm")
+        import app.scheduler as sch
+        importlib.reload(sch)
+        assert sch._next_full_from(time.time()) is None
+        s = sch.Scheduler()
+        res = {"checked_at": 1, "stacks": {
+            "imm": {"srv": {"update_available": True, "mode": "digest", "remote_digest": "sha:a"}},
+            "web": {"x": {"update_available": True, "mode": "semver", "latest_tag": "2.0"}},  # new tag: never auto
+            "db": {"pg": {"update_available": True, "mode": "digest", "remote_digest": "sha:d"}}}}
+        s.queue_instant(res)
+        assert set(s._instant_pending) == {"imm"}
+        # an attempted build is not queued again; a newer build is
+        s._instant_tried.update(s._instant_pending); s._instant_pending.clear()
+        s.queue_instant(res)
+        assert not s._instant_pending
+        res["stacks"]["imm"]["srv"]["remote_digest"] = "sha:b"
+        s.queue_instant(res)
+        assert set(s._instant_pending) == {"imm"}

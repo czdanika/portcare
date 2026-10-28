@@ -80,7 +80,7 @@ The image is rebuilt on every change to `main`. PortCare excludes its own stack 
 
 ## Schedule and per-stack rules
 
-- **Default schedule** (*Settings → Default schedule*): off (notify only), daily, weekly or every N hours. It applies to every stack that has no rule of its own.
+- **Default schedule** (*Settings → Default schedule*): off (notify only), right away (on a new build), daily, weekly or every N hours. It applies to every stack that has no rule of its own.
 - **Per-stack rule** (*Stacks* → the label under the stack name, or *Manage*):
 
 | Rule | What it does |
@@ -88,6 +88,7 @@ The image is rebuilt on every change to `main`. PortCare excludes its own stack 
 | Default | Updated by the default schedule. |
 | Notify only | Checked and flagged, but only updated by hand. |
 | Own schedule | Updated on its own day and time (daily or weekly). |
+| Updates right away | As soon as a check finds a new build (same tag), it is updated. It never switches to a new version (other tag) by itself. A check interval of 1–3 hours works well. |
 | Ignored | Not checked, not updated. |
 
 **"Update all"** redeploys stacks with the *Default* and *Own schedule* rules. *Notify only* and *Ignored* stacks are only updated with their own *Update* button.

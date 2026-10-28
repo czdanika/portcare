@@ -595,6 +595,7 @@ input:disabled,select:disabled{opacity:.6;cursor:not-allowed}
             <div class="field"><label data-i18n="set.mode"></label>
               <select id="sMode">
                 <option value="off" data-i18n="set.mode_off"></option>
+                <option value="instant" data-i18n="set.mode_instant"></option>
                 <option value="weekly" data-i18n="set.mode_weekly"></option>
                 <option value="daily" data-i18n="set.mode_daily"></option>
                 <option value="interval" data-i18n="set.mode_interval"></option>
@@ -820,7 +821,10 @@ hu:{
  'set.tls_hint_http':'HTTP címet adtál meg: a forgalom (és az API kulcs) titkosítás nélkül megy. Használd a https://…:9443 címet.',
  'set.cert_subject':'Tulajdonos','set.cert_issuer':'Kiállító','set.cert_valid':'Érvényes eddig','set.cert_fp':'Ujjlenyomat','set.cert_self':'saját aláírású',
  'set.cert_use':'Ezt rögzítem','set.cert_compare':'Hasonlítsd össze a Portainer felületén / böngészőben látható ujjlenyomattal.',
- 'set.schedule':'Alapértelmezett ütemezés','set.mode':'Automatikus frissítés (alapértelmezés)','set.mode_off':'Kikapcsolva – csak jelez','set.mode_weekly':'Hetente','set.mode_daily':'Naponta','set.mode_interval':'Óránként (N óránként)',
+ 'set.schedule':'Alapértelmezett ütemezés','set.mode':'Automatikus frissítés (alapértelmezés)','set.mode_off':'Kikapcsolva – csak jelez','set.mode_instant':'Azonnal, amint van új build',
+ 'set.mode_hint_instant':'Minden ellenőrzés után (lásd lent az ellenőrzés gyakoriságát) rögtön frissíti azokat a stackeket, amelyekhez ugyanazzal a taggel új build jelent meg. Új verziót (más taget) nem állít át magától – azt a Verzió gombbal teheted meg. Tipp: állítsd az ellenőrzést 1–3 órára.',
+ 'pol.instant':'Azonnal frissül','pol.instant_d':'Ha új build jelenik meg, rögtön frissül (nem vár időpontra)','pol.global_instant':'azonnal, ha van új build',
+ 'dash.sched_instant':'Azonnal','dash.sched_instant_sub':'új build esetén rögtön · következő ellenőrzés: {h} óra múlva','trig.instant':'azonnali','set.mode_weekly':'Hetente','set.mode_daily':'Naponta','set.mode_interval':'Óránként (N óránként)',
  'set.mode_hint_off':'Az alapértelmezett stackek nem frissülnek maguktól: ellenőriz, jelzi az újdonságokat, a frissítést te indítod. Stackenként eltérő szabály a Stackek oldalon állítható.','set.mode_hint_on':'A beállított időpontban az „Alapértelmezett” szabályú stackek frissülnek. Stackenként eltérő szabály (saját időpont, csak jelez, kihagyva) a Stackek oldalon állítható.',
  'set.interval':'Frissítés gyakorisága (óra)','set.weekday':'Nap','set.time':'Időpont','set.check_interval':'Új verziók keresése – ennyi óránként','set.check_hint':'A registryben (Docker Hub, GHCR) {h} óránként megnézi, van-e újabb image. Ez csak ellenőrzés, nem frissít. Következő: {t}.','set.cache':'Registry-válaszok megőrzése (perc)','set.cache_hint':'Ennyi ideig használja újra a Docker Hub / GHCR legutóbbi válaszát, mielőtt újra lekérdezné. Kíméli a letöltési korlátot (rate limit). A kézi „Ellenőrzés” gomb ezt figyelmen kívül hagyja.','set.server_time':'Szerveridő',
  'set.deploy':'Telepítés','set.parallel':'Párhuzamos telepítések','set.wait':'Várakozás stackenként (mp)','set.keep':'Megőrzött mentések',
@@ -923,7 +927,10 @@ en:{
  'set.tls_hint_http':'You entered an HTTP URL: traffic (including the API key) is unencrypted. Use https://…:9443.',
  'set.cert_subject':'Subject','set.cert_issuer':'Issuer','set.cert_valid':'Valid until','set.cert_fp':'Fingerprint','set.cert_self':'self-signed',
  'set.cert_use':'Pin this one','set.cert_compare':'Compare with the fingerprint shown by your browser for the Portainer UI.',
- 'set.schedule':'Default schedule','set.mode':'Automatic updates (default)','set.mode_off':'Off – notify only','set.mode_weekly':'Weekly','set.mode_daily':'Daily','set.mode_interval':'Every N hours',
+ 'set.schedule':'Default schedule','set.mode':'Automatic updates (default)','set.mode_off':'Off – notify only','set.mode_instant':'Right away when a new build appears',
+ 'set.mode_hint_instant':'After every check (see the check interval below) it immediately updates stacks that got a new build with the same tag. It never switches to a new version (other tag) by itself – use the Version button for that. Tip: set the check interval to 1–3 hours.',
+ 'pol.instant':'Updates right away','pol.instant_d':'Updated as soon as a new build appears (no waiting for a time slot)','pol.global_instant':'right away on a new build',
+ 'dash.sched_instant':'Right away','dash.sched_instant_sub':'on a new build · next check in {h} h','trig.instant':'instant','set.mode_weekly':'Weekly','set.mode_daily':'Daily','set.mode_interval':'Every N hours',
  'set.mode_hint_off':'Stacks on the default rule are never updated on their own: checked and flagged, you start the update. Per-stack rules are set on the Stacks page.','set.mode_hint_on':'At this time all stacks on the “Default” rule are updated. Per-stack rules (own schedule, notify only, ignored) are set on the Stacks page.',
  'set.interval':'Update interval (hours)','set.weekday':'Day','set.time':'Time','set.check_interval':'Look for new versions – every N hours','set.check_hint':'Every {h} hours it checks the registries (Docker Hub, GHCR) for newer images. This only checks, it never updates. Next: {t}.','set.cache':'Keep registry answers (minutes)','set.cache_hint':'How long the last Docker Hub / GHCR answer is reused before asking again. Protects the rate limit. The manual “Check” button ignores it.','set.server_time':'Server time',
  'set.deploy':'Deployment','set.parallel':'Parallel deploys','set.wait':'Wait per stack (s)','set.keep':'Backups to keep',
@@ -1122,7 +1129,8 @@ async function refresh(){
  const sc=s.scheduler||{};
  $('cServerTime').textContent=dayLoc(sc.server_time_local)||'–';
  $('cServerTzSub').textContent=sc.server_tz||'';
- if(s.schedule_off){$('cNext').textContent=t('dash.sched_off');$('cNext').style.color='var(--mut)';$('cNextSub').textContent=t('dash.sched_off_sub')}
+ if(sc.schedule_mode==='instant'){$('cNext').textContent=t('dash.sched_instant');$('cNext').style.color='';$('cNextSub').textContent=t('dash.sched_instant_sub',{h:Math.round(((sc.next_check||0)-Date.now()/1000)/360)/10})}
+ else if(s.schedule_off){$('cNext').textContent=t('dash.sched_off');$('cNext').style.color='var(--mut)';$('cNextSub').textContent=t('dash.sched_off_sub')}
  else if(sc.next_full_update){
   const delta=Math.round((sc.next_full_update-Date.now()/1000)/60);
   if(delta<0){$('cNext').textContent=t('dash.overdue');$('cNext').style.color='var(--warn)';$('cNextSub').textContent=''}
@@ -1284,13 +1292,14 @@ function modeTxt(m){return m==='digest'?t('stacks.mode_digest'):m==='semver'?t('
 const DAYS_SHORT={hu:['H','K','Sze','Cs','P','Szo','V'],en:['Mon','Tue','Wed','Thu','Fri','Sat','Sun']};
 function schedTxt(kind,day,tm){return kind==='weekly'?`${t('days')[day||0]} ${tm}`:`${t('pol.daily')} ${tm}`}
 function globalSchedTxt(){const sc=(lastStatus&&lastStatus.scheduler)||{};const m=sc.schedule_mode;
- if(!m||m==='off')return t('pol.global_off');if(m==='interval')return t('pol.every_h',{h:sc.interval_hours});
+ if(!m||m==='off')return t('pol.global_off');if(m==='instant')return t('pol.global_instant');if(m==='interval')return t('pol.every_h',{h:sc.interval_hours});
  return m==='weekly'?schedTxt('weekly',sc.schedule_day,sc.schedule_time):schedTxt('daily',0,sc.schedule_time)}
 function polText(p,eff){p=p||{mode:'default'};
+ if(p.mode==='instant')return t('pol.instant');
  if(p.mode==='notify')return t('pol.notify');if(p.mode==='ignore')return t('pol.ignore');
  if(p.mode==='schedule')return t('pol.own')+': '+schedTxt(p.kind,p.day,p.time);
  return t('pol.default')+' · '+globalSchedTxt()}
-function polCls(eff){return eff==='auto'||eff==='own'?'b-info':eff==='ignore'?'b-mut':'b-warn'}
+function polCls(eff){return eff==='instant'?'b-ok':eff==='auto'||eff==='own'?'b-info':eff==='ignore'?'b-mut':'b-warn'}
 function polBadge(st){return `<button class="badge ${polCls(st.effective)}" data-act="policy" data-nm="${esc(st.name)}" title="${esc(t('pol.edit'))}"><svg class="i"><use href="#i-cal"/></svg>${esc(polText(st.policy,st.effective))}</button>`}
 function relLink(v,always){const u=v&&v.release_url;if(!u||!/^https:\/\//.test(u)||(!always&&!v.update_available))return'';
  return `<a class="rel" href="${esc(u)}" target="_blank" rel="noopener noreferrer" title="${esc(t('rel.title'))}"><svg class="i"><use href="#i-ext"/></svg>${esc(t('rel.link'))}</a>`}
@@ -1416,7 +1425,7 @@ function renderPolicyBox(d,focus){
  const opt=(v,ti,de)=>`<label class="pol-opt${p.mode===v?' on':''}"><input type="radio" name="polMode" value="${v}"${p.mode===v?' checked':''}><div><b>${esc(t(ti))}</b><span>${esc(de)}</span></div></label>`;
  box.innerHTML=`<div class="pol-box${focus?' focus':''}"><div class="spread"><b><svg class="i" style="vertical-align:-2px"><use href="#i-cal"/></svg> ${esc(t('pol.title'))}</b>
    <span class="small muted" id="polNext"></span></div>
-  <div class="pol-opts">${opt('default','pol.default',globalSchedTxt())}${opt('notify','pol.notify',t('pol.notify_d'))}${opt('schedule','pol.own',t('pol.own_d'))}${opt('ignore','pol.ignore',t('pol.ignore_d'))}</div>
+  <div class="pol-opts">${opt('default','pol.default',globalSchedTxt())}${opt('notify','pol.notify',t('pol.notify_d'))}${opt('schedule','pol.own',t('pol.own_d'))}${opt('instant','pol.instant',t('pol.instant_d'))}${opt('ignore','pol.ignore',t('pol.ignore_d'))}</div>
   <div class="row hidden" id="polOwn" style="margin-top:.6rem">
    <select id="polKind" style="width:auto"><option value="daily">${esc(t('pol.daily'))}</option><option value="weekly">${esc(t('pol.weekly'))}</option></select>
    <select id="polDay" style="width:auto">${t('days').map((x,i)=>`<option value="${i}">${esc(x)}</option>`).join('')}</select>
@@ -1562,7 +1571,7 @@ async function loadSettings(){
  }catch(e){if(!(e instanceof AuthError))toast(e.message,'err')}}
 function toggleScheduleMode(){const m=$('sMode').value;
  $('modeInterval').classList.toggle('hidden',m!=='interval');$('modeTime').classList.toggle('hidden',m!=='daily'&&m!=='weekly');
- $('modeWeekly').classList.toggle('hidden',m!=='weekly');$('modeHint').textContent=t(m==='off'?'set.mode_hint_off':'set.mode_hint_on')}
+ $('modeWeekly').classList.toggle('hidden',m!=='weekly');$('modeHint').textContent=t(m==='off'?'set.mode_hint_off':m==='instant'?'set.mode_hint_instant':'set.mode_hint_on')}
 $('sMode').onchange=toggleScheduleMode;
 function updateCheckHint(){const h=+$('sCheckInt').value||12;const nc=lastStatus&&lastStatus.scheduler&&lastStatus.scheduler.next_check;
  $('checkHint').textContent=t('set.check_hint',{h,t:nc?new Date(nc*1000).toLocaleString(loc(),{weekday:'short',hour:'2-digit',minute:'2-digit'}):'–'})}

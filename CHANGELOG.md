@@ -1,5 +1,11 @@
 # Változások / Changelog
 
+## v1.1.0 – 2026-10-28
+
+- **Azonnali frissítés**: új szabály stackekre és konténerekre („Azonnal frissül”), illetve alapértelmezett ütemezésként („Azonnal, amint van új build”). Minden ellenőrzés után rögtön frissíti, amihez ugyanazzal a taggel új build jelent meg. Új verzióra (más tag) magától nem vált.
+- Egy sikertelen azonnali frissítést nem próbál újra ugyanarra a buildre, csak ha újabb build jön.
+- **Instant updates**: new rule for stacks / containers and as the default schedule; updates a new build of the same tag right after the check that found it.
+
 ## v1.0.0 – 2026-10-22
 
 Az első önálló kiadás. / First standalone release.

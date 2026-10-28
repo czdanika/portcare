@@ -83,7 +83,7 @@ Ha egy konkrét verziót szeretnél használni, a `:latest` helyett írd be a ki
 
 ## Ütemezés és stackenkénti szabályok
 
-- **Alapértelmezett ütemezés** (*Beállítások → Alapértelmezett ütemezés*): kikapcsolva (csak jelez), naponta, hetente vagy N óránként. Ez minden olyan stackre vonatkozik, amelynek nincs saját szabálya.
+- **Alapértelmezett ütemezés** (*Beállítások → Alapértelmezett ütemezés*): kikapcsolva (csak jelez), azonnal (amint van új build), naponta, hetente vagy N óránként. Ez minden olyan stackre vonatkozik, amelynek nincs saját szabálya.
 - **Stackenkénti szabály** (*Stackek* → a stack neve alatti címke, vagy *Kezelés*):
 
 | Szabály | Mit csinál |
@@ -91,6 +91,7 @@ Ha egy konkrét verziót szeretnél használni, a `:latest` helyett írd be a ki
 | Alapértelmezett | Az alapértelmezett ütemezéssel frissül. |
 | Csak jelez | Ellenőrzi és jelzi az új verziót, de csak kézzel frissül. |
 | Saját időpont | Saját napon és időpontban frissül (naponta vagy hetente). |
+| Azonnal frissül | Amint egy ellenőrzés új buildet talál (ugyanazzal a taggel), rögtön frissül. Új verzióra (más tag) magától nem vált. Érdemes az ellenőrzést 1–3 órára állítani. |
 | Kihagyva | Nem ellenőrzi és nem frissíti. |
 
 Az **„Összes frissítése”** gomb az *Alapértelmezett* és a *Saját időpont* szabályú stackeket frissíti. A *Csak jelez* és a *Kihagyva* szabályú stackek csak a saját *Frissítés* gombjukkal frissülnek.

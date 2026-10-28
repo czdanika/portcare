@@ -5,6 +5,7 @@ Every stack has one mode:
   default   follows the global schedule (Settings > Schedule)            [default]
   notify    never updated automatically - only checked and flagged
   schedule  own schedule: daily / weekly at HH:MM (server time, TZ env)
+  instant   updated right after a check finds a new build (same tag)
   ignore    skipped completely - no registry check, no automatic update
 
 Manual "Update all" redeploys the stacks in `default` + `schedule` mode;
@@ -15,7 +16,7 @@ import re
 import time
 from datetime import datetime, timedelta
 
-MODES = ("default", "notify", "schedule", "ignore")
+MODES = ("default", "notify", "schedule", "instant", "ignore")
 KINDS = ("daily", "weekly")
 _TIME_RE = re.compile(r"^([01]\d|2[0-3]):([0-5]\d)$")
 _NAME_RE = re.compile(r"^@?[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$")  # "@name" = standalone container
@@ -87,14 +88,25 @@ def get_policy(name: str) -> dict:
 
 def global_auto() -> bool:
     from .config import get
-    return get("update_schedule_mode", "off") != "off"
+    return get("update_schedule_mode", "off") not in ("off", "instant")
+
+
+def global_instant() -> bool:
+    from .config import get
+    return get("update_schedule_mode", "off") == "instant"
+
+
+def instant(name: str) -> bool:
+    """Update as soon as a check finds a new build."""
+    m = get_policy(name)["mode"]
+    return m == "instant" or (m == "default" and global_instant())
 
 
 def effective(name: str) -> str:
-    """'auto' (global schedule) | 'own' | 'notify' | 'ignore'."""
+    """'auto' (global schedule) | 'own' | 'instant' | 'notify' | 'ignore'."""
     m = get_policy(name)["mode"]
     if m == "default":
-        return "auto" if global_auto() else "notify"
+        return "instant" if global_instant() else "auto" if global_auto() else "notify"
     return {"schedule": "own"}.get(m, m)
 
 
@@ -104,12 +116,12 @@ def ignored(name: str) -> bool:
 
 def in_global_run(name: str) -> bool:
     """Scheduled global run: only stacks that follow the global schedule."""
-    return get_policy(name)["mode"] == "default"
+    return get_policy(name)["mode"] == "default" and not global_instant()
 
 
 def in_manual_all(name: str) -> bool:
     """Manual 'Update all': default + own-schedule stacks."""
-    return get_policy(name)["mode"] in ("default", "schedule")
+    return get_policy(name)["mode"] in ("default", "schedule", "instant")
 
 
 def own_schedules() -> dict:

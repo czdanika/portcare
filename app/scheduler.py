@@ -44,8 +44,8 @@ def _spec() -> str:
     Persisted alongside next-run timestamps: if the config's spec changes
     while the app is off, the next-run times are recomputed on boot."""
     mode = get("update_schedule_mode", "interval")
-    if mode == "off":
-        return "off"
+    if mode in ("off", "instant"):
+        return mode
     if mode == "interval":
         return f"interval:{get('update_interval_hours', 168)}"
     t = get("update_schedule_time", "03:30")
@@ -58,6 +58,8 @@ def _schedule_desc() -> str:
     mode = get("update_schedule_mode", "interval")
     if mode == "off":
         return "automatic updates off (check only)"
+    if mode == "instant":
+        return "update as soon as a new build is found"
     if mode == "interval":
         return f"every {get('update_interval_hours', 168)}h"
     t = get("update_schedule_time", "03:30")
@@ -68,9 +70,10 @@ def _schedule_desc() -> str:
 
 def _next_full_from(now_ts: float) -> float:
     """Compute the next full-update epoch from the configured schedule.
-    Returns None when automatic updates are switched off."""
+    Returns None when automatic updates are switched off (or 'instant':
+    those runs are started by the checks, not by the clock)."""
     mode = get("update_schedule_mode", "interval")
-    if mode == "off":
+    if mode in ("off", "instant"):
         return None
     if mode != "daily" and mode != "weekly":
         return now_ts + max(1, int(get("update_interval_hours", 168))) * 3600
@@ -151,6 +154,9 @@ def notify_updates(result):
 
 class Scheduler:
     def __init__(self):
+        self._instant_pending: dict = {}
+        self._instant_tried: dict = {}
+        self._instant_lock = threading.Lock()
         self._stop = threading.Event()
         self._thread = None
         self.next_full_update = None
@@ -249,6 +255,61 @@ class Scheduler:
                                       "spec": policies.spec(pol)}
         self._persist()
 
+    # ---------------------------------------------------- instant updates
+    def queue_instant(self, result):
+        """Called after every completed check: remember stacks / containers
+        whose rule is 'instant' and that have a NEW BUILD (same tag, new
+        digest - a redeploy pulls it). Newer tags are never applied
+        automatically. Each (name, digests) is tried once: a failed attempt
+        is not repeated until a newer build appears."""
+        if not result or result.get("running") or not result.get("checked_at"):
+            return
+        todo = {}
+        for name, svcs in (result.get("stacks") or {}).items():
+            builds = sorted(f"{s}={v.get('remote_digest') or ''}" for s, v in (svcs or {}).items()
+                            if v.get("update_available") and v.get("mode") != "semver")
+            if builds and policies.instant(name):
+                key = "|".join(builds)
+                if self._instant_tried.get(name) != key:
+                    todo[name] = key
+        with self._instant_lock:
+            self._instant_pending.update(todo)
+
+    def _run_instant(self):
+        with self._instant_lock:
+            pending = dict(self._instant_pending)
+        if not pending:
+            return
+        if not gate.try_acquire("update"):
+            return  # another job is running - next tick
+        with self._instant_lock:
+            for n in pending:
+                self._instant_pending.pop(n, None)
+        self._instant_tried.update(pending)
+        names = sorted(pending)
+        runlog = None
+        try:
+            runlog = RunLogger("full", "instant")
+            gate.set_runlog(runlog)
+            runlog.log(f"[INFO] New build found, updating right away (rule: instant): {', '.join(names)}")
+            wanted = set(names)
+            ok = updater.run_full_update(runlog, stack_filter=lambda n: n in wanted, targeted=True)
+            runlog.finish(ok)
+            self._notify_run(runlog, ok)
+            if not ok:
+                self._notify_failure(runlog)
+        except Exception:
+            self.last_error = traceback.format_exc()
+            print(f"[scheduler] instant run crashed:\n{self.last_error}", file=sys.stderr, flush=True)
+            if runlog:
+                try:
+                    runlog.log("[ERROR] instant run crashed:\n" + self.last_error)
+                except Exception:  # noqa: BLE001
+                    pass
+                runlog.finish(False)
+        finally:
+            gate.release()
+
     def _loop(self):
         while not self._stop.wait(10):
             self.last_tick = time.time()
@@ -268,6 +329,7 @@ class Scheduler:
                     self._bump_full()
                 self._sync_stack_schedules(now)
                 self._run_due_stacks(now)
+                self._run_instant()
             except Exception:
                 # never swallow: log to stderr (visible in journald/systemd)
                 self.last_error = traceback.format_exc()

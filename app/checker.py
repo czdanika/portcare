@@ -224,6 +224,7 @@ def _after_check(result) -> None:
     try:
         from . import scheduler
         scheduler.notify_updates(result)
+        scheduler.scheduler.queue_instant(result)
     except Exception:  # noqa: BLE001 - notifications must never break checks
         import sys
         import traceback
