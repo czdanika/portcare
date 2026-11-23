@@ -1,5 +1,10 @@
 # Változások / Changelog
 
+## Kiadatlan / Unreleased
+
+- **Javítás:** önálló konténer frissítésekor a Portainer „Recreate” API-ja nem vitte át a névtelen volume-okat (image `VOLUME`), így minden frissítés új volume-ot hozott létre, a régi árván maradt (pl. `nextcloud:latest` frissítésenként ~860 MB). Ha a konténernek van névtelen volume-ja, a PortCare mostantól a kézi újralétrehozást használja, ami visszacsatolja őket.
+- **Fix:** Portainer's Recreate API dropped anonymous volumes when updating standalone containers, leaking one orphaned volume per update. Containers with anonymous volumes now use the manual recreate, which re-attaches them.
+
 ## v1.1.0 – 2026-10-28
 
 - **Azonnali frissítés**: új szabály stackekre és konténerekre („Azonnal frissül”), illetve alapértelmezett ütemezésként („Azonnal, amint van új build”). Minden ellenőrzés után rögtön frissíti, amihez ugyanazzal a taggel új build jelent meg. Új verzióra (más tag) magától nem vált.

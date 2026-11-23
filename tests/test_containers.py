@@ -6,10 +6,11 @@ from app.portainer import PortainerError
 
 
 class FakeDocker:
-    def __init__(self, containers, stacks=(), recreate="ok"):
+    def __init__(self, containers, stacks=(), recreate="ok", anon=True):
         self.containers = list(containers)
         self.stacks_list = list(stacks)
         self.recreate_mode = recreate
+        self.anon = anon
         self.calls = []
         self.endpoint_id = 3
 
@@ -24,7 +25,9 @@ class FakeDocker:
         return {"State": {"Running": c["State"] == "running", "Status": c["State"]},
                 "Config": {"Image": c["Image"], "Hostname": cid[:12], "Env": ["A=1"]},
                 "HostConfig": {"NetworkMode": "bridge", "Binds": ["/data:/data"]},
-                "Mounts": [{"Type": "volume", "Name": "a" * 64, "Destination": "/cache"}],
+                "Mounts": ([{"Type": "volume", "Name": "a" * 64, "Destination": "/cache"}]
+                           if self.anon else
+                           [{"Type": "bind", "Source": "/data", "Destination": "/data"}]),
                 "NetworkSettings": {"Networks": {"bridge": {}, "extra": {"Aliases": ["x"]}}},
                 "Name": "/" + c["Names"][0].lstrip("/")}
 
@@ -90,10 +93,22 @@ def test_standalone_detection(tmp_state):
 
 def test_update_via_portainer_recreate(tmp_state):
     from app import containers as cm
-    d = FakeDocker([_ct("ha")])
+    d = FakeDocker([_ct("ha")], anon=False)
     logs = []
     assert cm.update_container(d, 3, "ha", logs.append) is True
     assert d.calls[0][0] == "recreate"
+
+
+def test_anonymous_volumes_skip_portainer_recreate(tmp_state):
+    """Portainer's Recreate would orphan anonymous volumes -> manual path."""
+    from app import containers as cm
+    d = FakeDocker([_ct("nextcloud", image="nextcloud:latest")])
+    logs = []
+    assert cm.update_container(d, 3, "nextcloud", logs.append) is True
+    assert not any(c[0] == "recreate" for c in d.calls)
+    create = next(c for c in d.calls if c[0] == "create")
+    assert ("a" * 64 + ":/cache") in create[2]["HostConfig"]["Binds"]
+    assert any("anonymous volume" in l for l in logs)
 
 
 def test_manual_fallback_keeps_volumes_and_networks(tmp_state):
@@ -129,7 +144,7 @@ def test_manual_fallback_rolls_back(tmp_state):
 
 def test_pull_denied_gives_hint(tmp_state):
     from app import containers as cm
-    d = FakeDocker([_ct("bot", image="binance-trading-bot:pr708")], recreate="denied")
+    d = FakeDocker([_ct("bot", image="binance-trading-bot:pr708")], recreate="denied", anon=False)
     logs = []
     assert cm.update_container(d, 3, "bot", logs.append) is False
     assert any("[HINT]" in l for l in logs)

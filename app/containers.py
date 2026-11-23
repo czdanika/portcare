@@ -93,6 +93,16 @@ def _update_container(client, eid, name, log) -> bool:
         log(f"[ERROR] container '{name}' not found (or it belongs to a stack).")
         return False
     log(f"Processing container: {name} ({c['image']})")
+    # Portainer's Recreate API does NOT carry anonymous volumes (image VOLUMEs)
+    # over: the new container gets fresh ones and the old ones are left behind
+    # as orphans (e.g. nextcloud:latest leaked ~860 MB per update). Containers
+    # with anonymous volumes therefore always use the manual recreate, which
+    # re-attaches them.
+    anon = _anonymous_volumes(client, eid, c["id"])
+    if anon:
+        log(f"[INFO] {name}: {len(anon)} anonymous volume(s) "
+            f"({', '.join(anon)}) - manual recreate to keep them.")
+        return _manual_recreate(client, eid, c, log)
     try:
         client.recreate_container(c["id"], eid, pull=True)
         log(f"[INFO] {name}: recreated by Portainer (image pulled).")
@@ -105,6 +115,16 @@ def _update_container(client, eid, name, log) -> bool:
             return False
         log(f"[INFO] {name}: this Portainer has no recreate API - manual recreate.")
     return _manual_recreate(client, eid, c, log)
+
+
+def _anonymous_volumes(client, eid, cid) -> list:
+    """Destinations of the container's anonymous (64-hex named) volumes."""
+    try:
+        info = client.inspect_container(cid, eid)
+    except PortainerError:
+        return []
+    return [m.get("Destination") or "?" for m in info.get("Mounts") or []
+            if m.get("Type") == "volume" and _ANON_VOL.match(m.get("Name") or "")]
 
 
 def _hint(name, msg, log):
